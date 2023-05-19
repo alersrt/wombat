@@ -1,0 +1,16 @@
+## Ignore all files
+*
+
+## Include project files
+
+# Sources
+!/src/
+
+# Maven
+!pom.xml
+!/.m2/
+!/target/
+
+## Exclude IDE files
+# JetBrains
+*.iml
