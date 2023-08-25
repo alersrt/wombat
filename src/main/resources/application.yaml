@@ -1,0 +1,12 @@
+server:
+  error:
+    disable-default-exception-handling: true
+    whitelabel:
+      enabled: false
+spring:
+  main:
+    banner-mode: off
+
+logging:
+  level:
+    root: info
