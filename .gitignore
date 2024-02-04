@@ -6,7 +6,6 @@
 !/docker/
 
 # Backend
-!pom.xml
 !system.properties
 
 # Infrastructure
@@ -19,11 +18,6 @@
 # Documentation
 !README.md
 !CONTRIBUTING.md
-
-# Maven wrapper
-!mvnw
-!mvnw.cmd
-!.mvn
 
 ## Exclude IDE files
 # JetBrains
