@@ -59,96 +59,45 @@ endif
 ###########
 
 build:
-	@make yarn yarncmd='run build'
-	@make maven.build
+	@make go.build
 
-clean: maven.clean
+clean: go.clean
 
 # Resolve all project dependencies.
 #
 # Usage:
 #	make deps
 
-deps:
-	@make yarn.deps
-	@make maven.deps
-
-docs: maven.docs
-
-down: docker.down
-
-up: docker.up
+deps: go.deps
 
 
 
+###############
+# Go commands #
+###############
 
-##################
-# Maven commands #
-##################
+pkgname = blurhash-cli
+pkgver ?= 1.0.0
+builddir ?= ./build/bin
+mainpath ?= ./cmd/cli/main.go
 
-# Maven command.
-#
-# Usage:
-#	make mvn [task=]
-task ?=
-maven.image = 3-openjdk-16
+go.build:
+	mkdir -p ${builddir}
+	export CGO_CPPFLAGS="${CPPFLAGS}"
+	export CGO_CFLAGS="${CFLAGS}"
+	export CGO_CXXFLAGS="${CXXFLAGS}"
+	export CGO_LDFLAGS="${LDFLAGS}"
+	export GOFLAGS="-buildmode=pie -trimpath -ldflags=-linkmode=external -mod=readonly -modcacherw"
+	GOARCH=amd64 GOOS=darwin go build -o ${builddir}/${pkgname}-${pkgver}-darwin ${mainpath}
+	GOARCH=amd64 GOOS=linux go build -o ${builddir}/${pkgname}-${pkgver}-linux ${mainpath}
+	GOARCH=amd64 GOOS=windows go build -o ${builddir}/${pkgname}-${pkgver}-windows ${mainpath}
 
-maven:
-	mkdir -p $(PWD)/.m2
-	./mvnw -Duser.home=$(PWD) $(task)
+go.clean:
+	go clean
+	rm -rf ${builddir}
 
-# clean command
-maven.clean:
-	@make maven task='clean'
-
-# deps command
-maven.deps:
-	@make maven task='dependency:go-offline'
-
-# build command
-maven.build:
-	@make maven task='-Dmaven.test.skip package'
-
-# docs command
-maven.docs:
-	@make maven task='-Dmaven.test.skip javadoc:javadoc'
-
-# test command
-maven.test:
-	@make maven task='test jacoco:report'
-
-
-####################
-# Node.js commands #
-####################
-
-# Yarn command.
-#
-# Usage:
-#	make yarn [yarn-cmd=]
-yarncmd ?=
-
-yarn:
-	docker run \
-		--rm \
-		--user $(shell id -u):$(shell id -g) \
-		-v "$(PWD)":/app -w /app \
-		-e YARN_CACHE_FOLDER=/app/_cache/yarn \
-		node \
-			yarn --non-interactive $(yarncmd)
-
-# Resolve Yarn project dependencies.
-#
-# Optional 'cmd' parameter may be used for handy usage of docker-wrapped Yarn,
-# for example: make yarn.deps cmd='upgrade'
-#
-# Usage:
-#	make yarn.deps [cmd=('install --pure-lockfile'|<yarn-cmd>)]
-
-yarn-deps-cmd = $(if $(call eq,$(cmd),),install --pure-lockfile,$(cmd))
-
-yarn.deps:
-	@make yarn yarncmd='$(yarn-deps-cmd)'
+go.deps:
+	go mod download
 
 
 
@@ -161,7 +110,6 @@ yarn.deps:
 #
 # Usage:
 docker.run:
-
 
 # Stop project in Docker Compose development environment
 # and remove all related containers.
@@ -190,7 +138,6 @@ docker.up:
 
 
 .PHONY: squash \
-		clean deps build docs up down \
-		maven maven.clean maven.docs maven.build maven.deps maven.test \
-		yarn yarn.deps \
+		go.clean go.build go.deps \
+		clean deps build up down \
 		docker.up docker.down
