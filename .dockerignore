@@ -6,10 +6,11 @@
 # Sources
 !/src/
 
-# Maven
-!pom.xml
-!/.m2/
-!/target/
+# Go
+!go.mod
+!/.go
+!/build
+!/vendor
 
 ## Exclude IDE files
 # JetBrains

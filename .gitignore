@@ -6,9 +6,10 @@
 !/docker/
 
 # Backend
-.go
-vendor
-build/bin
+/.go
+/vendor
+/build/bin
+!go.mod
 !system.properties
 
 # Infrastructure
