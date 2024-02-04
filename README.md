@@ -41,3 +41,5 @@ The main idea about authentication and authorization is using messenger user ide
 How it looks work to:
 - User setups its messenger user ID in Jira profile.
 - When message is coming via Telegram API, it is going to be processed by filter what looks in Crowd by user ID in messenger field and allowed groups.
+
+[extra]: https://github.com/golang-standards/project-layout
