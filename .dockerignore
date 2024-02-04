@@ -4,7 +4,9 @@
 ## Include project files
 
 # Sources
-!/src/
+!/cmd/
+!/internal/
+!/pkg/
 
 # Go
 !go.mod
