@@ -8,9 +8,9 @@
 !/docker/
 
 # Backend
-/.go
 /vendor
 /build/bin
+/.go
 !go.mod
 !system.properties
 
