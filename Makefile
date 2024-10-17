@@ -76,7 +76,7 @@ deps: go.deps
 # Go commands #
 ###############
 
-pkgname = blurhash-cli
+pkgname = wombat
 pkgver ?= 0.1.0
 builddir ?= ./build/bin
 mainpath ?= ./cmd/main.go
