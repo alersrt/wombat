@@ -7,7 +7,8 @@ import (
 )
 
 func main() {
-	daemon.Create(&config.Config{}, func() {
+	conf := &config.Config{}
+	daemon.Create(conf, func() {
 		log.Println("asdasd")
 	})
 }
