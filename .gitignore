@@ -2,7 +2,7 @@
 /*
 
 ## Include project files
-!/cmd/
+!/main/
 !/internal/
 !/pkg/
 !/docker/

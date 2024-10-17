@@ -1,0 +1,6 @@
+bot:
+  tag: "^(\\w+-\\d+)$"
+  emoji: "📨"
+telegram:
+  token: "<your telegram bot token>"
+  webhook: "<your webhook link>"
