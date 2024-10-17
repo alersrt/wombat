@@ -4,7 +4,7 @@
 ## Include project files
 
 # Sources
-!/main/
+!/cmd/
 !/internal/
 !/pkg/
 

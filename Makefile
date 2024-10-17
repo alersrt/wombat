@@ -77,9 +77,9 @@ deps: go.deps
 ###############
 
 pkgname = blurhash-cli
-pkgver ?= 1.0.0
+pkgver ?= 0.1.0
 builddir ?= ./build/bin
-mainpath ?= ./cmd/cli/main.go
+mainpath ?= ./cmd/main.go
 
 go.build:
 	mkdir -p ${builddir}
