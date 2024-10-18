@@ -3,6 +3,7 @@ package config
 import (
 	"flag"
 	"gopkg.in/yaml.v2"
+	"log"
 	"os"
 )
 
@@ -18,14 +19,18 @@ type Config struct {
 }
 
 func (receiver *Config) Init(args []string) error {
+	log.Println("Wombat initialization...")
+
 	flags := flag.NewFlagSet(args[0], flag.ExitOnError)
-	configPath := flags.String("c", "./cmd/config.yaml", "path to config")
+	configPath := flags.String("c", "./main/config.yaml", "path to config")
 
 	if err := flags.Parse(args[1:]); err != nil {
 		return err
 	}
 
 	config := &Config{}
+	defer log.Println(*config)
+	defer log.Println(*configPath)
 
 	file, err := os.Open(*configPath)
 	if err != nil {

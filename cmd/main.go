@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 	"wombat/internal/config"
 	"wombat/pkg/daemon"
 )
@@ -9,6 +10,7 @@ import (
 func main() {
 	conf := &config.Config{}
 	daemon.Create(conf, func() {
-		log.Println("asdasd")
+		time.Sleep(1 * time.Second)
+		log.Println("<<-->>")
 	})
 }
