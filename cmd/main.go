@@ -8,9 +8,10 @@ import (
 )
 
 func main() {
-	conf := &config.Config{}
-	daemon.Create(conf, func() {
+	conf := config.Config{}
+	daemon.Create(&conf, func() {
 		time.Sleep(1 * time.Second)
 		log.Println("<<-->>")
+		log.Println(conf)
 	})
 }

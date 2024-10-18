@@ -28,9 +28,8 @@ func (receiver *Config) Init(args []string) error {
 		return err
 	}
 
-	config := &Config{}
-	defer log.Println(*config)
-	defer log.Println(*configPath)
+	defer log.Println(receiver)
+	defer log.Println("Config file: " + *configPath)
 
 	file, err := os.Open(*configPath)
 	if err != nil {
@@ -39,7 +38,7 @@ func (receiver *Config) Init(args []string) error {
 	defer file.Close()
 
 	d := yaml.NewDecoder(file)
-	if err := d.Decode(&config); err != nil {
+	if err := d.Decode(receiver); err != nil {
 		return err
 	}
 
