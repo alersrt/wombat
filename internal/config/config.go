@@ -28,7 +28,6 @@ func (receiver *Config) Init(args []string) error {
 		return err
 	}
 
-	defer log.Println(receiver)
 	defer log.Println("Config file: " + *configPath)
 
 	file, err := os.Open(*configPath)

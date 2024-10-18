@@ -12,6 +12,6 @@ func main() {
 	daemon.Create(&conf, func() {
 		time.Sleep(1 * time.Second)
 		log.Println("<<-->>")
-		log.Println(conf)
+		log.Println(conf.Bot.Emoji)
 	})
 }
