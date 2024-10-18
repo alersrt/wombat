@@ -22,7 +22,7 @@ func (receiver *Config) Init(args []string) error {
 	log.Println("Wombat initialization...")
 
 	flags := flag.NewFlagSet(args[0], flag.ExitOnError)
-	configPath := flags.String("c", "./main/config.yaml", "path to config")
+	configPath := flags.String("config", "./cmd/config.yaml", "path to config")
 
 	if err := flags.Parse(args[1:]); err != nil {
 		return err
