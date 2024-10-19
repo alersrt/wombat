@@ -2,10 +2,10 @@ package daemon
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	. "wombat/pkg/log"
 )
 
 func Create(conf Config, task func()) {
@@ -32,21 +32,20 @@ func Create(conf Config, task func()) {
 					os.Exit(1)
 				}
 			case <-ctx.Done():
-				log.Printf("Done.")
+				InfoLog.Println("Done.")
 				os.Exit(1)
 			}
 		}
 	}()
 
 	if err := run(ctx, conf, task); err != nil {
-		log.Printf("%s\n", err)
+		ErrorLog.Printf("%s\n", err)
 		os.Exit(1)
 	}
 }
 
 func run(ctx context.Context, conf Config, task func()) error {
 	conf.Init(os.Args)
-	log.SetOutput(os.Stdout)
 
 	for {
 		select {

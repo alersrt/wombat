@@ -2,9 +2,9 @@ package main
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"log"
 	"wombat/internal/config"
 	"wombat/pkg/daemon"
+	. "wombat/pkg/log"
 )
 
 func main() {
@@ -12,15 +12,15 @@ func main() {
 	daemon.Create(conf, func() {
 		bot, err := tgbotapi.NewBotAPI(conf.Telegram.Token)
 		if err != nil {
-			log.Panic(err)
+			ErrorLog.Fatal(err)
 		}
 
 		bot.Debug = true
 
-		log.Printf("Authorized on account %s", bot.Self.UserName)
+		InfoLog.Printf("Authorized on account %s", bot.Self.UserName)
 
 		u := tgbotapi.NewUpdate(0)
-		u.AllowedUpdates = append(u.AllowedUpdates, tgbotapi.UpdateTypeMessageReaction)
+		u.AllowedUpdates = append(u.AllowedUpdates, tgbotapi.UpdateTypeMessageReaction, tgbotapi.UpdateTypeMessage)
 		u.Timeout = 60
 
 		updates := bot.GetUpdatesChan(u)
@@ -28,14 +28,16 @@ func main() {
 		for update := range updates {
 
 			if update.MessageReaction != nil {
-				log.Printf("[%s] %s", update.MessageReaction.User.UserName, update.MessageReaction.NewReaction)
-				msg := tgbotapi.NewMessage(update.MessageReaction.Chat.ID, "Emoji")
-				msg.ReplyParameters.MessageID = update.MessageReaction.MessageID
+				InfoLog.Printf("[%s] %s", update.MessageReaction.User.UserName, update.MessageReaction.NewReaction)
+				msg := tgbotapi.NewCopyMessage(update.MessageReaction.Chat.ID, update.MessageReaction.Chat.ID, update.MessageReaction.MessageID)
 				_, err := bot.Send(msg)
 				if err != nil {
-					log.Panic(err)
+					InfoLog.Println(err)
 				}
-				log.Println(update.MessageReaction)
+			}
+
+			if update.Message != nil {
+				InfoLog.Println(update.Message.Text)
 			}
 		}
 	})
