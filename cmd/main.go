@@ -20,18 +20,22 @@ func main() {
 		log.Printf("Authorized on account %s", bot.Self.UserName)
 
 		u := tgbotapi.NewUpdate(0)
+		u.AllowedUpdates = append(u.AllowedUpdates, tgbotapi.UpdateTypeMessageReaction)
 		u.Timeout = 60
 
 		updates := bot.GetUpdatesChan(u)
 
 		for update := range updates {
-			if update.Message != nil { // If we got a message
-				log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-				msg.ReplyToMessageID = update.Message.MessageID
-
-				bot.Send(msg)
+			if update.MessageReaction != nil {
+				log.Printf("[%s] %s", update.MessageReaction.User.UserName, update.MessageReaction.NewReaction)
+				msg := tgbotapi.NewMessage(update.MessageReaction.Chat.ID, "Emoji")
+				msg.ReplyParameters.MessageID = update.MessageReaction.MessageID
+				_, err := bot.Send(msg)
+				if err != nil {
+					log.Panic(err)
+				}
+				log.Println(update.MessageReaction)
 			}
 		}
 	})
