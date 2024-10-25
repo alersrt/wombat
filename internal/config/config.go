@@ -30,16 +30,13 @@ func (receiver *Config) Init(args []string) error {
 
 	defer log.Infoln("Config file: " + *configPath)
 
-	file, err := os.Open(*configPath)
+	file, err := os.ReadFile(*configPath)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 
-	d := yaml.NewDecoder(file)
-	if err := d.Decode(receiver); err != nil {
-		return err
-	}
+	replaced := os.ExpandEnv(string(file))
+	err = yaml.Unmarshal([]byte(replaced), receiver)
 
 	return err
 }
