@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"wombat/internal/config"
 	"wombat/pkg/daemon"
-	log "wombat/pkg/log"
+	"wombat/pkg/log"
 )
 
 func main() {
