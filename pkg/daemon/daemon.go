@@ -32,7 +32,7 @@ func Create(conf Config, task Task) {
 				}
 			case <-ctx.Done():
 				log.Infoln("Done.")
-				os.Exit(0)
+				os.Exit(1)
 			}
 		}
 	}()
