@@ -31,12 +31,9 @@ func main() {
 		for update := range updates {
 
 			if update.EditedMessage != nil {
-				pattern, err := regexp.Compile(conf.Bot.Tag)
-				if err != nil {
-					log.Warn(err)
-				}
-				tag := pattern.Find([]byte(update.EditedMessage.Text))
-				log.Info(string(tag))
+				pattern := regexp.MustCompile(conf.Bot.Tag)
+				tag := pattern.FindAllString(update.EditedMessage.Text, -1)
+				log.Info(tag)
 				log.Info(update.EditedMessage.Text)
 			}
 		}
