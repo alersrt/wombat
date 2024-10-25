@@ -5,19 +5,18 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	. "wombat/pkg/log"
+	"wombat/pkg/log"
 )
 
-func Create(conf Config, task func()) {
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
+func Create(conf Config, task Task) {
+	ctx, cancel := context.WithCancelCause(context.Background())
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGHUP)
 
 	defer func() {
 		signal.Stop(signalChan)
-		cancel()
+		cancel(nil)
 	}()
 
 	go func() {
@@ -28,31 +27,31 @@ func Create(conf Config, task func()) {
 				case syscall.SIGHUP:
 					conf.Init(os.Args)
 				case os.Interrupt:
-					cancel()
+					cancel(nil)
 					os.Exit(1)
 				}
 			case <-ctx.Done():
-				InfoLog.Println("Done.")
-				os.Exit(1)
+				log.Infoln("Done.")
+				os.Exit(0)
 			}
 		}
 	}()
 
-	if err := run(ctx, conf, task); err != nil {
-		ErrorLog.Printf("%s\n", err)
+	if err := execute(ctx, cancel, conf, task); err != nil {
+		log.Errorf("%s\n", err)
 		os.Exit(1)
 	}
 }
 
-func run(ctx context.Context, conf Config, task func()) error {
+func execute(ctx context.Context, cancel context.CancelCauseFunc, conf Config, task Task) error {
 	conf.Init(os.Args)
 
 	for {
 		select {
 		case <-ctx.Done():
-			return nil
+			return ctx.Err()
 		default:
-			task()
+			task(cancel)
 		}
 	}
 }
