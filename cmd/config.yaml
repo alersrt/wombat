@@ -6,3 +6,6 @@ jira:
 telegram:
   token: ${TELEGRAM_TOKEN}
   webhook: "<your webhook link>"
+kafka:
+  client-id: "wombat"
+  bootstrap: localhost:9092

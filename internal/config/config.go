@@ -16,6 +16,10 @@ type Config struct {
 		Token   string `yaml:"token"`
 		Webhook string `yaml:"webhook"`
 	} `yaml:"telegram"`
+	Kafka struct {
+		ClientId  string `yaml:"client-id"`
+		Bootstrap string `yaml:"bootstrap"`
+	} `yaml:"kafka"`
 }
 
 func (receiver *Config) Init(args []string) error {
