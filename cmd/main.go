@@ -112,6 +112,7 @@ func readFromTopic(consumer *kafka.Consumer, topic string) {
 			//log.WarningLog.Print(err)
 			continue
 		}
+
 		log.InfoLog.Printf(
 			"Consumed event from topic %s: key = %-10s value = %s\n",
 			*ev.TopicPartition.Topic,
