@@ -38,13 +38,15 @@ func Create(conf Config, task Task) {
 	}()
 
 	if err := execute(ctx, cancel, conf, task); err != nil {
-		log.ErrorLog.Printf("%s\n", err)
-		os.Exit(1)
+		log.ErrorLog.Fatalf("%s\n", err)
 	}
 }
 
 func execute(ctx context.Context, cancel context.CancelCauseFunc, conf Config, task Task) error {
-	conf.Init(os.Args)
+	err := conf.Init(os.Args)
+	if err != nil {
+		return err
+	}
 
 	for {
 		select {
