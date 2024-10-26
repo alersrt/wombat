@@ -9,3 +9,4 @@ telegram:
 kafka:
   client-id: "wombat"
   bootstrap: localhost:9092
+  topic: "wombat.response"

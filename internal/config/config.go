@@ -4,7 +4,7 @@ import (
 	"flag"
 	"gopkg.in/yaml.v2"
 	"os"
-	"wombat/pkg/log"
+	. "wombat/pkg/log"
 )
 
 type Config struct {
@@ -19,11 +19,12 @@ type Config struct {
 	Kafka struct {
 		ClientId  string `yaml:"client-id"`
 		Bootstrap string `yaml:"bootstrap"`
+		Topic     string `yaml:"topic"`
 	} `yaml:"kafka"`
 }
 
 func (receiver *Config) Init(args []string) error {
-	log.Info("Wombat initialization...")
+	InfoLog.Print("Wombat initialization...")
 
 	flags := flag.NewFlagSet(args[0], flag.ExitOnError)
 	configPath := flags.String("config", "./cmd/config.yaml", "path to config")
@@ -32,7 +33,7 @@ func (receiver *Config) Init(args []string) error {
 		return err
 	}
 
-	defer log.Infoln("Config file: " + *configPath)
+	defer InfoLog.Print("Config file: " + *configPath)
 
 	file, err := os.ReadFile(*configPath)
 	if err != nil {

@@ -31,14 +31,14 @@ func Create(conf Config, task Task) {
 					os.Exit(1)
 				}
 			case <-ctx.Done():
-				log.Infoln("Done.")
+				log.InfoLog.Print("Done.")
 				os.Exit(1)
 			}
 		}
 	}()
 
 	if err := execute(ctx, cancel, conf, task); err != nil {
-		log.Errorf("%s\n", err)
+		log.ErrorLog.Printf("%s\n", err)
 		os.Exit(1)
 	}
 }
