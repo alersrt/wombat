@@ -51,7 +51,7 @@ func main() {
 				if err != nil {
 					log.WarningLog.Print(err)
 				}
-				log.InfoLog.Printf("Send: %s => %s", tag, key)
+				log.InfoLog.Printf("Sent message: %s => %s", tag, key)
 			}
 		}
 	})
