@@ -7,6 +7,6 @@ telegram:
   token: ${TELEGRAM_TOKEN}
   webhook: "<your webhook link>"
 kafka:
-  client-id: "wombat"
+  group-id: "wombat"
   bootstrap: localhost:9092
   topic: "wombat.response"

@@ -18,7 +18,7 @@ type Config struct {
 		Webhook string `yaml:"webhook"`
 	} `yaml:"telegram"`
 	Kafka struct {
-		ClientId  string `yaml:"client-id"`
+		GroupId   string `yaml:"group-id"`
 		Bootstrap string `yaml:"bootstrap"`
 		Topic     string `yaml:"topic"`
 	} `yaml:"kafka"`
