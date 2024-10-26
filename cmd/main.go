@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	conf := &config.Config{}
+	conf := new(config.Config)
 	err := conf.Init(os.Args)
 	if err != nil {
 		log.ErrorLog.Fatal(err)
