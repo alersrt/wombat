@@ -43,9 +43,11 @@ func Create(conf Config, task Task) {
 }
 
 func execute(ctx context.Context, cancel context.CancelCauseFunc, conf Config, task Task) error {
-	err := conf.Init(os.Args)
-	if err != nil {
-		return err
+	if !conf.IsInitiated() {
+		err := conf.Init(os.Args)
+		if err != nil {
+			return err
+		}
 	}
 
 	for {

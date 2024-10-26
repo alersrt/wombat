@@ -8,7 +8,8 @@ import (
 )
 
 type Config struct {
-	Bot struct {
+	isInitiated bool
+	Bot         struct {
 		Tag   string `yaml:"tag"`
 		Emoji string `yaml:"emoji"`
 	} `yaml:"bot"`
@@ -43,5 +44,13 @@ func (receiver *Config) Init(args []string) error {
 	replaced := os.ExpandEnv(string(file))
 	err = yaml.Unmarshal([]byte(replaced), receiver)
 
+	if err == nil {
+		receiver.isInitiated = true
+	}
+
 	return err
+}
+
+func (receiver *Config) IsInitiated() bool {
+	return receiver.isInitiated
 }
