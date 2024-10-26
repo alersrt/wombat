@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/google/uuid"
 	"os"
 	"regexp"
 	"wombat/internal/config"
@@ -42,20 +42,16 @@ func main() {
 			if update.EditedMessage != nil {
 				pattern := regexp.MustCompile(conf.Bot.Tag)
 				tag := pattern.FindAllString(update.EditedMessage.Text, -1)
-				newUuid, _ := uuid.New().MarshalBinary()
-				err := producer.Produce(&kafka.Message{
-					Key:   newUuid,
-					Value: []byte(update.EditedMessage.Text),
-					TopicPartition: kafka.TopicPartition{
-						Topic:     &conf.Kafka.Topic,
-						Partition: kafka.PartitionAny,
-					},
-				}, nil)
+				key := fmt.Sprintf(
+					"%d-%d",
+					update.EditedMessage.Chat.ID,
+					update.EditedMessage.MessageID,
+				)
+				err := SendTo(producer, conf.Kafka.Topic, []byte(key), []byte(update.EditedMessage.Text))
 				if err != nil {
 					log.WarningLog.Print(err)
 				}
-				log.InfoLog.Print(tag)
-				log.InfoLog.Print(update.EditedMessage.Text)
+				log.InfoLog.Printf("Send: %s => %s", tag, key)
 			}
 		}
 	})
@@ -71,4 +67,15 @@ func getUpdatesChannel(api *tgbotapi.BotAPI) tgbotapi.UpdatesChannel {
 	)
 	u.Timeout = 60
 	return api.GetUpdatesChan(u)
+}
+
+func SendTo(producer *kafka.Producer, topic string, key []byte, message []byte) error {
+	return producer.Produce(&kafka.Message{
+		Key:   key,
+		Value: message,
+		TopicPartition: kafka.TopicPartition{
+			Topic:     &topic,
+			Partition: kafka.PartitionAny,
+		},
+	}, nil)
 }
