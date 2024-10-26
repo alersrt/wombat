@@ -7,7 +7,6 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"os"
 	"regexp"
-	"time"
 	"wombat/internal/config"
 	"wombat/pkg/daemon"
 	"wombat/pkg/log"
@@ -36,25 +35,26 @@ func main() {
 	}
 
 	daemon.Create(conf, func(cancel context.CancelCauseFunc) {
-		bot.Debug = true
-
 		log.InfoLog.Print("Authorized on account %s", bot.Self.UserName)
 
 		for update := range getUpdatesFromBot(bot) {
 
 			if update.EditedMessage != nil {
 				pattern := regexp.MustCompile(conf.Bot.Tag)
-				tag := pattern.FindAllString(update.EditedMessage.Text, -1)
-				key := fmt.Sprintf(
-					"%d-%d",
-					update.EditedMessage.Chat.ID,
-					update.EditedMessage.MessageID,
-				)
-				err := sendToTopic(producer, conf.Kafka.Topic, []byte(key), []byte(update.EditedMessage.Text))
-				if err != nil {
-					log.WarningLog.Print(err)
+				tags := pattern.FindAllString(update.EditedMessage.Text, -1)
+
+				if len(tags) > 0 {
+					key := fmt.Sprintf(
+						"%d-%d",
+						update.EditedMessage.Chat.ID,
+						update.EditedMessage.MessageID,
+					)
+					err := sendToTopic(producer, conf.Kafka.Topic, []byte(key), []byte(update.EditedMessage.Text))
+					if err != nil {
+						log.WarningLog.Print(err)
+					}
+					log.InfoLog.Printf("Sent message: %s => %s", tags, key)
 				}
-				log.InfoLog.Printf("Sent message: %s => %s", tag, key)
 			}
 		}
 	})
@@ -107,14 +107,14 @@ func readFromTopic(consumer *kafka.Consumer, topic string) {
 
 	// Process messages
 	for {
-		ev, err := consumer.ReadMessage(100 * time.Millisecond)
+		ev, err := consumer.ReadMessage(-1)
 		if err != nil {
-			//log.WarningLog.Print(err)
+			log.WarningLog.Print(err)
 			continue
 		}
 
 		log.InfoLog.Printf(
-			"Consumed event from topic %s: key = %-10s value = %s\n",
+			"Consumed event from topic %s: key = %-10s value = %s",
 			*ev.TopicPartition.Topic,
 			string(ev.Key),
 			string(ev.Value),
