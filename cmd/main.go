@@ -37,13 +37,7 @@ func main() {
 
 		log.InfoLog.Print("Authorized on account %s", bot.Self.UserName)
 
-		u := tgbotapi.NewUpdate(0)
-		u.AllowedUpdates = append(u.AllowedUpdates, tgbotapi.UpdateTypeMessageReaction, tgbotapi.UpdateTypeMessage, tgbotapi.UpdateTypeEditedMessage)
-		u.Timeout = 60
-
-		updates := bot.GetUpdatesChan(u)
-
-		for update := range updates {
+		for update := range getUpdatesChannel(bot) {
 
 			if update.EditedMessage != nil {
 				pattern := regexp.MustCompile(conf.Bot.Tag)
@@ -58,11 +52,23 @@ func main() {
 					},
 				}, nil)
 				if err != nil {
-					log.ErrorLog.Print(err)
+					log.WarningLog.Print(err)
 				}
 				log.InfoLog.Print(tag)
 				log.InfoLog.Print(update.EditedMessage.Text)
 			}
 		}
 	})
+}
+
+func getUpdatesChannel(api *tgbotapi.BotAPI) tgbotapi.UpdatesChannel {
+	u := tgbotapi.NewUpdate(0)
+	u.AllowedUpdates = append(
+		u.AllowedUpdates,
+		tgbotapi.UpdateTypeMessageReaction,
+		tgbotapi.UpdateTypeMessage,
+		tgbotapi.UpdateTypeEditedMessage,
+	)
+	u.Timeout = 60
+	return api.GetUpdatesChan(u)
 }
