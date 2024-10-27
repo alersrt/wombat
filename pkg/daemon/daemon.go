@@ -2,7 +2,6 @@ package daemon
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -21,7 +20,7 @@ func Create(conf Config, task Task) {
 	go handleSignals(ctx, cancel, conf, signalChan)
 
 	if err := execute(ctx, cancel, conf, task); err != nil {
-		slog.Error(fmt.Sprintf("%s\n", err))
+		slog.Error(err.Error())
 		os.Exit(1)
 	}
 }
