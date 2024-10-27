@@ -13,7 +13,11 @@ func Test(t *testing.T) {
 	require.NoError(t, err, "NewDockerComposeAPI()")
 
 	t.Cleanup(func() {
-		require.NoError(t, compose.Down(context.Background(), tc.RemoveOrphans(true), tc.RemoveImagesLocal), "compose.Down()")
+		require.NoError(
+			t,
+			compose.Down(context.Background(), tc.RemoveOrphans(true), tc.RemoveImagesLocal, tc.RemoveVolumes(true)),
+			"compose.Down()",
+		)
 	})
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -21,5 +25,6 @@ func Test(t *testing.T) {
 
 	require.NoError(t, compose.Up(ctx, tc.Wait(true)), "compose.Up()")
 
-	gomock.All()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 }
