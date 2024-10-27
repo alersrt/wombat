@@ -2,10 +2,11 @@ package daemon
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
-	"wombat/pkg/log"
 )
 
 func Create(conf Config, task Task) {
@@ -31,14 +32,15 @@ func Create(conf Config, task Task) {
 					os.Exit(1)
 				}
 			case <-ctx.Done():
-				log.InfoLog.Print("Done.")
+				slog.Info("Done.")
 				os.Exit(1)
 			}
 		}
 	}()
 
 	if err := execute(ctx, cancel, conf, task); err != nil {
-		log.ErrorLog.Fatalf("%s\n", err)
+		slog.Error(fmt.Sprintf("%s\n", err))
+		os.Exit(1)
 	}
 }
 

@@ -5,18 +5,19 @@ import (
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"log/slog"
 	"os"
 	"regexp"
 	"wombat/internal/config"
 	"wombat/pkg/daemon"
-	"wombat/pkg/log"
 )
 
 func main() {
 	conf := new(config.Config)
 	err := conf.Init(os.Args)
 	if err != nil {
-		log.ErrorLog.Fatal(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 
 	kafkaConf := &kafka.ConfigMap{
@@ -31,11 +32,12 @@ func main() {
 
 	bot, err := tgbotapi.NewBotAPI(conf.Telegram.Token)
 	if err != nil {
-		log.ErrorLog.Fatal(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 
 	daemon.Create(conf, func(cancel context.CancelCauseFunc) {
-		log.InfoLog.Print("Authorized on account %s", bot.Self.UserName)
+		slog.Info(fmt.Sprintf("Authorized on account %s", bot.Self.UserName))
 
 		for update := range getUpdatesFromBot(bot) {
 
@@ -51,9 +53,9 @@ func main() {
 					)
 					err := sendToTopic(producer, conf.Kafka.Topic, []byte(key), []byte(update.EditedMessage.Text))
 					if err != nil {
-						log.WarningLog.Print(err)
+						slog.Warn(err.Error())
 					}
-					log.InfoLog.Printf("Sent message: %s => %s", tags, key)
+					slog.Info(fmt.Sprintf("Sent message: %s => %s", tags, key))
 				}
 			}
 		}
@@ -75,7 +77,8 @@ func getUpdatesFromBot(api *tgbotapi.BotAPI) tgbotapi.UpdatesChannel {
 func getKafkaProducer(configMap *kafka.ConfigMap) *kafka.Producer {
 	producer, err := kafka.NewProducer(configMap)
 	if err != nil {
-		log.ErrorLog.Fatal(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 	return producer
 }
@@ -83,7 +86,8 @@ func getKafkaProducer(configMap *kafka.ConfigMap) *kafka.Producer {
 func getKafkaConsumer(configMap *kafka.ConfigMap) *kafka.Consumer {
 	consumer, err := kafka.NewConsumer(configMap)
 	if err != nil {
-		log.ErrorLog.Fatal(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 	return consumer
 }
@@ -102,23 +106,24 @@ func sendToTopic(producer *kafka.Producer, topic string, key []byte, message []b
 func readFromTopic(consumer *kafka.Consumer, topic string) {
 	err := consumer.SubscribeTopics([]string{topic}, nil)
 	if err != nil {
-		log.ErrorLog.Fatal(err)
+		slog.Error(err.Error())
+		os.Exit(1)
 	}
 
 	// Process messages
 	for {
 		ev, err := consumer.ReadMessage(-1)
 		if err != nil {
-			log.WarningLog.Print(err)
+			slog.Warn(err.Error())
 			continue
 		}
 
-		log.InfoLog.Printf(
+		slog.Info(fmt.Sprintf(
 			"Consumed event from topic %s: key = %-10s value = %s",
 			*ev.TopicPartition.Topic,
 			string(ev.Key),
 			string(ev.Value),
-		)
+		))
 	}
 
 	consumer.Close()
