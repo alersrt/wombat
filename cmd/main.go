@@ -16,6 +16,8 @@ import (
 )
 
 var (
+	ctx      context.Context
+	cancel   context.CancelCauseFunc
 	bot      *tgbotapi.BotAPI
 	conf     *config.Config
 	producer *kafka.Producer
@@ -23,7 +25,7 @@ var (
 )
 
 func main() {
-	ctx, cancel := context.WithCancelCause(context.Background())
+	ctx, cancel = context.WithCancelCause(context.Background())
 
 	conf = new(config.Config)
 	err := conf.Init(os.Args)
@@ -40,15 +42,16 @@ func main() {
 	producer = getKafkaProducer(kafkaConf)
 	consumer = getKafkaConsumer(kafkaConf)
 
-	go readFromTopic(conf.Kafka.Topic)
-
 	bot, err = tgbotapi.NewBotAPI(conf.Telegram.Token)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
 
-	daemon.Create(ctx, cancel, conf, readFromBot)
+	go daemon.Create(ctx, cancel, conf, readFromTopic)
+	go daemon.Create(ctx, cancel, conf, readFromBot)
+
+	select {}
 }
 
 func readFromBot(cancel context.CancelCauseFunc) {
@@ -92,11 +95,11 @@ func readFromBot(cancel context.CancelCauseFunc) {
 	}
 }
 
-func readFromTopic(topic string) {
-	err := consumer.SubscribeTopics([]string{topic}, nil)
+func readFromTopic(cancel context.CancelCauseFunc) {
+	err := consumer.SubscribeTopics([]string{conf.Kafka.Topic}, nil)
 	if err != nil {
 		slog.Error(err.Error())
-		os.Exit(1)
+		cancel(err)
 	}
 
 	// Process messages
