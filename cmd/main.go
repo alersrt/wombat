@@ -2,13 +2,16 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log/slog"
 	"os"
 	"regexp"
+	"strconv"
 	"wombat/internal/config"
+	"wombat/internal/message"
 	"wombat/pkg/daemon"
 )
 
@@ -63,9 +66,25 @@ func readFromBot(cancel context.CancelCauseFunc) {
 					update.Message.Chat.ID,
 					update.Message.MessageID,
 				)
-				err := sendToTopic(conf.Kafka.Topic, []byte(key), []byte(update.Message.Text))
+
+				msg := &message.MessageEvent{
+					SourceType: message.TELEGRAM,
+					Text:       update.Message.Text,
+					AuthorId:   update.Message.From.UserName,
+					ChatId:     strconv.FormatInt(update.Message.Chat.ID, 10),
+					MessageId:  strconv.Itoa(update.Message.MessageID),
+				}
+
+				jsonifiedMsg, err := json.Marshal(msg)
 				if err != nil {
 					slog.Warn(err.Error())
+					return
+				}
+
+				err = sendToTopic(conf.Kafka.Topic, []byte(key), jsonifiedMsg)
+				if err != nil {
+					slog.Warn(err.Error())
+					return
 				}
 				slog.Info(fmt.Sprintf("Sent message: %s => %s", tags, key))
 			}
