@@ -110,11 +110,17 @@ func readFromTopic(cancel context.CancelCauseFunc) {
 			continue
 		}
 
+		msg := &message.MessageEvent{}
+		if err = json.Unmarshal(ev.Value, msg); err != nil {
+			slog.Warn(err.Error())
+			continue
+		}
+
 		slog.Info(fmt.Sprintf(
 			"Consumed event from topic %s: key = %-10s value = %s",
 			*ev.TopicPartition.Topic,
 			string(ev.Key),
-			string(ev.Value),
+			msg,
 		))
 	}
 
