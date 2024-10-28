@@ -19,7 +19,7 @@ func Create(conf Config, task Task) {
 
 	go handleSignals(ctx, cancel, conf, signalChan)
 
-	if err := execute(ctx, cancel, conf, task); err != nil {
+	if err := execute(cancel, conf, task); err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
@@ -31,19 +31,25 @@ func handleSignals(ctx context.Context, cancel context.CancelCauseFunc, conf Con
 		case s := <-sigChan:
 			switch s {
 			case syscall.SIGHUP:
-				conf.Init(os.Args)
+				err := conf.Init(os.Args)
+				if err != nil {
+					slog.Error(err.Error())
+				}
 			case os.Interrupt:
 				cancel(nil)
 				os.Exit(1)
 			}
 		case <-ctx.Done():
+			if err := ctx.Err(); err != nil {
+				slog.Error(err.Error())
+			}
 			slog.Info("Done.")
 			os.Exit(1)
 		}
 	}
 }
 
-func execute(ctx context.Context, cancel context.CancelCauseFunc, conf Config, task Task) error {
+func execute(cancel context.CancelCauseFunc, conf Config, task Task) error {
 	if !conf.IsInitiated() {
 		err := conf.Init(os.Args)
 		if err != nil {
@@ -52,11 +58,6 @@ func execute(ctx context.Context, cancel context.CancelCauseFunc, conf Config, t
 	}
 
 	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			task(cancel)
-		}
+		task(cancel)
 	}
 }
