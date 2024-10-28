@@ -12,8 +12,17 @@ import (
 	"wombat/pkg/daemon"
 )
 
+var (
+	bot      *tgbotapi.BotAPI
+	conf     *config.Config
+	producer *kafka.Producer
+	consumer *kafka.Consumer
+)
+
 func main() {
-	conf := new(config.Config)
+	ctx, cancel := context.WithCancelCause(context.Background())
+
+	conf = new(config.Config)
 	err := conf.Init(os.Args)
 	if err != nil {
 		slog.Error(err.Error())
@@ -25,41 +34,69 @@ func main() {
 		"group.id":          conf.Kafka.GroupId,
 		"auto.offset.reset": "earliest",
 	}
-	producer := getKafkaProducer(kafkaConf)
-	consumer := getKafkaConsumer(kafkaConf)
+	producer = getKafkaProducer(kafkaConf)
+	consumer = getKafkaConsumer(kafkaConf)
 
-	go readFromTopic(consumer, conf.Kafka.Topic)
+	go readFromTopic(conf.Kafka.Topic)
 
-	bot, err := tgbotapi.NewBotAPI(conf.Telegram.Token)
+	bot, err = tgbotapi.NewBotAPI(conf.Telegram.Token)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
 
-	daemon.Create(conf, func(cancel context.CancelCauseFunc) {
-		slog.Info(fmt.Sprintf("Authorized on account %s", bot.Self.UserName))
+	daemon.Create(ctx, cancel, conf, readFromBot)
+}
 
-		for update := range getUpdatesFromBot(bot) {
+func readFromBot(cancel context.CancelCauseFunc) {
+	slog.Info(fmt.Sprintf("Authorized on account %s", bot.Self.UserName))
 
-			if update.EditedMessage != nil {
-				pattern := regexp.MustCompile(conf.Bot.Tag)
-				tags := pattern.FindAllString(update.EditedMessage.Text, -1)
+	for update := range getUpdatesFromBot(bot) {
 
-				if len(tags) > 0 {
-					key := fmt.Sprintf(
-						"%d-%d",
-						update.EditedMessage.Chat.ID,
-						update.EditedMessage.MessageID,
-					)
-					err := sendToTopic(producer, conf.Kafka.Topic, []byte(key), []byte(update.EditedMessage.Text))
-					if err != nil {
-						slog.Warn(err.Error())
-					}
-					slog.Info(fmt.Sprintf("Sent message: %s => %s", tags, key))
+		if update.Message != nil {
+			pattern := regexp.MustCompile(conf.Bot.Tag)
+			tags := pattern.FindAllString(update.Message.Text, -1)
+
+			if len(tags) > 0 {
+				key := fmt.Sprintf(
+					"%d-%d",
+					update.Message.Chat.ID,
+					update.Message.MessageID,
+				)
+				err := sendToTopic(conf.Kafka.Topic, []byte(key), []byte(update.Message.Text))
+				if err != nil {
+					slog.Warn(err.Error())
 				}
+				slog.Info(fmt.Sprintf("Sent message: %s => %s", tags, key))
 			}
 		}
-	})
+	}
+}
+
+func readFromTopic(topic string) {
+	err := consumer.SubscribeTopics([]string{topic}, nil)
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+
+	// Process messages
+	for {
+		ev, err := consumer.ReadMessage(-1)
+		if err != nil {
+			slog.Warn(err.Error())
+			continue
+		}
+
+		slog.Info(fmt.Sprintf(
+			"Consumed event from topic %s: key = %-10s value = %s",
+			*ev.TopicPartition.Topic,
+			string(ev.Key),
+			string(ev.Value),
+		))
+	}
+
+	consumer.Close()
 }
 
 func getUpdatesFromBot(api *tgbotapi.BotAPI) tgbotapi.UpdatesChannel {
@@ -92,7 +129,7 @@ func getKafkaConsumer(configMap *kafka.ConfigMap) *kafka.Consumer {
 	return consumer
 }
 
-func sendToTopic(producer *kafka.Producer, topic string, key []byte, message []byte) error {
+func sendToTopic(topic string, key []byte, message []byte) error {
 	return producer.Produce(&kafka.Message{
 		Key:   key,
 		Value: message,
@@ -101,30 +138,4 @@ func sendToTopic(producer *kafka.Producer, topic string, key []byte, message []b
 			Partition: kafka.PartitionAny,
 		},
 	}, nil)
-}
-
-func readFromTopic(consumer *kafka.Consumer, topic string) {
-	err := consumer.SubscribeTopics([]string{topic}, nil)
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
-
-	// Process messages
-	for {
-		ev, err := consumer.ReadMessage(-1)
-		if err != nil {
-			slog.Warn(err.Error())
-			continue
-		}
-
-		slog.Info(fmt.Sprintf(
-			"Consumed event from topic %s: key = %-10s value = %s",
-			*ev.TopicPartition.Topic,
-			string(ev.Key),
-			string(ev.Value),
-		))
-	}
-
-	consumer.Close()
 }

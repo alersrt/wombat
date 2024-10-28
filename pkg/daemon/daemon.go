@@ -8,8 +8,7 @@ import (
 	"syscall"
 )
 
-func Create(conf Config, task Task) {
-	ctx, cancel := context.WithCancelCause(context.Background())
+func Create(ctx context.Context, cancel context.CancelCauseFunc, conf Config, task Task) {
 	defer cancel(nil)
 
 	signalChan := make(chan os.Signal, 1)
