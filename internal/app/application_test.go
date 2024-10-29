@@ -11,19 +11,31 @@ import (
 	"time"
 	"wombat/internal/config"
 	"wombat/internal/messaging"
-	"wombat/internal/source"
 )
 
-var done = make(chan bool)
+var (
+	done        = make(chan bool)
+	mockUpdates = make(chan any)
+)
 
-func setupAndRun() {
+type MockSource struct {
+	Updates chan any
+}
+
+func (receiver *MockSource) Read(causeFunc context.CancelCauseFunc) {
+	for update := range mockUpdates {
+		receiver.Updates <- update
+	}
+}
+
+func setupAndRun(t *testing.T) {
 	mainCtx, mainCancelCauseFunc := context.WithCancelCause(context.Background())
 
 	conf := new(config.Config)
 	err := conf.Init(os.Args)
 	if err != nil {
 		slog.Error(err.Error())
-		os.Exit(1)
+		t.Fatal(err)
 	}
 
 	kafkaConf := &kafka.ConfigMap{
@@ -34,12 +46,14 @@ func setupAndRun() {
 	kafkaHelper, err := messaging.NewKafkaHelper(kafkaConf)
 	if err != nil {
 		slog.Error(err.Error())
-		os.Exit(1)
+		t.Fatal(err)
 	}
 
 	updates := make(chan any)
 
-	telegram := source.NewTelegramSource(updates, conf)
+	telegram := &MockSource{
+		updates,
+	}
 
 	NewApplication(
 		mainCtx,
@@ -71,7 +85,7 @@ func Test(t *testing.T) {
 	require.NoError(t, environment.Up(testCtx, compose.Wait(true)), "compose.Up()")
 
 	// Wait until `done` is closed.
-	setupAndRun()
+	setupAndRun(t)
 
 	select {
 	case <-done:
