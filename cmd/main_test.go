@@ -8,7 +8,7 @@ import (
 )
 
 func Test(t *testing.T) {
-	mainCtx, mainCancelCauseFunc = context.WithCancelCause(context.Background())
+	testCtx, testCancelFunc := context.WithCancel(context.Background())
 
 	compose, err := tc.NewDockerCompose("../docker/docker-compose.yaml")
 	require.NoError(t, err, "NewDockerComposeAPI()")
@@ -16,15 +16,14 @@ func Test(t *testing.T) {
 	t.Cleanup(func() {
 		require.NoError(
 			t,
-			compose.Down(mainCtx, tc.RemoveOrphans(true), tc.RemoveImagesLocal, tc.RemoveVolumes(true)),
+			compose.Down(testCtx, tc.RemoveOrphans(true), tc.RemoveImagesLocal, tc.RemoveVolumes(true)),
 			"compose.Down()",
 		)
 	})
 
-	_, cancelFunc := context.WithCancel(mainCtx)
-	t.Cleanup(cancelFunc)
+	t.Cleanup(testCancelFunc)
 
-	require.NoError(t, compose.Up(mainCtx, tc.Wait(true)), "compose.Up()")
+	require.NoError(t, compose.Up(testCtx, tc.Wait(true)), "compose.Up()")
 
 	main()
 }

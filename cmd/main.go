@@ -48,7 +48,9 @@ func main() {
 	dmn := daemon.Create(mainCtx, mainCancelCauseFunc, conf)
 	go dmn.Start(readFromTopic)
 	go dmn.Start(readUpdates)
-	go dmn.Start(initTelegramBot)
+
+	telegram := &Telegram{Updates: updates}
+	go dmn.Start(telegram.Read)
 
 	select {}
 }
@@ -120,30 +122,6 @@ func readFromTopic(cancel context.CancelCauseFunc) {
 	}
 
 	consumer.Close()
-}
-
-func initTelegramBot(cancel context.CancelCauseFunc) {
-	bot, err := tgbotapi.NewBotAPI(conf.Telegram.Token)
-	if err != nil {
-		slog.Error(err.Error())
-		cancel(err)
-	}
-
-	u := tgbotapi.NewUpdate(0)
-	u.AllowedUpdates = append(
-		u.AllowedUpdates,
-		tgbotapi.UpdateTypeMessageReaction,
-		tgbotapi.UpdateTypeMessage,
-		tgbotapi.UpdateTypeEditedMessage,
-	)
-	u.Timeout = 60
-
-	slog.Info(fmt.Sprintf("Authorized on account %s", bot.Self.UserName))
-
-	for update := range bot.GetUpdatesChan(u) {
-		updates <- update
-	}
-
 }
 
 func getKafkaProducer(configMap *kafka.ConfigMap) *kafka.Producer {
