@@ -1,18 +1,31 @@
-package main
+package source
 
 import (
 	"context"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log/slog"
+	"wombat/internal/config"
+	"wombat/pkg/errors"
 )
 
-type Telegram struct {
+type telegram struct {
 	Updates chan any
+	Config  *config.Config
 }
 
-func (receiver *Telegram) Read(cancel context.CancelCauseFunc) {
-	bot, err := tgbotapi.NewBotAPI(conf.Telegram.Token)
+func NewTelegramSource(updates chan any, config *config.Config) Source {
+	return &telegram{
+		Updates: updates,
+		Config:  config,
+	}
+}
+
+func (receiver *telegram) Read(cancel context.CancelCauseFunc) {
+	if receiver.Updates == nil {
+		cancel(errors.NewError("Updates channel is not defined"))
+	}
+	bot, err := tgbotapi.NewBotAPI(receiver.Config.Telegram.Token)
 	if err != nil {
 		slog.Error(err.Error())
 		cancel(err)

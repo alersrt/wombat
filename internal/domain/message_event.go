@@ -1,4 +1,4 @@
-package message
+package domain
 
 type MessageEvent struct {
 	SourceType SourceType `json:"source_type"`
