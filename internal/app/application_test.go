@@ -55,7 +55,7 @@ func setupAndRun() {
 func Test(t *testing.T) {
 	testCtx, testCancelFunc := context.WithCancel(context.Background())
 
-	environment, err := compose.NewDockerCompose("../docker/docker-compose.yaml")
+	environment, err := compose.NewDockerCompose("../../docker/docker-compose.yaml")
 	require.NoError(t, err, "NewDockerComposeAPI()")
 
 	t.Cleanup(func() {
@@ -70,9 +70,9 @@ func Test(t *testing.T) {
 
 	require.NoError(t, environment.Up(testCtx, compose.Wait(true)), "compose.Up()")
 
-	go setupAndRun()
-
 	// Wait until `done` is closed.
+	setupAndRun()
+
 	select {
 	case <-done:
 	case <-time.After(10 * time.Second):
