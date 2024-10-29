@@ -57,7 +57,12 @@ func (receiver *Daemon) handleSignals() {
 				}
 			case os.Interrupt:
 				receiver.cancelCause(nil)
-				os.Exit(1)
+				os.Exit(130)
+			case os.Kill:
+				os.Exit(137)
+			case syscall.SIGTERM:
+				receiver.cancelCause(nil)
+				os.Exit(143)
 			}
 		case <-receiver.ctx.Done():
 			if err := receiver.ctx.Err(); err != nil {
