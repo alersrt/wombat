@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/google/uuid"
 	"log/slog"
 	"os"
 	"regexp"
@@ -65,11 +66,6 @@ func readFromTelegram(cancel context.CancelCauseFunc) {
 			tags := pattern.FindAllString(update.Message.Text, -1)
 
 			if len(tags) > 0 {
-				key := fmt.Sprintf(
-					"%d-%d",
-					update.Message.Chat.ID,
-					update.Message.MessageID,
-				)
 
 				msg := &message.MessageEvent{
 					SourceType: message.TELEGRAM,
@@ -85,12 +81,12 @@ func readFromTelegram(cancel context.CancelCauseFunc) {
 					return
 				}
 
-				err = sendToTopic(conf.Kafka.Topic, []byte(key), jsonifiedMsg)
+				err = sendToTopic(conf.Kafka.Topic, jsonifiedMsg)
 				if err != nil {
 					slog.Warn(err.Error())
 					return
 				}
-				slog.Info(fmt.Sprintf("Sent message: %s => %s", tags, key))
+				slog.Info(fmt.Sprintf("Sent message: %s", tags))
 			}
 		}
 	}
@@ -158,7 +154,12 @@ func getKafkaConsumer(configMap *kafka.ConfigMap) *kafka.Consumer {
 	return consumer
 }
 
-func sendToTopic(topic string, key []byte, message []byte) error {
+func sendToTopic(topic string, message []byte) error {
+	key, err := uuid.New().MarshalText()
+	if err != nil {
+		slog.Warn(err.Error())
+		return err
+	}
 	return producer.Produce(&kafka.Message{
 		Key:   key,
 		Value: message,

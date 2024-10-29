@@ -19,15 +19,15 @@ var (
 	}
 )
 
-func (receiver SourceType) String() string {
-	return toString[receiver]
+func (receiver *SourceType) String() string {
+	return toString[*receiver]
 }
 
-func (receiver *SourceType) FromString(sourceType string) SourceType {
+func FromString(sourceType string) SourceType {
 	return fromString[sourceType]
 }
 
-func (receiver SourceType) MarshalJSON() ([]byte, error) {
+func (receiver *SourceType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(receiver.String())
 }
 
@@ -37,6 +37,6 @@ func (receiver *SourceType) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	*receiver = receiver.FromString(s)
+	*receiver = FromString(s)
 	return nil
 }
