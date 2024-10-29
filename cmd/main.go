@@ -17,16 +17,16 @@ import (
 )
 
 var (
-	ctx      context.Context
-	cancel   context.CancelCauseFunc
-	bot      *tgbotapi.BotAPI
-	conf     *config.Config
-	producer *kafka.Producer
-	consumer *kafka.Consumer
+	mainCtx             context.Context
+	mainCancelCauseFunc context.CancelCauseFunc
+	conf                *config.Config
+	producer            *kafka.Producer
+	consumer            *kafka.Consumer
+	updates             chan any
 )
 
 func main() {
-	ctx, cancel = context.WithCancelCause(context.Background())
+	mainCtx, mainCancelCauseFunc = context.WithCancelCause(context.Background())
 
 	conf = new(config.Config)
 	err := conf.Init(os.Args)
@@ -43,50 +43,48 @@ func main() {
 	producer = getKafkaProducer(kafkaConf)
 	consumer = getKafkaConsumer(kafkaConf)
 
-	bot, err = tgbotapi.NewBotAPI(conf.Telegram.Token)
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
+	updates = make(chan any)
 
-	dmn := daemon.Create(ctx, cancel, conf)
+	dmn := daemon.Create(mainCtx, mainCancelCauseFunc, conf)
 	go dmn.Start(readFromTopic)
-	go dmn.Start(readFromTelegram)
+	go dmn.Start(readUpdates)
+	go dmn.Start(initTelegramBot)
 
 	select {}
 }
 
-func readFromTelegram(cancel context.CancelCauseFunc) {
-	slog.Info(fmt.Sprintf("Authorized on account %s", bot.Self.UserName))
+func readUpdates(cancel context.CancelCauseFunc) {
+	for update := range updates {
+		switch matched := update.(type) {
 
-	for update := range getUpdatesFromBot(bot) {
+		case tgbotapi.Update:
+			if matched.Message != nil {
+				pattern := regexp.MustCompile(conf.Bot.Tag)
+				tags := pattern.FindAllString(matched.Message.Text, -1)
 
-		if update.Message != nil {
-			pattern := regexp.MustCompile(conf.Bot.Tag)
-			tags := pattern.FindAllString(update.Message.Text, -1)
+				if len(tags) > 0 {
 
-			if len(tags) > 0 {
+					msg := &message.MessageEvent{
+						SourceType: message.TELEGRAM,
+						Text:       matched.Message.Text,
+						AuthorId:   matched.Message.From.UserName,
+						ChatId:     strconv.FormatInt(matched.Message.Chat.ID, 10),
+						MessageId:  strconv.Itoa(matched.Message.MessageID),
+					}
 
-				msg := &message.MessageEvent{
-					SourceType: message.TELEGRAM,
-					Text:       update.Message.Text,
-					AuthorId:   update.Message.From.UserName,
-					ChatId:     strconv.FormatInt(update.Message.Chat.ID, 10),
-					MessageId:  strconv.Itoa(update.Message.MessageID),
+					jsonifiedMsg, err := json.Marshal(msg)
+					if err != nil {
+						slog.Warn(err.Error())
+						return
+					}
+
+					err = sendToTopic(conf.Kafka.Topic, jsonifiedMsg)
+					if err != nil {
+						slog.Warn(err.Error())
+						return
+					}
+					slog.Info(fmt.Sprintf("Sent message: %s", tags))
 				}
-
-				jsonifiedMsg, err := json.Marshal(msg)
-				if err != nil {
-					slog.Warn(err.Error())
-					return
-				}
-
-				err = sendToTopic(conf.Kafka.Topic, jsonifiedMsg)
-				if err != nil {
-					slog.Warn(err.Error())
-					return
-				}
-				slog.Info(fmt.Sprintf("Sent message: %s", tags))
 			}
 		}
 	}
@@ -114,7 +112,7 @@ func readFromTopic(cancel context.CancelCauseFunc) {
 		}
 
 		slog.Info(fmt.Sprintf(
-			"Consumed event from topic %s: key = %-10s value = %s",
+			"Consumed event from topic %s: key = %-10s value = %+v",
 			*ev.TopicPartition.Topic,
 			string(ev.Key),
 			msg,
@@ -124,7 +122,13 @@ func readFromTopic(cancel context.CancelCauseFunc) {
 	consumer.Close()
 }
 
-func getUpdatesFromBot(api *tgbotapi.BotAPI) tgbotapi.UpdatesChannel {
+func initTelegramBot(cancel context.CancelCauseFunc) {
+	bot, err := tgbotapi.NewBotAPI(conf.Telegram.Token)
+	if err != nil {
+		slog.Error(err.Error())
+		cancel(err)
+	}
+
 	u := tgbotapi.NewUpdate(0)
 	u.AllowedUpdates = append(
 		u.AllowedUpdates,
@@ -133,7 +137,13 @@ func getUpdatesFromBot(api *tgbotapi.BotAPI) tgbotapi.UpdatesChannel {
 		tgbotapi.UpdateTypeEditedMessage,
 	)
 	u.Timeout = 60
-	return api.GetUpdatesChan(u)
+
+	slog.Info(fmt.Sprintf("Authorized on account %s", bot.Self.UserName))
+
+	for update := range bot.GetUpdatesChan(u) {
+		updates <- update
+	}
+
 }
 
 func getKafkaProducer(configMap *kafka.ConfigMap) *kafka.Producer {
