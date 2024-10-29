@@ -48,8 +48,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	go daemon.Create(ctx, cancel, conf, readFromTopic)
-	go daemon.Create(ctx, cancel, conf, readFromBot)
+	dmn := daemon.Create(ctx, cancel, conf)
+	go dmn.Start(readFromTopic)
+	go dmn.Start(readFromBot)
 
 	select {}
 }

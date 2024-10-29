@@ -8,55 +8,63 @@ import (
 	"syscall"
 )
 
-func Create(ctx context.Context, cancel context.CancelCauseFunc, conf Config, task Task) {
-	defer cancel(nil)
+type Daemon struct {
+	ctx         context.Context
+	cancelCause context.CancelCauseFunc
+	conf        Config
+}
 
+func Create(ctx context.Context, cancel context.CancelCauseFunc, conf Config) *Daemon {
+	dmn := &Daemon{
+		ctx:         ctx,
+		cancelCause: cancel,
+		conf:        conf,
+	}
+
+	go dmn.handleSignals()
+
+	return dmn
+}
+
+func (receiver *Daemon) Start(task Task) {
+	if !receiver.conf.IsInitiated() {
+		err := receiver.conf.Init(os.Args)
+		if err != nil {
+			slog.Error(err.Error())
+			os.Exit(1)
+		}
+	}
+
+	for {
+		task(receiver.cancelCause)
+	}
+}
+
+func (receiver *Daemon) handleSignals() {
 	signalChan := make(chan os.Signal, 1)
 
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGHUP)
 	defer signal.Stop(signalChan)
 
-	go handleSignals(ctx, cancel, conf, signalChan)
-
-	if err := execute(cancel, conf, task); err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
-}
-
-func handleSignals(ctx context.Context, cancel context.CancelCauseFunc, conf Config, sigChan chan os.Signal) {
 	for {
 		select {
-		case s := <-sigChan:
+		case s := <-signalChan:
 			switch s {
 			case syscall.SIGHUP:
-				err := conf.Init(os.Args)
+				err := receiver.conf.Init(os.Args)
 				if err != nil {
 					slog.Error(err.Error())
 				}
 			case os.Interrupt:
-				cancel(nil)
+				receiver.cancelCause(nil)
 				os.Exit(1)
 			}
-		case <-ctx.Done():
-			if err := ctx.Err(); err != nil {
+		case <-receiver.ctx.Done():
+			if err := receiver.ctx.Err(); err != nil {
 				slog.Error(err.Error())
 			}
 			slog.Info("Done.")
 			os.Exit(1)
 		}
-	}
-}
-
-func execute(cancel context.CancelCauseFunc, conf Config, task Task) error {
-	if !conf.IsInitiated() {
-		err := conf.Init(os.Args)
-		if err != nil {
-			return err
-		}
-	}
-
-	for {
-		task(cancel)
 	}
 }
