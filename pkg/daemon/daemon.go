@@ -67,9 +67,11 @@ func (receiver *Daemon) handleSignals() {
 		case <-receiver.ctx.Done():
 			if err := receiver.ctx.Err(); err != nil {
 				slog.Error(err.Error())
+				os.Exit(1)
+			} else {
+				slog.Info("Done.")
+				os.Exit(0)
 			}
-			slog.Info("Done.")
-			os.Exit(1)
 		}
 	}
 }
