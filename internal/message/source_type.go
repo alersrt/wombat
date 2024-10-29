@@ -1,6 +1,8 @@
 package message
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 type SourceType uint
 
@@ -8,12 +10,20 @@ const (
 	TELEGRAM SourceType = iota
 )
 
-func (receiver SourceType) String() string {
-	return [...]string{"TELEGRAM"}[receiver]
+var toName = map[SourceType]string{
+	TELEGRAM: "TELEGRAM",
 }
 
-func (receiver *SourceType) Value(sourceType string) SourceType {
-	return map[string]SourceType{"TELEGRAM": TELEGRAM}[sourceType]
+var toValue = map[string]SourceType{
+	"TELEGRAM": TELEGRAM,
+}
+
+func (receiver SourceType) String() string {
+	return toName[receiver]
+}
+
+func (receiver *SourceType) FromString(sourceType string) SourceType {
+	return toValue[sourceType]
 }
 
 func (receiver SourceType) MarshalJSON() ([]byte, error) {
@@ -26,6 +36,6 @@ func (receiver *SourceType) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	*receiver = receiver.Value(s)
+	*receiver = receiver.FromString(s)
 	return nil
 }

@@ -50,12 +50,12 @@ func main() {
 
 	dmn := daemon.Create(ctx, cancel, conf)
 	go dmn.Start(readFromTopic)
-	go dmn.Start(readFromBot)
+	go dmn.Start(readFromTelegram)
 
 	select {}
 }
 
-func readFromBot(cancel context.CancelCauseFunc) {
+func readFromTelegram(cancel context.CancelCauseFunc) {
 	slog.Info(fmt.Sprintf("Authorized on account %s", bot.Self.UserName))
 
 	for update := range getUpdatesFromBot(bot) {
