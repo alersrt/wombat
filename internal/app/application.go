@@ -1,4 +1,4 @@
-package internal
+package app
 
 import (
 	"context"
@@ -53,8 +53,6 @@ func (receiver *application) Run() {
 	go dmn.Start(receiver.readFromTopic)
 	go dmn.Start(receiver.readUpdates)
 	go dmn.Start(receiver.telegram.Read)
-
-	select {}
 }
 
 func (receiver *application) readUpdates(cancel context.CancelCauseFunc) {
@@ -104,7 +102,7 @@ func (receiver *application) readFromTopic(cancel context.CancelCauseFunc) {
 
 		slog.Info(fmt.Sprintf(
 			"Consumed event from topic %s: key = %-10s value = %+v",
-			event.TopicPartition.Topic,
+			*event.TopicPartition.Topic,
 			string(event.Key),
 			msg,
 		))

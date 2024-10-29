@@ -5,7 +5,7 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"log/slog"
 	"os"
-	"wombat/internal"
+	"wombat/internal/app"
 	"wombat/internal/config"
 	"wombat/internal/messaging"
 	"wombat/internal/source"
@@ -36,7 +36,7 @@ func main() {
 
 	telegram := source.NewTelegramSource(updates, conf)
 
-	internal.NewApplication(
+	app.NewApplication(
 		mainCtx,
 		mainCancelCauseFunc,
 		updates,
@@ -44,4 +44,6 @@ func main() {
 		kafkaHelper,
 		telegram,
 	).Run()
+
+	select {}
 }
