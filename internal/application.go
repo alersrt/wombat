@@ -7,7 +7,6 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log/slog"
-	"os"
 	"regexp"
 	"strconv"
 	"wombat/internal/config"
@@ -24,37 +23,20 @@ type Application interface {
 type application struct {
 	mainCtx             context.Context
 	mainCancelCauseFunc context.CancelCauseFunc
-	conf                *config.Config
 	updates             chan any
+	conf                *config.Config
 	kafkaHelper         messaging.KafkaHelper
 	telegram            source.Source
 }
 
-func NewApplication() Application {
-	mainCtx, mainCancelCauseFunc := context.WithCancelCause(context.Background())
-
-	conf := new(config.Config)
-	err := conf.Init(os.Args)
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
-
-	kafkaConf := &kafka.ConfigMap{
-		"bootstrap.servers": conf.Kafka.Bootstrap,
-		"group.id":          conf.Kafka.GroupId,
-		"auto.offset.reset": "earliest",
-	}
-	kafkaHelper, err := messaging.NewKafkaHelper(kafkaConf)
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
-
-	updates := make(chan any)
-
-	telegram := source.NewTelegramSource(updates, conf)
-
+func NewApplication(
+	mainCtx context.Context,
+	mainCancelCauseFunc context.CancelCauseFunc,
+	updates chan any,
+	conf *config.Config,
+	kafkaHelper messaging.KafkaHelper,
+	telegram source.Source,
+) Application {
 	return &application{
 		mainCtx:             mainCtx,
 		mainCancelCauseFunc: mainCancelCauseFunc,
@@ -113,7 +95,7 @@ func (receiver *application) readUpdates(cancel context.CancelCauseFunc) {
 }
 
 func (receiver *application) readFromTopic(cancel context.CancelCauseFunc) {
-	receiver.kafkaHelper.Subscribe([]string{receiver.conf.Kafka.Topic}, func(event *kafka.Message) error {
+	err := receiver.kafkaHelper.Subscribe([]string{receiver.conf.Kafka.Topic}, func(event *kafka.Message) error {
 		msg := &domain.MessageEvent{}
 		if err := json.Unmarshal(event.Value, msg); err != nil {
 			slog.Warn(err.Error())
@@ -128,4 +110,9 @@ func (receiver *application) readFromTopic(cancel context.CancelCauseFunc) {
 		))
 		return nil
 	})
+
+	if err != nil {
+		slog.Error(err.Error())
+		cancel(err)
+	}
 }
