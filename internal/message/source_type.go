@@ -10,20 +10,21 @@ const (
 	TELEGRAM SourceType = iota
 )
 
-var toName = map[SourceType]string{
-	TELEGRAM: "TELEGRAM",
-}
-
-var toValue = map[string]SourceType{
-	"TELEGRAM": TELEGRAM,
-}
+var (
+	toString = map[SourceType]string{
+		TELEGRAM: "TELEGRAM",
+	}
+	fromString = map[string]SourceType{
+		"TELEGRAM": TELEGRAM,
+	}
+)
 
 func (receiver SourceType) String() string {
-	return toName[receiver]
+	return toString[receiver]
 }
 
 func (receiver *SourceType) FromString(sourceType string) SourceType {
-	return toValue[sourceType]
+	return fromString[sourceType]
 }
 
 func (receiver SourceType) MarshalJSON() ([]byte, error) {
