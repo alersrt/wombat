@@ -13,6 +13,7 @@ import (
 	"wombat/internal/messaging"
 	"wombat/internal/source"
 	"wombat/pkg/daemon"
+	"wombat/pkg/utils"
 )
 
 var (
@@ -58,7 +59,9 @@ func TestApplication(t *testing.T) {
 	testCtx, testCancelFunc := context.WithCancel(context.Background())
 	t.Cleanup(testCancelFunc)
 
-	environment, err := compose.NewDockerCompose("./docker/docker-compose.yaml")
+	composePath, err := utils.FindFilePath("docker", "docker-compose.yaml")
+	require.NoError(t, err, "Compose location")
+	environment, err := compose.NewDockerCompose(composePath)
 	require.NoError(t, err, "NewDockerComposeAPI()")
 
 	err = environment.Down(testCtx, compose.RemoveOrphans(true), compose.RemoveImagesLocal, compose.RemoveVolumes(true))
@@ -86,7 +89,6 @@ func TestApplication(t *testing.T) {
 	}
 
 	select {
-	case <-time.After(120 * time.Second):
-		t.SkipNow()
+	case <-time.After(10 * time.Second):
 	}
 }
