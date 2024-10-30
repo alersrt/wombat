@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 )
 
+// FindFilePath Upward search for path described by matches
 func FindFilePath(matches ...string) (searched string, err error) {
 	partial := path.Join(matches...)
 	searched, err = filepath.Abs(partial)
