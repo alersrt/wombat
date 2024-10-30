@@ -9,16 +9,16 @@ import (
 )
 
 type Daemon struct {
-	ctx         context.Context
-	cancelCause context.CancelCauseFunc
-	conf        Config
+	ctx             context.Context
+	cancelCauseFunc context.CancelCauseFunc
+	conf            Config
 }
 
-func Create(ctx context.Context, cancel context.CancelCauseFunc, conf Config) *Daemon {
+func Create(ctx context.Context, cancelCauseFunc context.CancelCauseFunc, conf Config) *Daemon {
 	dmn := &Daemon{
-		ctx:         ctx,
-		cancelCause: cancel,
-		conf:        conf,
+		ctx:             ctx,
+		cancelCauseFunc: cancelCauseFunc,
+		conf:            conf,
 	}
 
 	go dmn.handleSignals()
@@ -36,8 +36,18 @@ func (receiver *Daemon) Start(task Task) {
 	}
 
 	for {
-		task(receiver.cancelCause)
+		task(receiver.cancelCauseFunc)
 	}
+}
+
+func (receiver *Daemon) GetConfig() Config {
+	return receiver.conf
+}
+func (receiver *Daemon) GetContext() context.Context {
+	return receiver.ctx
+}
+func (receiver *Daemon) GetCancelCauseFunc() context.CancelCauseFunc {
+	return receiver.cancelCauseFunc
 }
 
 func (receiver *Daemon) handleSignals() {
@@ -56,12 +66,12 @@ func (receiver *Daemon) handleSignals() {
 					slog.Error(err.Error())
 				}
 			case os.Interrupt:
-				receiver.cancelCause(nil)
+				receiver.cancelCauseFunc(nil)
 				os.Exit(130)
 			case os.Kill:
 				os.Exit(137)
 			case syscall.SIGTERM:
-				receiver.cancelCause(nil)
+				receiver.cancelCauseFunc(nil)
 				os.Exit(143)
 			}
 		case <-receiver.ctx.Done():

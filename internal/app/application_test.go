@@ -21,7 +21,7 @@ var (
 	dmn             *daemon.Daemon
 )
 
-func setup(t *testing.T) Application {
+func setup(t *testing.T) (Application, error) {
 	mainCtx, mainCancelCauseFunc := context.WithCancelCause(context.Background())
 
 	conf := new(config.MockConfig)
@@ -29,6 +29,10 @@ func setup(t *testing.T) Application {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	dmn = daemon.Create(mainCtx, mainCancelCauseFunc, (*config.Config)(conf))
+
+	updates := make(chan any)
 
 	kafkaConf := &kafka.ConfigMap{
 		"bootstrap.servers": conf.Kafka.Bootstrap,
@@ -40,17 +44,11 @@ func setup(t *testing.T) Application {
 		t.Fatal(err)
 	}
 
-	updates := make(chan any)
-
 	telegram := &source.MockSource{Updates: updates, Source: mockUpdatesChan, Done: doneChan}
 
-	dmn = daemon.Create(mainCtx, mainCancelCauseFunc, conf)
-
 	return NewApplication(
-		mainCtx,
-		mainCancelCauseFunc,
+		dmn,
 		updates,
-		(*config.Config)(conf),
 		kafkaHelper,
 		telegram,
 	)
@@ -69,9 +67,10 @@ func TestApplication(t *testing.T) {
 	require.NoError(t, environment.Up(testCtx, compose.Wait(true)), "compose.Up()")
 
 	// Wait until `doneChan` is closed.
-	testedUnit := setup(t)
+	testedUnit, err := setup(t)
+	require.NoError(t, err, "setup()")
 
-	go testedUnit.Run(dmn)
+	go testedUnit.Run()
 
 	select {
 	case <-doneChan:
@@ -79,9 +78,10 @@ func TestApplication(t *testing.T) {
 		t.FailNow()
 	}
 
-	mockUpdatesChan <- &tgbotapi.Update{
+	mockUpdatesChan <- tgbotapi.Update{
 		Message: &tgbotapi.Message{
 			Text: "TEST-100",
+			From: &tgbotapi.User{},
 		},
 	}
 

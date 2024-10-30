@@ -39,12 +39,11 @@ func main() {
 
 	dmn := daemon.Create(mainCtx, mainCancelCauseFunc, conf)
 
-	app.NewApplication(
-		mainCtx,
-		mainCancelCauseFunc,
-		updates,
-		conf,
-		kafkaHelper,
-		telegram,
-	).Run(dmn)
+	runner, err := app.NewApplication(dmn, updates, kafkaHelper, telegram)
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+
+	runner.Run()
 }

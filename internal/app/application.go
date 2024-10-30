@@ -14,43 +14,48 @@ import (
 	"wombat/internal/messaging"
 	"wombat/internal/source"
 	"wombat/pkg/daemon"
+	"wombat/pkg/errors"
 )
 
 type Application interface {
-	Run(dmn *daemon.Daemon)
+	Run()
 }
 
 type application struct {
+	executor            *daemon.Daemon
+	conf                *config.Config
 	mainCtx             context.Context
 	mainCancelCauseFunc context.CancelCauseFunc
 	updates             chan any
-	conf                *config.Config
 	kafkaHelper         messaging.KafkaHelper
 	telegram            source.Source
 }
 
 func NewApplication(
-	mainCtx context.Context,
-	mainCancelCauseFunc context.CancelCauseFunc,
+	executor *daemon.Daemon,
 	updates chan any,
-	conf *config.Config,
 	kafkaHelper messaging.KafkaHelper,
 	telegram source.Source,
-) Application {
+) (Application, error) {
+	conf, ok := executor.GetConfig().(*config.Config)
+	if !ok {
+		return nil, errors.NewError("Wrong config type")
+	}
 	return &application{
-		mainCtx:             mainCtx,
-		mainCancelCauseFunc: mainCancelCauseFunc,
+		mainCtx:             executor.GetContext(),
+		mainCancelCauseFunc: executor.GetCancelCauseFunc(),
 		conf:                conf,
+		executor:            executor,
 		updates:             updates,
 		kafkaHelper:         kafkaHelper,
 		telegram:            telegram,
-	}
+	}, nil
 }
 
-func (receiver *application) Run(dmn *daemon.Daemon) {
-	go dmn.Start(receiver.readFromTopic)
-	go dmn.Start(receiver.readUpdates)
-	go dmn.Start(receiver.telegram.Read)
+func (receiver *application) Run() {
+	go receiver.executor.Start(receiver.readFromTopic)
+	go receiver.executor.Start(receiver.readUpdates)
+	go receiver.executor.Start(receiver.telegram.Read)
 
 	select {}
 }
