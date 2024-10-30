@@ -9,6 +9,7 @@ import (
 	"wombat/internal/config"
 	"wombat/internal/messaging"
 	"wombat/internal/source"
+	"wombat/pkg/daemon"
 )
 
 func main() {
@@ -34,7 +35,9 @@ func main() {
 
 	updates := make(chan any)
 
-	telegram := source.NewTelegramSource(updates, conf)
+	telegram := source.NewTelegramSource(updates, conf.Telegram.Token)
+
+	dmn := daemon.Create(mainCtx, mainCancelCauseFunc, conf)
 
 	app.NewApplication(
 		mainCtx,
@@ -43,5 +46,5 @@ func main() {
 		conf,
 		kafkaHelper,
 		telegram,
-	).Run()
+	).Run(dmn)
 }

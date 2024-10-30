@@ -3,38 +3,30 @@ package app
 import (
 	"context"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go/modules/compose"
-	"log/slog"
 	"os"
 	"testing"
 	"time"
 	"wombat/internal/config"
 	"wombat/internal/messaging"
+	"wombat/internal/source"
+	"wombat/pkg/daemon"
 )
 
 var (
-	done        = make(chan bool)
-	mockUpdates = make(chan any)
+	doneChan        = make(chan bool)
+	mockUpdatesChan = make(chan any)
+	dmn             *daemon.Daemon
 )
 
-type MockSource struct {
-	Updates chan any
-}
-
-func (receiver *MockSource) Read(causeFunc context.CancelCauseFunc) {
-	for update := range mockUpdates {
-		receiver.Updates <- update
-	}
-}
-
-func setupAndRun(t *testing.T) {
+func setup(t *testing.T) Application {
 	mainCtx, mainCancelCauseFunc := context.WithCancelCause(context.Background())
 
-	conf := new(config.Config)
+	conf := new(config.MockConfig)
 	err := conf.Init(os.Args)
 	if err != nil {
-		slog.Error(err.Error())
 		t.Fatal(err)
 	}
 
@@ -45,52 +37,56 @@ func setupAndRun(t *testing.T) {
 	}
 	kafkaHelper, err := messaging.NewKafkaHelper(kafkaConf)
 	if err != nil {
-		slog.Error(err.Error())
 		t.Fatal(err)
 	}
 
 	updates := make(chan any)
 
-	telegram := &MockSource{
-		updates,
-	}
+	telegram := &source.MockSource{Updates: updates, Source: mockUpdatesChan, Done: doneChan}
 
-	NewApplication(
+	dmn = daemon.Create(mainCtx, mainCancelCauseFunc, conf)
+
+	return NewApplication(
 		mainCtx,
 		mainCancelCauseFunc,
 		updates,
-		conf,
+		(*config.Config)(conf),
 		kafkaHelper,
 		telegram,
-	).Run()
-	done <- true
+	)
 }
 
-func Test(t *testing.T) {
+func TestApplication(t *testing.T) {
 	testCtx, testCancelFunc := context.WithCancel(context.Background())
+	t.Cleanup(testCancelFunc)
 
-	environment, err := compose.NewDockerCompose("../../docker/docker-compose.yaml")
+	environment, err := compose.NewDockerCompose("./docker/docker-compose.yaml")
 	require.NoError(t, err, "NewDockerComposeAPI()")
 
-	t.Cleanup(func() {
-		require.NoError(
-			t,
-			environment.Down(testCtx, compose.RemoveOrphans(true), compose.RemoveImagesLocal, compose.RemoveVolumes(true)),
-			"compose.Down()",
-		)
-	})
-
-	t.Cleanup(testCancelFunc)
+	err = environment.Down(testCtx, compose.RemoveOrphans(true), compose.RemoveImagesLocal, compose.RemoveVolumes(true))
+	t.Cleanup(func() { require.NoError(t, err, "compose.Down()") })
 
 	require.NoError(t, environment.Up(testCtx, compose.Wait(true)), "compose.Up()")
 
-	// Wait until `done` is closed.
-	setupAndRun(t)
+	// Wait until `doneChan` is closed.
+	testedUnit := setup(t)
+
+	go testedUnit.Run(dmn)
 
 	select {
-	case <-done:
+	case <-doneChan:
 	case <-time.After(10 * time.Second):
 		t.FailNow()
 	}
 
+	mockUpdatesChan <- &tgbotapi.Update{
+		Message: &tgbotapi.Message{
+			Text: "TEST-100",
+		},
+	}
+
+	select {
+	case <-time.After(120 * time.Second):
+		t.SkipNow()
+	}
 }

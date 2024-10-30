@@ -17,7 +17,7 @@ import (
 )
 
 type Application interface {
-	Run()
+	Run(dmn *daemon.Daemon)
 }
 
 type application struct {
@@ -47,9 +47,7 @@ func NewApplication(
 	}
 }
 
-func (receiver *application) Run() {
-	dmn := daemon.Create(receiver.mainCtx, receiver.mainCancelCauseFunc, receiver.conf)
-
+func (receiver *application) Run(dmn *daemon.Daemon) {
 	go dmn.Start(receiver.readFromTopic)
 	go dmn.Start(receiver.readUpdates)
 	go dmn.Start(receiver.telegram.Read)
