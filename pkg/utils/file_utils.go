@@ -7,20 +7,29 @@ import (
 	"path/filepath"
 )
 
-func FindFilePath(point ...string) (searched string, err error) {
-	partial := path.Join(point...)
+func FindFilePath(matches ...string) (searched string, err error) {
+	partial := path.Join(matches...)
 	searched, err = filepath.Abs(partial)
 	if err != nil {
 		return "", err
 	}
-	if _, err = os.Stat(searched); errors.Is(err, os.ErrNotExist) {
+
+	searched = recursiveSearch(searched, partial, len(matches))
+
+	return searched, nil
+}
+
+func recursiveSearch(searched string, partial string, counter int) string {
+	_, err := os.Stat(searched)
+	if errors.Is(err, os.ErrNotExist) {
 		for i := 0; i <= 2; i++ {
-			if filepath.Dir(searched) == "" {
+			tmp := filepath.Dir(searched)
+			if tmp == "." || tmp == "/" {
 				break
 			}
-			searched = filepath.Dir(searched)
+			searched = tmp
 		}
-		searched = path.Join(searched, partial)
+		searched = recursiveSearch(path.Join(searched, partial), partial, counter)
 	}
-	return searched, nil
+	return searched
 }
