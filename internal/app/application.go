@@ -53,6 +53,8 @@ func (receiver *application) Run() {
 	go dmn.Start(receiver.readFromTopic)
 	go dmn.Start(receiver.readUpdates)
 	go dmn.Start(receiver.telegram.Read)
+
+	select {}
 }
 
 func (receiver *application) readUpdates(cancel context.CancelCauseFunc) {

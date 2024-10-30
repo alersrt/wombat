@@ -44,6 +44,4 @@ func main() {
 		kafkaHelper,
 		telegram,
 	).Run()
-
-	select {}
 }

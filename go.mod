@@ -1,16 +1,18 @@
 module wombat
 
-go 1.22
+go 1.23
 
 toolchain go1.23.2
 
 require (
 	github.com/confluentinc/confluent-kafka-go v1.9.2
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
+	github.com/google/uuid v1.6.0
 	github.com/testcontainers/testcontainers-go/modules/compose v0.34.0
-	github.com/google/uuid v1.6.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )
+
+require github.com/stretchr/testify v1.9.0
 
 require (
 	dario.cat/mergo v1.0.0 // indirect
@@ -143,7 +145,6 @@ require (
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/spf13/cobra v1.8.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/testcontainers/testcontainers-go v0.34.0 // indirect
 	github.com/theupdateframework/notary v0.7.0 // indirect
 	github.com/tilt-dev/fsnotify v1.4.8-0.20220602155310-fff9c274a375 // indirect
