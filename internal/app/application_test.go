@@ -18,19 +18,19 @@ import (
 var (
 	doneChan        = make(chan bool)
 	mockUpdatesChan = make(chan any)
-	dmn             *daemon.Daemon
 )
 
 func setup(t *testing.T) (Application, error) {
 	mainCtx, mainCancelCauseFunc := context.WithCancelCause(context.Background())
 
-	conf := new(config.MockConfig)
+	conf := &config.MockConfig{Config: new(config.Config)}
+
 	err := conf.Init(os.Args)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	dmn = daemon.Create(mainCtx, mainCancelCauseFunc, (*config.Config)(conf))
+	dmn := daemon.Create(mainCtx, mainCancelCauseFunc, conf.Config)
 
 	updates := make(chan any)
 

@@ -1,6 +1,8 @@
 package config
 
-type MockConfig Config
+type MockConfig struct {
+	*Config
+}
 
 func (receiver *MockConfig) Init(args []string) error {
 	receiver.Bot.Tag = "(TEST-\\d+)"
