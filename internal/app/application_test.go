@@ -64,8 +64,10 @@ func TestApplication(t *testing.T) {
 	environment, err := compose.NewDockerCompose(composePath)
 	require.NoError(t, err, "NewDockerComposeAPI()")
 
-	err = environment.Down(testCtx, compose.RemoveOrphans(true), compose.RemoveImagesLocal, compose.RemoveVolumes(true))
-	t.Cleanup(func() { require.NoError(t, err, "compose.Down()") })
+	t.Cleanup(func() {
+		err = environment.Down(testCtx, compose.RemoveOrphans(true), compose.RemoveVolumes(true), compose.RemoveImagesLocal)
+		require.NoError(t, err, "compose.Down()")
+	})
 
 	require.NoError(t, environment.Up(testCtx, compose.Wait(true)), "compose.Up()")
 
