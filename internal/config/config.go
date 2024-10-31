@@ -7,26 +7,39 @@ import (
 )
 
 type Bot struct {
-	Tag   string `yaml:"tag"`
-	Emoji string `yaml:"emoji"`
+	Tag   string `yaml:"tag,omitempty"`
+	Emoji string `yaml:"emoji,omitempty"`
 }
 
 type Telegram struct {
-	Token   string `yaml:"token"`
-	Webhook string `yaml:"webhook"`
+	Token   string `yaml:"token,omitempty"`
+	Webhook string `yaml:"webhook,omitempty"`
 }
 
 type Kafka struct {
-	GroupId   string `yaml:"group-id"`
-	Bootstrap string `yaml:"bootstrap"`
-	Topic     string `yaml:"topic"`
+	GroupId   string `yaml:"group-id,omitempty"`
+	Bootstrap string `yaml:"bootstrap,omitempty"`
+	Topic     string `yaml:"topic,omitempty"`
+}
+
+type PostgreSQL struct {
+	Host     string `yaml:"host,omitempty"`
+	Port     int    `yaml:"port,omitempty"`
+	Database string `yaml:"database,omitempty"`
+	Username string `yaml:"username,omitempty"`
+	Password string `yaml:"password,omitempty"`
+}
+
+type Database struct {
+	PostgreSQL *PostgreSQL `yaml:"postgresql,omitempty"`
 }
 
 type Config struct {
 	isInitiated bool
-	*Bot        `yaml:"bot"`
-	*Telegram   `yaml:"telegram"`
-	*Kafka      `yaml:"kafka"`
+	*Bot        `yaml:"bot,omitempty"`
+	*Telegram   `yaml:"telegram,omitempty"`
+	*Kafka      `yaml:"kafka,omitempty"`
+	*Database   `yaml:"database,omitempty"`
 }
 
 func (receiver *Config) Init(args []string) error {

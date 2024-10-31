@@ -22,7 +22,11 @@ var (
 	mockUpdatesChan = make(chan any)
 )
 
-func setup(t *testing.T, kafkaContainer *testcontainers.DockerContainer) (Application, error) {
+func setup(
+	t *testing.T,
+	kafkaContainer *testcontainers.DockerContainer,
+	postgresContainer *testcontainers.DockerContainer,
+) (Application, error) {
 	mainCtx, mainCancelCauseFunc := context.WithCancelCause(context.Background())
 
 	kafkaBootstrap, err := kafkaContainer.PortEndpoint(mainCtx, "9092", "")
@@ -30,7 +34,25 @@ func setup(t *testing.T, kafkaContainer *testcontainers.DockerContainer) (Applic
 		t.Fatal(err)
 	}
 
+	pgHost, err := postgresContainer.Host(mainCtx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pgPort, err := postgresContainer.MappedPort(mainCtx, "5432")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	conf := &config.MockConfig{Config: &config.Config{
+		Database: &config.Database{
+			PostgreSQL: &config.PostgreSQL{
+				Database: "wombatdb",
+				Host:     pgHost,
+				Port:     pgPort.Int(),
+				Username: "wombat_rw",
+				Password: "wombat_rw",
+			},
+		},
 		Kafka: &config.Kafka{
 			GroupId:   "wombat",
 			Bootstrap: kafkaBootstrap,
@@ -85,9 +107,11 @@ func TestApplication(t *testing.T) {
 
 	kafkaContainer, err := environment.ServiceContainer(testCtx, "kafka")
 	require.NoError(t, err, "Kafka container")
+	postgresContainer, err := environment.ServiceContainer(testCtx, "postgres")
+	require.NoError(t, err, "PostgreSQL container")
 
 	// Wait until `doneChan` is closed.
-	testedUnit, err := setup(t, kafkaContainer)
+	testedUnit, err := setup(t, kafkaContainer, postgresContainer)
 	require.NoError(t, err, "setup()")
 
 	go testedUnit.Run()

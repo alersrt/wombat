@@ -6,7 +6,14 @@ jira:
 telegram:
   token: ${TELEGRAM_TOKEN}
   webhook: "<your webhook link>"
+database:
+  postgresql:
+    host: ${POSTGRES_HOST:localhost}
+    port: ${POSTGRES_PORT:5432}
+    database: ${POSTGRES_DATABASE:wombatdb}
+    username: ${POSTGRES_USERNAME:wombat_rw}
+    password: ${POSTGRES_PASSWORD:wombat_rw}
 kafka:
   group-id: "wombat"
-  bootstrap: localhost:9092
+  bootstrap: ${localhost:9092
   topic: "wombat.response"
