@@ -57,7 +57,6 @@ func setup(t *testing.T) (Application, error) {
 
 func TestApplication(t *testing.T) {
 	testCtx, testCancelFunc := context.WithCancel(context.Background())
-	t.Cleanup(testCancelFunc)
 
 	composePath, err := utils.FindFilePath("docker", "docker-compose.yaml")
 	require.NoError(t, err, "Compose location")
@@ -68,6 +67,7 @@ func TestApplication(t *testing.T) {
 		err = environment.Down(testCtx, compose.RemoveOrphans(true), compose.RemoveVolumes(true), compose.RemoveImagesLocal)
 		require.NoError(t, err, "compose.Down()")
 	})
+	t.Cleanup(testCancelFunc)
 
 	require.NoError(t, environment.Up(testCtx, compose.Wait(true)), "compose.Up()")
 
@@ -85,8 +85,10 @@ func TestApplication(t *testing.T) {
 
 	mockUpdatesChan <- tgbotapi.Update{
 		Message: &tgbotapi.Message{
-			Text: "TEST-100",
-			From: &tgbotapi.User{},
+			Text:      "TEST-100",
+			From:      &tgbotapi.User{},
+			Chat:      tgbotapi.Chat{ID: 1},
+			MessageID: 1,
 		},
 	}
 

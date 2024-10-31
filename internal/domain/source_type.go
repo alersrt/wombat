@@ -11,24 +11,16 @@ const (
 )
 
 var (
-	toString = map[SourceType]string{
+	sourceTypeToString = map[SourceType]string{
 		TELEGRAM: "TELEGRAM",
 	}
-	fromString = map[string]SourceType{
+	sourceTypeFromString = map[string]SourceType{
 		"TELEGRAM": TELEGRAM,
 	}
 )
 
-func (receiver *SourceType) String() string {
-	return toString[*receiver]
-}
-
-func FromString(sourceType string) SourceType {
-	return fromString[sourceType]
-}
-
 func (receiver *SourceType) MarshalJSON() ([]byte, error) {
-	return json.Marshal(receiver.String())
+	return json.Marshal(sourceTypeToString[*receiver])
 }
 
 func (receiver *SourceType) UnmarshalJSON(b []byte) error {
@@ -37,6 +29,6 @@ func (receiver *SourceType) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	*receiver = FromString(s)
+	*receiver = sourceTypeFromString[s]
 	return nil
 }

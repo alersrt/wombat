@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/google/uuid"
 	"log/slog"
 	"regexp"
 	"strconv"
@@ -53,14 +54,14 @@ func NewApplication(
 }
 
 func (receiver *application) Run() {
-	go receiver.executor.Start(receiver.readFromTopic)
-	go receiver.executor.Start(receiver.readUpdates)
+	go receiver.executor.Start(receiver.route)
+	go receiver.executor.Start(receiver.source)
 	go receiver.executor.Start(receiver.telegram.Read)
 
 	select {}
 }
 
-func (receiver *application) readUpdates(cancel context.CancelCauseFunc) {
+func (receiver *application) source(cancel context.CancelCauseFunc) {
 	for update := range receiver.updates {
 		switch matched := update.(type) {
 
@@ -72,6 +73,7 @@ func (receiver *application) readUpdates(cancel context.CancelCauseFunc) {
 				if len(tags) > 0 {
 
 					msg := &domain.MessageEvent{
+						EventType:  domain.CREATE,
 						SourceType: domain.TELEGRAM,
 						Text:       matched.Message.Text,
 						AuthorId:   matched.Message.From.UserName,
@@ -97,13 +99,17 @@ func (receiver *application) readUpdates(cancel context.CancelCauseFunc) {
 	}
 }
 
-func (receiver *application) readFromTopic(cancel context.CancelCauseFunc) {
+func (receiver *application) route(cancel context.CancelCauseFunc) {
 	err := receiver.kafkaHelper.Subscribe([]string{receiver.conf.Kafka.Topic}, func(event *kafka.Message) error {
 		msg := &domain.MessageEvent{}
 		if err := json.Unmarshal(event.Value, msg); err != nil {
 			slog.Warn(err.Error())
 			return err
 		}
+
+		hash := uuid.NewSHA1(uuid.NameSpaceURL, []byte(msg.ChatId+msg.MessageId))
+
+		slog.Info(hash.String())
 
 		slog.Info(fmt.Sprintf(
 			"Consumed event from topic %s: key = %-10s value = %+v",
