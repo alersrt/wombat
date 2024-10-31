@@ -27,14 +27,14 @@ type application struct {
 	conf                *config.Config
 	mainCtx             context.Context
 	mainCancelCauseFunc context.CancelCauseFunc
-	updates             chan any
+	routeChan           chan any
 	kafkaHelper         messaging.KafkaHelper
 	telegram            source.Source
 }
 
 func NewApplication(
 	executor *daemon.Daemon,
-	updates chan any,
+	routeChan chan any,
 	kafkaHelper messaging.KafkaHelper,
 	telegram source.Source,
 ) (Application, error) {
@@ -47,7 +47,7 @@ func NewApplication(
 		mainCancelCauseFunc: executor.GetCancelCauseFunc(),
 		conf:                conf,
 		executor:            executor,
-		updates:             updates,
+		routeChan:           routeChan,
 		kafkaHelper:         kafkaHelper,
 		telegram:            telegram,
 	}, nil
@@ -56,13 +56,17 @@ func NewApplication(
 func (receiver *application) Run() {
 	go receiver.executor.Start(receiver.route)
 	go receiver.executor.Start(receiver.source)
-	go receiver.executor.Start(receiver.telegram.Read)
+	go receiver.executor.Start(receiver.forwardFromTelegram)
 
 	select {}
 }
 
-func (receiver *application) source(cancel context.CancelCauseFunc) {
-	for update := range receiver.updates {
+func (receiver *application) forwardFromTelegram() {
+	receiver.telegram.ForwardTo(receiver.routeChan)
+}
+
+func (receiver *application) source() {
+	for update := range receiver.routeChan {
 		switch matched := update.(type) {
 
 		case tgbotapi.Update:
@@ -99,7 +103,7 @@ func (receiver *application) source(cancel context.CancelCauseFunc) {
 	}
 }
 
-func (receiver *application) route(cancel context.CancelCauseFunc) {
+func (receiver *application) route() {
 	err := receiver.kafkaHelper.Subscribe([]string{receiver.conf.Kafka.Topic}, func(event *kafka.Message) error {
 		msg := &domain.MessageEvent{}
 		if err := json.Unmarshal(event.Value, msg); err != nil {
@@ -122,6 +126,5 @@ func (receiver *application) route(cancel context.CancelCauseFunc) {
 
 	if err != nil {
 		slog.Error(err.Error())
-		cancel(err)
 	}
 }

@@ -1,16 +1,13 @@
 package source
 
-import "context"
-
 type MockSource struct {
-	Updates chan any
-	Source  chan any
-	Done    chan bool
+	Source chan any
+	Done   chan bool
 }
 
-func (receiver *MockSource) Read(causeFunc context.CancelCauseFunc) {
+func (receiver *MockSource) ForwardTo(target chan any) {
 	receiver.Done <- true
 	for update := range receiver.Source {
-		receiver.Updates <- update
+		target <- update
 	}
 }

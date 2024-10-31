@@ -79,7 +79,7 @@ func setup(
 		t.Fatal(err)
 	}
 
-	telegram := &source.MockSource{Updates: updates, Source: mockUpdatesChan, Done: doneChan}
+	telegram := &source.MockSource{Source: mockUpdatesChan, Done: doneChan}
 
 	return NewApplication(
 		dmn,

@@ -36,7 +36,7 @@ func (receiver *Daemon) Start(task Task) {
 	}
 
 	for {
-		task(receiver.cancelCauseFunc)
+		task()
 	}
 }
 

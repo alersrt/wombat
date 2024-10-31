@@ -1,5 +1,3 @@
 package daemon
 
-import "context"
-
-type Task func(context.CancelCauseFunc)
+type Task func()

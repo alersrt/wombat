@@ -1,35 +1,26 @@
 package source
 
 import (
-	"context"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log/slog"
-	"wombat/pkg/errors"
 )
 
 type telegram struct {
-	Updates chan any
-	Token   string
+	bot *tgbotapi.BotAPI
 }
 
-func NewTelegramSource(updates chan any, token string) Source {
-	return &telegram{
-		Updates: updates,
-		Token:   token,
-	}
-}
-
-func (receiver *telegram) Read(cancel context.CancelCauseFunc) {
-	if receiver.Updates == nil {
-		cancel(errors.NewError("Updates channel is not defined"))
-	}
-	bot, err := tgbotapi.NewBotAPI(receiver.Token)
+func NewTelegramSource(token string) (Source, error) {
+	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		slog.Error(err.Error())
-		cancel(err)
+		return nil, err
 	}
 
+	return &telegram{bot: bot}, nil
+}
+
+func (receiver *telegram) ForwardTo(target chan any) {
 	u := tgbotapi.NewUpdate(0)
 	u.AllowedUpdates = append(
 		u.AllowedUpdates,
@@ -39,9 +30,9 @@ func (receiver *telegram) Read(cancel context.CancelCauseFunc) {
 	)
 	u.Timeout = 60
 
-	slog.Info(fmt.Sprintf("Authorized on account %s", bot.Self.UserName))
+	slog.Info(fmt.Sprintf("Authorized on account %s", receiver.bot.Self.UserName))
 
-	for update := range bot.GetUpdatesChan(u) {
-		receiver.Updates <- update
+	for update := range receiver.bot.GetUpdatesChan(u) {
+		target <- update
 	}
 }
