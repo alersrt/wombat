@@ -3,8 +3,41 @@ networks:
 
 volumes:
   kafka-volume:
+  postgres-volume:
 
 services:
+
+  postgresql:
+    image: postgres:latest
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres/sql/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+      - postgres-volume:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=wombat_rw
+      - POSTGRES_PASSWORD=wombat_rw
+      - POSTGRES_DB=wombatdb
+    healthcheck:
+      test: pg_isready -U postgres -d postgres
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - internal-network
+
+  flyway:
+    image: redgate/flyway
+    command: migrate info
+    volumes:
+      - ./flyway/flyway.toml:/flyway/conf/flyway.toml:ro
+      - ../db/changelog/:/flyway/sql:ro
+    networks:
+      - internal-network
+    depends_on:
+      postgresql:
+        condition: service_healthy
 
   kafka:
     image: confluentinc/cp-kafka:latest

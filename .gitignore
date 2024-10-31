@@ -2,10 +2,13 @@
 /*
 
 ## Include project files
+!/db
+!/docker/
+
+## Include sources
 !/cmd/
 !/internal/
 !/pkg/
-!/docker/
 
 # Backend
 /vendor
