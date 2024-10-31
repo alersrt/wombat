@@ -56,32 +56,30 @@ func (receiver *Daemon) handleSignals() {
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGHUP)
 	defer signal.Stop(signalChan)
 
-	for {
-		select {
-		case s := <-signalChan:
-			switch s {
-			case syscall.SIGHUP:
-				err := receiver.conf.Init(os.Args)
-				if err != nil {
-					slog.Error(err.Error())
-				}
-			case os.Interrupt:
-				receiver.cancelCauseFunc(nil)
-				os.Exit(130)
-			case os.Kill:
-				os.Exit(137)
-			case syscall.SIGTERM:
-				receiver.cancelCauseFunc(nil)
-				os.Exit(143)
-			}
-		case <-receiver.ctx.Done():
-			if err := receiver.ctx.Err(); err != nil {
+	select {
+	case s := <-signalChan:
+		switch s {
+		case syscall.SIGHUP:
+			err := receiver.conf.Init(os.Args)
+			if err != nil {
 				slog.Error(err.Error())
-				os.Exit(1)
-			} else {
-				slog.Info("Done.")
-				os.Exit(0)
 			}
+		case os.Interrupt:
+			receiver.cancelCauseFunc(nil)
+			os.Exit(130)
+		case os.Kill:
+			os.Exit(137)
+		case syscall.SIGTERM:
+			receiver.cancelCauseFunc(nil)
+			os.Exit(143)
+		}
+	case <-receiver.ctx.Done():
+		if err := receiver.ctx.Err(); err != nil {
+			slog.Error(err.Error())
+			os.Exit(1)
+		} else {
+			slog.Info("Done.")
+			os.Exit(0)
 		}
 	}
 }
