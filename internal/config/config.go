@@ -1,42 +1,42 @@
 package config
 
 import (
-	"flag"
 	"gopkg.in/yaml.v2"
 	"log/slog"
 	"os"
 )
 
+type Bot struct {
+	Tag   string `yaml:"tag"`
+	Emoji string `yaml:"emoji"`
+}
+
+type Telegram struct {
+	Token   string `yaml:"token"`
+	Webhook string `yaml:"webhook"`
+}
+
+type Kafka struct {
+	GroupId   string `yaml:"group-id"`
+	Bootstrap string `yaml:"bootstrap"`
+	Topic     string `yaml:"topic"`
+}
+
 type Config struct {
 	isInitiated bool
-	Bot         struct {
-		Tag   string `yaml:"tag"`
-		Emoji string `yaml:"emoji"`
-	} `yaml:"bot"`
-	Telegram struct {
-		Token   string `yaml:"token"`
-		Webhook string `yaml:"webhook"`
-	} `yaml:"telegram"`
-	Kafka struct {
-		GroupId   string `yaml:"group-id"`
-		Bootstrap string `yaml:"bootstrap"`
-		Topic     string `yaml:"topic"`
-	} `yaml:"kafka"`
+	*Bot        `yaml:"bot"`
+	*Telegram   `yaml:"telegram"`
+	*Kafka      `yaml:"kafka"`
 }
 
 func (receiver *Config) Init(args []string) error {
 	slog.Info("Wombat initialization...")
 
-	flags := flag.NewFlagSet(args[0], flag.ExitOnError)
-	configPath := flags.String("config", "./cmd/config.yaml", "path to config")
+	configPath := args[0]
 
-	if err := flags.Parse(args[1:]); err != nil {
-		return err
-	}
+	defer slog.Info("Config file: " + configPath)
 
-	defer slog.Info("Config file: " + *configPath)
-
-	file, err := os.ReadFile(*configPath)
+	file, err := os.ReadFile(configPath)
 	if err != nil {
 		return err
 	}

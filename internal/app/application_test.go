@@ -5,6 +5,7 @@ import (
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/compose"
 	"os"
 	"testing"
@@ -21,12 +22,23 @@ var (
 	mockUpdatesChan = make(chan any)
 )
 
-func setup(t *testing.T) (Application, error) {
+func setup(t *testing.T, kafkaContainer *testcontainers.DockerContainer) (Application, error) {
 	mainCtx, mainCancelCauseFunc := context.WithCancelCause(context.Background())
 
-	conf := &config.MockConfig{Config: new(config.Config)}
+	kafkaBootstrap, err := kafkaContainer.PortEndpoint(mainCtx, "9092", "")
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	err := conf.Init(os.Args)
+	conf := &config.MockConfig{Config: &config.Config{
+		Kafka: &config.Kafka{
+			GroupId:   "wombat",
+			Bootstrap: kafkaBootstrap,
+			Topic:     "wombat.test",
+		},
+		Bot: &config.Bot{Tag: "(TEST-\\d+)", Emoji: "👍"},
+	}}
+	err = conf.Init(os.Args)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,6 +69,7 @@ func setup(t *testing.T) (Application, error) {
 
 func TestApplication(t *testing.T) {
 	testCtx, testCancelFunc := context.WithCancel(context.Background())
+	t.Cleanup(testCancelFunc)
 
 	composePath, err := utils.FindFilePath("docker", "docker-compose.yaml")
 	require.NoError(t, err, "Compose location")
@@ -67,12 +80,14 @@ func TestApplication(t *testing.T) {
 		err = environment.Down(testCtx, compose.RemoveOrphans(true), compose.RemoveVolumes(true), compose.RemoveImagesLocal)
 		require.NoError(t, err, "compose.Down()")
 	})
-	t.Cleanup(testCancelFunc)
 
 	require.NoError(t, environment.Up(testCtx, compose.Wait(true)), "compose.Up()")
 
+	kafkaContainer, err := environment.ServiceContainer(testCtx, "kafka")
+	require.NoError(t, err, "Kafka container")
+
 	// Wait until `doneChan` is closed.
-	testedUnit, err := setup(t)
+	testedUnit, err := setup(t, kafkaContainer)
 	require.NoError(t, err, "setup()")
 
 	go testedUnit.Run()
