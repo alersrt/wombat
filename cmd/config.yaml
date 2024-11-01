@@ -8,11 +8,13 @@ telegram:
   webhook: "<your webhook link>"
 database:
   postgresql:
+    url: postgres://${POSTGRES_USERNAME:-wombat_rw}:${POSTGRES_PASSWORD:-wombat_rw}@${POSTGRES_HOST:-localhost}:${POSTGRES_PORT:-5432}/${POSTGRES_DATABASE:-wombatdb}?sslmode=${POSTGRES_SSLMODE:-disable}
     host: ${POSTGRES_HOST:-localhost}
     port: ${POSTGRES_PORT:-5432}
     database: ${POSTGRES_DATABASE:-wombatdb}
     username: ${POSTGRES_USERNAME:-wombat_rw}
     password: ${POSTGRES_PASSWORD:-wombat_rw}
+    sslmode: ${POSTGRES_SSLMODE:-disable}
 kafka:
   group-id: ${KAFKA_GROUP_ID:-wombat}
   bootstrap: ${KAFKA_BOOTSTRAP:-localhost:9092}

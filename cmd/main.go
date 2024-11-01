@@ -40,8 +40,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	pgUrl := conf.PostgreSQL.FormatURL()
-	queryHelper := dao.NewPostgreSQLManager(mainCtx, &pgUrl)
+	queryHelper := dao.NewPostgreSQLManager(mainCtx, &conf.PostgreSQL.Url)
 
 	updates := make(chan any)
 

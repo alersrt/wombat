@@ -19,6 +19,7 @@ services:
       - POSTGRES_USER=wombat_rw
       - POSTGRES_PASSWORD=wombat_rw
       - POSTGRES_DB=wombatdb
+      - POSTGRES_INITDB_ARGS="--auth-host=md5"
     healthcheck:
       test: pg_isready -U wombat_rw -d wombatdb
       interval: 5s

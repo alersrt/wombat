@@ -25,11 +25,13 @@ type Kafka struct {
 }
 
 type PostgreSQL struct {
+	Url      string `yaml:"url"`
 	Host     string `yaml:"host,omitempty"`
 	Port     int    `yaml:"port,omitempty"`
 	Database string `yaml:"database,omitempty"`
 	Username string `yaml:"username,omitempty"`
 	Password string `yaml:"password,omitempty"`
+	SslMode  string `yaml:"sslmode"`
 }
 
 func (receiver *PostgreSQL) FormatURL() string {

@@ -8,9 +8,9 @@ require (
 	github.com/confluentinc/confluent-kafka-go v1.9.2
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.7.1
 	gopkg.in/yaml.v2 v2.4.0
 	mvdan.cc/sh/v3 v3.10.0
+	github.com/jackc/pgx/v5 v5.7.1
 )
 
 require (

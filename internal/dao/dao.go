@@ -2,7 +2,8 @@ package dao
 
 import (
 	"context"
-	"github.com/jackc/pgx/v5"
+	"database/sql"
+	_ "github.com/jackc/pgx/v5"
 	"log/slog"
 	"wombat/internal/domain"
 )
@@ -21,15 +22,14 @@ func NewPostgreSQLManager(ctx context.Context, url *string) QueryManager {
 }
 
 func (receiver *postgreSQLManager) SaveMessageEvent(ctx context.Context, entity *domain.MessageEvent) (result *domain.MessageEvent, err error) {
-	conn, err := pgx.Connect(ctx, *receiver.url)
-	defer conn.Close(ctx)
+	conn, err := sql.Open("postgres", *receiver.url)
+	defer conn.Close()
 	if err != nil {
 		slog.Error(err.Error())
 		return
 	}
 
-	row, err := conn.Query(
-		ctx,
+	row := conn.QueryRow(
 		`insert into wombatsm.message_event(hash, source_type, event_type, text, author_id, chat_id, message_id)
                values (@hash,@sourceType,@eventType,@text,@authorId,@chatId,@messageId)
                on conflict (hash)
@@ -40,15 +40,13 @@ func (receiver *postgreSQLManager) SaveMessageEvent(ctx context.Context, entity 
                    chat_id = @chatId,
                    message_id = @messageId
                returning hash, source_type, event_type, text, author_id, chat_id, message_id`,
-		pgx.NamedArgs{
-			"hash":       entity.Hash,
-			"sourceType": entity.SourceType.String(),
-			"eventType":  entity.EventType.String(),
-			"text":       entity.Text,
-			"authorId":   entity.AuthorId,
-			"chatId":     entity.ChatId,
-			"messageUd":  entity.MessageId,
-		},
+		sql.Named("hash", entity.Hash),
+		sql.Named("sourceType", entity.SourceType.String()),
+		sql.Named("eventType", entity.EventType.String()),
+		sql.Named("text", entity.Text),
+		sql.Named("authorId", entity.AuthorId),
+		sql.Named("chatId", entity.ChatId),
+		sql.Named("messageUd", entity.MessageId),
 	)
 
 	if err != nil {
