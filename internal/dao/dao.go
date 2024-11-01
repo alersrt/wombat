@@ -3,7 +3,7 @@ package dao
 import (
 	"context"
 	"database/sql"
-	_ "github.com/jackc/pgx/v5"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"log/slog"
 	"wombat/internal/domain"
 )
@@ -22,7 +22,7 @@ func NewPostgreSQLManager(ctx context.Context, url *string) QueryManager {
 }
 
 func (receiver *postgreSQLManager) SaveMessageEvent(ctx context.Context, entity *domain.MessageEvent) (result *domain.MessageEvent, err error) {
-	conn, err := sql.Open("postgres", *receiver.url)
+	conn, err := sql.Open("pgx", *receiver.url)
 	defer conn.Close()
 	if err != nil {
 		slog.Error(err.Error())
@@ -31,7 +31,7 @@ func (receiver *postgreSQLManager) SaveMessageEvent(ctx context.Context, entity 
 
 	row := conn.QueryRow(
 		`insert into wombatsm.message_event(hash, source_type, event_type, text, author_id, chat_id, message_id)
-               values (@hash,@sourceType,@eventType,@text,@authorId,@chatId,@messageId)
+               values (@hash, @sourceType, @eventType, @text, @authorId, @chatId, @messageId)
                on conflict (hash)
                do update
                set event_type = @eventType,
