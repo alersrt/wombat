@@ -1,6 +1,6 @@
 create table if not exists wombatsm.message_event
 (
-    hash        uuid,
+    hash        uuid primary key         not null,
     source_type varchar(64),
     event_type  varchar(64),
     text        text,
