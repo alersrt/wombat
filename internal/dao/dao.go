@@ -28,7 +28,8 @@ func (receiver *postgreSQLManager) SaveMessageEvent(ctx context.Context, entity 
 		return
 	}
 
-	row, err := conn.Query(ctx,
+	row, err := conn.Query(
+		ctx,
 		`insert into wombatsm.message_event(hash, source_type, event_type, text, author_id, chat_id, message_id)
                values (@hash,@sourceType,@eventType,@text,@authorId,@chatId,@messageId)
                on conflict (hash)
