@@ -29,7 +29,7 @@ func (receiver *postgreSQLManager) SaveMessageEvent(ctx context.Context, entity 
 		return
 	}
 
-	row := conn.QueryRow(
+	rows, err := conn.Query(
 		`insert into wombatsm.message_event(hash, source_type, event_type, text, author_id, chat_id, message_id)
                values (@hash, @sourceType, @eventType, @text, @authorId, @chatId, @messageId)
                on conflict (hash)
@@ -39,7 +39,7 @@ func (receiver *postgreSQLManager) SaveMessageEvent(ctx context.Context, entity 
                    author_id = @authorId,
                    chat_id = @chatId,
                    message_id = @messageId
-               returning hash, source_type, event_type, text, author_id, chat_id, message_id`,
+               returning hash, source_type, event_type, text, author_id, chat_id, message_id;`,
 		sql.Named("hash", entity.Hash),
 		sql.Named("sourceType", entity.SourceType.String()),
 		sql.Named("eventType", entity.EventType.String()),
@@ -54,7 +54,7 @@ func (receiver *postgreSQLManager) SaveMessageEvent(ctx context.Context, entity 
 	}
 
 	saved := &domain.MessageEvent{}
-	err = row.Scan(&saved.Hash, &saved.SourceType, &saved.EventType, &saved.Text, &saved.AuthorId, &saved.ChatId, &saved.MessageId)
+	err = rows.Scan(&saved.Hash, &saved.SourceType, &saved.EventType, &saved.Text, &saved.AuthorId, &saved.ChatId, &saved.MessageId)
 	if err != nil {
 		return nil, err
 	}

@@ -118,13 +118,11 @@ func (receiver *application) route() {
 	err := receiver.kafkaHelper.Subscribe([]string{receiver.conf.Kafka.Topic}, func(event *kafka.Message) error {
 		msg := &domain.MessageEvent{}
 		if err := json.Unmarshal(event.Value, msg); err != nil {
-			slog.Warn(err.Error())
 			return err
 		}
 
 		saved, err := receiver.queryHelper.SaveMessageEvent(receiver.mainCtx, msg)
 		if err != nil {
-			slog.Warn(err.Error())
 			return err
 		}
 		slog.Info(fmt.Sprintf(
@@ -137,6 +135,6 @@ func (receiver *application) route() {
 	})
 
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Warn(err.Error())
 	}
 }
