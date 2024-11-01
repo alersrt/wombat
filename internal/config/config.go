@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"log/slog"
+	"mvdan.cc/sh/v3/shell"
 	"os"
 )
 
@@ -60,14 +61,20 @@ func (receiver *Config) Init(args []string) error {
 		return err
 	}
 
-	replaced := os.ExpandEnv(string(file))
+	replaced, err := shell.Expand(string(file), nil)
+	if err != nil {
+		return err
+	}
+
 	err = yaml.Unmarshal([]byte(replaced), receiver)
+	if err != nil {
+		return err
+	}
 
 	if err == nil {
 		receiver.isInitiated = true
 	}
-
-	return err
+	return nil
 }
 
 func (receiver *Config) IsInitiated() bool {

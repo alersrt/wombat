@@ -1,5 +1,5 @@
 bot:
-  tag: "(TEST-\\d+)"
+  tag: (TEST-\\d+)
   emoji: "👍"
 jira:
   role: "TELEGRAM_POSTER"
@@ -14,6 +14,6 @@ database:
     username: ${POSTGRES_USERNAME:wombat_rw}
     password: ${POSTGRES_PASSWORD:wombat_rw}
 kafka:
-  group-id: "wombat"
-  bootstrap: ${localhost:9092
-  topic: "wombat.response"
+  group-id: ${KAFKA_GROUP_ID:wombat}
+  bootstrap: ${KAFKA_BOOTSTRAP:localhost:9092}
+  topic: ${KAFKA_TOPIC:wombat.response}
