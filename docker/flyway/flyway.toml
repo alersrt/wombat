@@ -1,5 +1,5 @@
 [environments.postgresql]
-url = "jdbc:postgresql://postgresql:5432/wombatdb"
+url = "jdbc:postgresql://postgres:5432/wombatdb"
 user = "wombat_rw"
 password = "wombat_rw"
 sqlMigrationSuffixes = [".sql"]

@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"wombat/internal/config"
+	"wombat/internal/dao"
 	"wombat/internal/domain"
 	"wombat/internal/messaging"
 	"wombat/internal/source"
@@ -29,6 +30,7 @@ type application struct {
 	mainCancelCauseFunc context.CancelCauseFunc
 	routeChan           chan any
 	kafkaHelper         messaging.KafkaHelper
+	queryHelper         dao.QueryManager
 	telegram            source.Source
 }
 
@@ -36,6 +38,7 @@ func NewApplication(
 	executor *daemon.Daemon,
 	routeChan chan any,
 	kafkaHelper messaging.KafkaHelper,
+	queryHelper dao.QueryManager,
 	telegram source.Source,
 ) (Application, error) {
 	conf, ok := executor.GetConfig().(*config.Config)
@@ -49,6 +52,7 @@ func NewApplication(
 		executor:            executor,
 		routeChan:           routeChan,
 		kafkaHelper:         kafkaHelper,
+		queryHelper:         queryHelper,
 		telegram:            telegram,
 	}, nil
 }
@@ -66,23 +70,30 @@ func (receiver *application) forwardFromTelegram() {
 }
 
 func (receiver *application) source() {
+
+	hash := func(sourceType domain.SourceType, chatId string, messageId string) string {
+		return uuid.NewSHA1(uuid.NameSpaceURL, []byte(sourceType.String()+chatId+messageId)).String()
+	}
+
 	for update := range receiver.routeChan {
 		switch matched := update.(type) {
-
 		case tgbotapi.Update:
 			if matched.Message != nil {
 				pattern := regexp.MustCompile(receiver.conf.Bot.Tag)
 				tags := pattern.FindAllString(matched.Message.Text, -1)
 
 				if len(tags) > 0 {
+					messageId := strconv.Itoa(matched.Message.MessageID)
+					chatId := strconv.FormatInt(matched.Message.Chat.ID, 10)
 
 					msg := &domain.MessageEvent{
+						Hash:       hash(domain.TELEGRAM, chatId, messageId),
 						EventType:  domain.CREATE,
 						SourceType: domain.TELEGRAM,
 						Text:       matched.Message.Text,
 						AuthorId:   matched.Message.From.UserName,
-						ChatId:     strconv.FormatInt(matched.Message.Chat.ID, 10),
-						MessageId:  strconv.Itoa(matched.Message.MessageID),
+						ChatId:     chatId,
+						MessageId:  messageId,
 					}
 
 					jsonifiedMsg, err := json.Marshal(msg)
@@ -111,15 +122,16 @@ func (receiver *application) route() {
 			return err
 		}
 
-		hash := uuid.NewSHA1(uuid.NameSpaceURL, []byte(msg.ChatId+msg.MessageId))
-
-		slog.Info(hash.String())
-
+		saved, err := receiver.queryHelper.SaveMessageEvent(receiver.mainCtx, msg)
+		if err != nil {
+			slog.Warn(err.Error())
+			return err
+		}
 		slog.Info(fmt.Sprintf(
 			"Consumed event from topic %s: key = %-10s value = %+v",
 			*event.TopicPartition.Topic,
 			string(event.Key),
-			msg,
+			saved,
 		))
 		return nil
 	})

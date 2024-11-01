@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 	"wombat/internal/config"
+	"wombat/internal/dao"
 	"wombat/internal/messaging"
 	"wombat/internal/source"
 	"wombat/pkg/daemon"
@@ -79,12 +80,16 @@ func setup(
 		t.Fatal(err)
 	}
 
+	pgUrl := conf.PostgreSQL.FormatURL()
+	queryHelper := dao.NewPostgreSQLManager(mainCtx, &pgUrl)
+
 	telegram := &source.MockSource{Source: mockUpdatesChan, Done: doneChan}
 
 	return NewApplication(
 		dmn,
 		updates,
 		kafkaHelper,
+		queryHelper,
 		telegram,
 	)
 }

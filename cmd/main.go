@@ -8,6 +8,7 @@ import (
 	"os"
 	"wombat/internal/app"
 	"wombat/internal/config"
+	"wombat/internal/dao"
 	"wombat/internal/messaging"
 	"wombat/internal/source"
 	"wombat/pkg/daemon"
@@ -39,13 +40,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	pgUrl := conf.PostgreSQL.FormatURL()
+	queryHelper := dao.NewPostgreSQLManager(mainCtx, &pgUrl)
+
 	updates := make(chan any)
 
-	telegram := source.NewTelegramSource(updates, conf.Telegram.Token)
+	telegram, err := source.NewTelegramSource(conf.Telegram.Token)
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
 
 	dmn := daemon.Create(mainCtx, mainCancelCauseFunc, conf)
 
-	runner, err := app.NewApplication(dmn, updates, kafkaHelper, telegram)
+	runner, err := app.NewApplication(dmn, updates, kafkaHelper, queryHelper, telegram)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)

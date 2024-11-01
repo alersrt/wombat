@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"gopkg.in/yaml.v2"
 	"log/slog"
 	"os"
@@ -28,6 +29,11 @@ type PostgreSQL struct {
 	Database string `yaml:"database,omitempty"`
 	Username string `yaml:"username,omitempty"`
 	Password string `yaml:"password,omitempty"`
+}
+
+func (receiver *PostgreSQL) FormatURL() string {
+	return fmt.Sprintf("postgres://%[1]s:%[2]s@%[3]s:%[4]d/%[5]s",
+		receiver.Username, receiver.Password, receiver.Host, receiver.Port, receiver.Database)
 }
 
 type Database struct {

@@ -20,7 +20,7 @@ services:
       - POSTGRES_PASSWORD=wombat_rw
       - POSTGRES_DB=wombatdb
     healthcheck:
-      test: pg_isready -U postgres -d postgres
+      test: pg_isready -U wombat_rw -d wombatdb
       interval: 5s
       timeout: 3s
       retries: 10
