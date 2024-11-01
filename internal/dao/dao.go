@@ -30,22 +30,24 @@ func (receiver *postgreSQLManager) SaveMessageEvent(ctx context.Context, entity 
 
 	row, err := conn.Query(ctx,
 		`insert into wombatsm.message_event(hash, source_type, event_type, text, author_id, chat_id, message_id)
-               values (:hash,:sourceType,:eventType,:text,:authorId,:chatId,:messageId)
+               values (@hash,@sourceType,@eventType,@text,@authorId,@chatId,@messageId)
                on conflict (hash)
                do update
-               set event_type = :eventType,
-                   text = :text,
-                   author_id = :authorId,
-                   chat_id = :chatId,
-                   message_id = :messageId
+               set event_type = @eventType,
+                   text = @text,
+                   author_id = @authorId,
+                   chat_id = @chatId,
+                   message_id = @messageId
                returning hash, source_type, event_type, text, author_id, chat_id, message_id`,
-		entity.Hash,
-		entity.SourceType.String(),
-		entity.EventType.String(),
-		entity.Text,
-		entity.AuthorId,
-		entity.ChatId,
-		entity.MessageId,
+		pgx.NamedArgs{
+			"hash":       entity.Hash,
+			"sourceType": entity.SourceType.String(),
+			"eventType":  entity.EventType.String(),
+			"text":       entity.Text,
+			"authorId":   entity.AuthorId,
+			"chatId":     entity.ChatId,
+			"messageUd":  entity.MessageId,
+		},
 	)
 
 	if err != nil {
@@ -53,7 +55,8 @@ func (receiver *postgreSQLManager) SaveMessageEvent(ctx context.Context, entity 
 	}
 
 	saved := &domain.MessageEvent{}
-	if err := row.Scan(&saved.Hash, &saved.SourceType, &saved.EventType, &saved.Text, &saved.AuthorId, &saved.ChatId, &saved.MessageId); err != nil {
+	err = row.Scan(&saved.Hash, &saved.SourceType, &saved.EventType, &saved.Text, &saved.AuthorId, &saved.ChatId, &saved.MessageId)
+	if err != nil {
 		return nil, err
 	}
 	return saved, nil
