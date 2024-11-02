@@ -30,21 +30,20 @@ var (
 )
 
 func setup(
+	ctx context.Context,
 	kafkaContainer *testcontainers.DockerContainer,
 	postgresContainer *testcontainers.DockerContainer,
-) (Application, error) {
-	mainCtx, mainCancelCauseFunc := context.WithCancelCause(context.Background())
-
-	kafkaBootstrap, err := kafkaContainer.PortEndpoint(mainCtx, "9092", "")
+) (*Application, error) {
+	kafkaBootstrap, err := kafkaContainer.PortEndpoint(ctx, "9092", "")
 	if err != nil {
 		return nil, err
 	}
 
-	pgHost, err := postgresContainer.Host(mainCtx)
+	pgHost, err := postgresContainer.Host(ctx)
 	if err != nil {
 		return nil, err
 	}
-	pgPort, err := postgresContainer.MappedPort(mainCtx, "5432")
+	pgPort, err := postgresContainer.MappedPort(ctx, "5432")
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +71,7 @@ func setup(
 		return nil, err
 	}
 
-	dmn := daemon.Create(mainCtx, mainCancelCauseFunc, conf.Config)
+	dmn := daemon.Create(conf.Config)
 
 	kafkaConf := &kafka.ConfigMap{
 		"bootstrap.servers": conf.Kafka.Bootstrap,
@@ -84,7 +83,7 @@ func setup(
 		return nil, err
 	}
 
-	queryHelper, err = dao.NewQueryHelper(mainCtx, &conf.PostgreSQL.Url)
+	queryHelper, err = dao.NewQueryHelper(&conf.PostgreSQL.Url)
 	if err != nil {
 		return nil, err
 	}
@@ -95,6 +94,7 @@ func setup(
 }
 
 func TestApplication(t *testing.T) {
+	/*------ Arranges ------*/
 	testCtx, testCancelFunc := context.WithCancel(context.Background())
 	t.Cleanup(testCancelFunc)
 
@@ -120,10 +120,13 @@ func TestApplication(t *testing.T) {
 	require.NoError(t, err, "PostgreSQL container")
 
 	// Wait until `doneChan` is closed.
-	testedUnit, err := setup(kafkaContainer, postgresContainer)
+	testedUnit, err := setup(testCtx, kafkaContainer, postgresContainer)
 	require.NoError(t, err, "setup()")
 
-	go testedUnit.Run()
+	succ := make(chan bool, 1)
+
+	/*------ Actions ------*/
+	go testedUnit.Run(testCtx)
 
 	mockUpdatesChan <- tgbotapi.Update{
 		Message: &tgbotapi.Message{
@@ -134,8 +137,7 @@ func TestApplication(t *testing.T) {
 		},
 	}
 
-	succ := make(chan bool, 1)
-
+	/*------ Asserts ------*/
 	go func() {
 		for {
 			select {
@@ -143,7 +145,7 @@ func TestApplication(t *testing.T) {
 			}
 
 			hash := uuid.NewSHA1(uuid.NameSpaceURL, []byte("TELEGRAM"+"1"+"1")).String()
-			saved, geterr := queryHelper.GetMessageEvent(testCtx, hash)
+			saved, geterr := queryHelper.GetMessageEvent(hash)
 			if geterr != nil || saved == nil {
 				continue
 			}

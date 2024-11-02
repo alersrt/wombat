@@ -19,19 +19,13 @@ import (
 	"wombat/pkg/errors"
 )
 
-type Application interface {
-	Run()
-}
-
-type application struct {
-	executor            *daemon.Daemon
-	conf                *config.Config
-	mainCtx             context.Context
-	mainCancelCauseFunc context.CancelCauseFunc
-	routeChan           chan any
-	kafkaHelper         messaging.KafkaHelper
-	queryHelper         dao.QueryHelper
-	telegram            source.Source
+type Application struct {
+	executor    *daemon.Daemon
+	conf        *config.Config
+	routeChan   chan any
+	kafkaHelper messaging.KafkaHelper
+	queryHelper dao.QueryHelper
+	telegram    source.Source
 }
 
 func NewApplication(
@@ -40,36 +34,36 @@ func NewApplication(
 	kafkaHelper messaging.KafkaHelper,
 	queryHelper dao.QueryHelper,
 	telegram source.Source,
-) (Application, error) {
+) (*Application, error) {
 	conf, ok := executor.GetConfig().(*config.Config)
 	if !ok {
 		return nil, errors.NewError("Wrong config type")
 	}
-	return &application{
-		mainCtx:             executor.GetContext(),
-		mainCancelCauseFunc: executor.GetCancelCauseFunc(),
-		conf:                conf,
-		executor:            executor,
-		routeChan:           routeChan,
-		kafkaHelper:         kafkaHelper,
-		queryHelper:         queryHelper,
-		telegram:            telegram,
+	return &Application{
+		conf:        conf,
+		executor:    executor,
+		routeChan:   routeChan,
+		kafkaHelper: kafkaHelper,
+		queryHelper: queryHelper,
+		telegram:    telegram,
 	}, nil
 }
 
-func (receiver *application) Run() {
-	go receiver.executor.Start(receiver.route)
-	go receiver.executor.Start(receiver.source)
-	go receiver.executor.Start(receiver.forwardFromTelegram)
+func (receiver *Application) Run(ctx context.Context) {
+	go receiver.executor.
+		AddTask(receiver.route).
+		AddTask(receiver.source).
+		AddTask(receiver.forwardFromTelegram).
+		Start(ctx)
 
 	select {}
 }
 
-func (receiver *application) forwardFromTelegram() {
+func (receiver *Application) forwardFromTelegram() {
 	receiver.telegram.ForwardTo(receiver.routeChan)
 }
 
-func (receiver *application) source() {
+func (receiver *Application) source() {
 
 	hash := func(sourceType domain.SourceType, chatId string, messageId string) string {
 		return uuid.NewSHA1(uuid.NameSpaceURL, []byte(sourceType.String()+chatId+messageId)).String()
@@ -114,14 +108,14 @@ func (receiver *application) source() {
 	}
 }
 
-func (receiver *application) route() {
+func (receiver *Application) route() {
 	err := receiver.kafkaHelper.Subscribe([]string{receiver.conf.Kafka.Topic}, func(event *kafka.Message) error {
 		msg := &domain.MessageEvent{}
 		if err := json.Unmarshal(event.Value, msg); err != nil {
 			return err
 		}
 
-		saved, err := receiver.queryHelper.SaveMessageEvent(receiver.mainCtx, msg)
+		saved, err := receiver.queryHelper.SaveMessageEvent(msg)
 		if err != nil {
 			return err
 		}
