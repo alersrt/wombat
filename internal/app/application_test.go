@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/stretchr/testify/require"
@@ -48,6 +49,7 @@ func setup(
 	conf := &config.MockConfig{Config: &config.Config{
 		Database: &config.Database{
 			PostgreSQL: &config.PostgreSQL{
+				Url:      fmt.Sprintf("postgres://wombat_rw:wombat_rw@%s:%d/wombatdb?sslmode=disable", pgHost, pgPort.Int()),
 				Database: "wombatdb",
 				Host:     pgHost,
 				Port:     pgPort.Int(),
