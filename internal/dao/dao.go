@@ -59,8 +59,14 @@ func (receiver *postgreSQLManager) SaveMessageEvent(ctx context.Context, entity 
 	var sourceType, eventType string
 	if rows.Next() {
 		err = rows.Scan(&saved.Hash, &sourceType, &eventType, &saved.Text, &saved.AuthorId, &saved.ChatId, &saved.MessageId)
-		saved.SourceType.FromString(sourceType)
-		saved.EventType.FromString(eventType)
+		err = saved.SourceType.FromString(sourceType)
+		if err != nil {
+			return nil, err
+		}
+		err = saved.EventType.FromString(eventType)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if err != nil {
 		return nil, err
