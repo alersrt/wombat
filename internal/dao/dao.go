@@ -27,7 +27,7 @@ func NewQueryHelper(url *string) (QueryHelper, error) {
 
 func (receiver *PostgreSQLQueryHelper) GetMessageEvent(hash string) (*domain.MessageEvent, error) {
 	entity := &MessageEventEntity{}
-	err := receiver.db.QueryRowx("select * from wombatsm.message_event where hash = $1", hash).StructScan(*entity)
+	err := receiver.db.QueryRowx("select * from wombatsm.message_event where hash = $1", hash).StructScan(entity)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func (receiver *PostgreSQLQueryHelper) SaveMessageEvent(domain *domain.MessageEv
                	   update_ts = :update_ts
                returning *;`,
 		entity,
-	).StructScan(*result)
+	).StructScan(result)
 
 	if err != nil {
 		return nil, err
