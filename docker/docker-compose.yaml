@@ -1,0 +1,91 @@
+networks:
+  internal-network:
+
+volumes:
+  kafka-volume:
+  postgres-volume:
+
+services:
+
+  postgres:
+    image: postgres:latest
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres/sql/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+      - postgres-volume:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=wombat_rw
+      - POSTGRES_PASSWORD=wombat_rw
+      - POSTGRES_DB=wombatdb
+      - POSTGRES_INITDB_ARGS="--auth-host=md5"
+    healthcheck:
+      test: pg_isready -U wombat_rw -d wombatdb
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - internal-network
+
+  flyway:
+    image: redgate/flyway
+    command: migrate info
+    volumes:
+      - ./flyway/flyway.toml:/flyway/conf/flyway.toml:ro
+      - ../db/changelog/:/flyway/sql:ro
+    networks:
+      - internal-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_LISTENERS=PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9092
+      - KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      # Setup in KRaft
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:29093
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      # Cluster
+      - CLUSTER_ID=AAAAAAAAAAAAAAAAAAAAAA
+      # Broker config
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+      - KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+    volumes:
+      - kafka-volume:/var/lib/kafka/data
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: nc -z localhost 9092 || exit -1
+      start_period: 5s
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - internal-network
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: ghcr.io/kafbat/kafka-ui:latest
+    ports:
+      - "8082:8080"
+    environment:
+      - DYNAMIC_CONFIG_ENABLED=true
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:29092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - internal-network

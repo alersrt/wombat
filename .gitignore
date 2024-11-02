@@ -2,11 +2,19 @@
 /*
 
 ## Include project files
-!/src/
+!/db
 !/docker/
 
+## Include sources
+!/cmd/
+!/internal/
+!/pkg/
+
 # Backend
-!pom.xml
+/vendor
+/build/bin
+/.go
+!go.mod
 !system.properties
 
 # Infrastructure
@@ -19,11 +27,6 @@
 # Documentation
 !README.md
 !CONTRIBUTING.md
-
-# Maven wrapper
-!mvnw
-!mvnw.cmd
-!.mvn
 
 ## Exclude IDE files
 # JetBrains

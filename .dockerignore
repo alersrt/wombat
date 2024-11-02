@@ -4,12 +4,15 @@
 ## Include project files
 
 # Sources
-!/src/
+!/cmd/
+!/internal/
+!/pkg/
 
-# Maven
-!pom.xml
-!/.m2/
-!/target/
+# Go
+!go.mod
+!/.go
+!/build
+!/vendor
 
 ## Exclude IDE files
 # JetBrains
