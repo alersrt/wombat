@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/compose"
-	"log/slog"
 	"os"
 	"testing"
 	"time"
@@ -21,12 +21,14 @@ import (
 )
 
 var (
-	doneChan        = make(chan bool)
 	mockUpdatesChan = make(chan any)
 )
 
+var (
+	queryHelper dao.QueryHelper
+)
+
 func setup(
-	t *testing.T,
 	kafkaContainer *testcontainers.DockerContainer,
 	postgresContainer *testcontainers.DockerContainer,
 ) (Application, error) {
@@ -34,16 +36,16 @@ func setup(
 
 	kafkaBootstrap, err := kafkaContainer.PortEndpoint(mainCtx, "9092", "")
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
 
 	pgHost, err := postgresContainer.Host(mainCtx)
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
 	pgPort, err := postgresContainer.MappedPort(mainCtx, "5432")
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
 
 	conf := &config.MockConfig{Config: &config.Config{
@@ -66,7 +68,7 @@ func setup(
 	}}
 	err = conf.Init(os.Args)
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
 
 	dmn := daemon.Create(mainCtx, mainCancelCauseFunc, conf.Config)
@@ -80,16 +82,15 @@ func setup(
 	}
 	kafkaHelper, err := messaging.NewKafkaHelper(kafkaConf)
 	if err != nil {
-		t.Fatal(err)
+		return nil, err
 	}
 
 	queryHelper, err := dao.NewQueryHelper(mainCtx, &conf.PostgreSQL.Url)
 	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
+		return nil, err
 	}
 
-	telegram := &source.MockSource{Source: mockUpdatesChan, Done: doneChan}
+	telegram := &source.MockSource{Source: mockUpdatesChan}
 
 	return NewApplication(
 		dmn,
@@ -122,16 +123,10 @@ func TestApplication(t *testing.T) {
 	require.NoError(t, err, "PostgreSQL container")
 
 	// Wait until `doneChan` is closed.
-	testedUnit, err := setup(t, kafkaContainer, postgresContainer)
+	testedUnit, err := setup(kafkaContainer, postgresContainer)
 	require.NoError(t, err, "setup()")
 
 	go testedUnit.Run()
-
-	select {
-	case <-doneChan:
-	case <-time.After(10 * time.Second):
-		t.FailNow()
-	}
 
 	mockUpdatesChan <- tgbotapi.Update{
 		Message: &tgbotapi.Message{
@@ -142,7 +137,29 @@ func TestApplication(t *testing.T) {
 		},
 	}
 
+	succ := make(chan bool, 1)
+
+	go func() {
+		for {
+			select {
+			case <-time.After(1 * time.Second):
+			}
+
+			hash := uuid.NewSHA1(uuid.NameSpaceURL, []byte("TELEGRAM"+"1"+"1")).String()
+			saved, geterr := queryHelper.GetMessageEvent(testCtx, hash)
+			if geterr != nil || saved == nil {
+				continue
+			}
+
+			if saved.Hash == hash {
+				succ <- true
+			}
+		}
+	}()
+
 	select {
+	case <-succ:
 	case <-time.After(10 * time.Second):
+		t.FailNow()
 	}
 }

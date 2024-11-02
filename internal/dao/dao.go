@@ -10,7 +10,8 @@ import (
 )
 
 type QueryHelper interface {
-	SaveMessageEvent(ctx context.Context, entity *domain.MessageEvent) (result *domain.MessageEvent, err error)
+	GetMessageEvent(ctx context.Context, hash string) (*domain.MessageEvent, error)
+	SaveMessageEvent(ctx context.Context, entity *domain.MessageEvent) (*domain.MessageEvent, error)
 }
 
 type postgreSQLQueryHelper struct {
@@ -27,8 +28,19 @@ func NewQueryHelper(ctx context.Context, url *string) (QueryHelper, error) {
 	return &postgreSQLQueryHelper{db: db, ctx: ctx}, nil
 }
 
-func (receiver *postgreSQLQueryHelper) SaveMessageEvent(ctx context.Context, entity *domain.MessageEvent) (result *domain.MessageEvent, err error) {
-	rows, err := receiver.db.Query(
+func (receiver *postgreSQLQueryHelper) GetMessageEvent(ctx context.Context, hash string) (*domain.MessageEvent, error) {
+	row := receiver.db.QueryRow(
+		`select hash, source_type, event_type, text, author_id, chat_id, message_id
+               from wombatsm.message_event
+               where hash = $1`,
+		hash,
+	)
+
+	return scanMessageEvent(ctx, row)
+}
+
+func (receiver *postgreSQLQueryHelper) SaveMessageEvent(ctx context.Context, entity *domain.MessageEvent) (*domain.MessageEvent, error) {
+	row := receiver.db.QueryRow(
 		`insert into wombatsm.message_event(hash, source_type, event_type, text, author_id, chat_id, message_id)
                values (@hashParam, @sourceType, @eventType, @textParam, @authorId, @chatId, @messageId)
                on conflict (hash)
@@ -49,19 +61,21 @@ func (receiver *postgreSQLQueryHelper) SaveMessageEvent(ctx context.Context, ent
 			"messageId":  entity.MessageId,
 		})
 
+	return scanMessageEvent(ctx, row)
+}
+
+func scanMessageEvent(ctx context.Context, row *sql.Row) (*domain.MessageEvent, error) {
+	saved := &domain.MessageEvent{}
+	var sourceType, eventType string
+
+	err := row.Scan(&saved.Hash, &sourceType, &eventType, &saved.Text, &saved.AuthorId, &saved.ChatId, &saved.MessageId)
+
 	if err != nil {
 		return nil, err
 	}
 
-	saved := &domain.MessageEvent{}
-	var sourceType, eventType string
-	if rows.Next() {
-		err = rows.Scan(&saved.Hash, &sourceType, &eventType, &saved.Text, &saved.AuthorId, &saved.ChatId, &saved.MessageId)
-		saved.SourceType.FromString(sourceType)
-		saved.EventType.FromString(eventType)
-	}
-	if err != nil {
-		return nil, err
-	}
+	saved.SourceType.FromString(sourceType)
+	saved.EventType.FromString(eventType)
+
 	return saved, nil
 }
