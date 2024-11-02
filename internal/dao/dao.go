@@ -13,7 +13,7 @@ type QueryHelper interface {
 	SaveMessageEvent(entity *domain.MessageEvent) (*domain.MessageEvent, error)
 }
 
-type postgreSQLQueryHelper struct {
+type PostgreSQLQueryHelper struct {
 	db *sql.DB
 }
 
@@ -23,10 +23,10 @@ func NewQueryHelper(url *string) (QueryHelper, error) {
 		slog.Error(err.Error())
 		return nil, err
 	}
-	return &postgreSQLQueryHelper{db: db}, nil
+	return &PostgreSQLQueryHelper{db: db}, nil
 }
 
-func (receiver *postgreSQLQueryHelper) GetMessageEvent(hash string) (*domain.MessageEvent, error) {
+func (receiver *PostgreSQLQueryHelper) GetMessageEvent(hash string) (*domain.MessageEvent, error) {
 	rows, err := receiver.db.Query(
 		`select hash, source_type, event_type, text, author_id, chat_id, message_id
                from wombatsm.message_event
@@ -49,7 +49,7 @@ func (receiver *postgreSQLQueryHelper) GetMessageEvent(hash string) (*domain.Mes
 	return res[0], nil
 }
 
-func (receiver *postgreSQLQueryHelper) SaveMessageEvent(entity *domain.MessageEvent) (*domain.MessageEvent, error) {
+func (receiver *PostgreSQLQueryHelper) SaveMessageEvent(entity *domain.MessageEvent) (*domain.MessageEvent, error) {
 	rows, err := receiver.db.Query(
 		`insert into wombatsm.message_event(hash, source_type, event_type, text, author_id, chat_id, message_id)
                values (@hashParam, @sourceType, @eventType, @textParam, @authorId, @chatId, @messageId)
