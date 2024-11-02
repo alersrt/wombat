@@ -73,8 +73,6 @@ func setup(
 
 	dmn := daemon.Create(mainCtx, mainCancelCauseFunc, conf.Config)
 
-	updates := make(chan any)
-
 	kafkaConf := &kafka.ConfigMap{
 		"bootstrap.servers": conf.Kafka.Bootstrap,
 		"group.id":          conf.Kafka.GroupId,
@@ -85,20 +83,14 @@ func setup(
 		return nil, err
 	}
 
-	queryHelper, err := dao.NewQueryHelper(mainCtx, &conf.PostgreSQL.Url)
+	queryHelper, err = dao.NewQueryHelper(mainCtx, &conf.PostgreSQL.Url)
 	if err != nil {
 		return nil, err
 	}
 
 	telegram := &source.MockSource{Source: mockUpdatesChan}
 
-	return NewApplication(
-		dmn,
-		updates,
-		kafkaHelper,
-		queryHelper,
-		telegram,
-	)
+	return NewApplication(dmn, make(chan any), kafkaHelper, queryHelper, telegram)
 }
 
 func TestApplication(t *testing.T) {

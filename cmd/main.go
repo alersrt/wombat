@@ -46,8 +46,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	updates := make(chan any)
-
 	telegram, err := source.NewTelegramSource(conf.Telegram.Token)
 	if err != nil {
 		slog.Error(err.Error())
@@ -56,7 +54,7 @@ func main() {
 
 	dmn := daemon.Create(mainCtx, mainCancelCauseFunc, conf)
 
-	runner, err := app.NewApplication(dmn, updates, kafkaHelper, queryHelper, telegram)
+	runner, err := app.NewApplication(dmn, make(chan any), kafkaHelper, queryHelper, telegram)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
