@@ -3,6 +3,7 @@ package dao
 import (
 	"context"
 	"database/sql"
+	"github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"log/slog"
 	"wombat/internal/domain"
@@ -31,30 +32,33 @@ func (receiver *postgreSQLManager) SaveMessageEvent(ctx context.Context, entity 
 
 	rows, err := conn.Query(
 		`insert into wombatsm.message_event(hash, source_type, event_type, text, author_id, chat_id, message_id)
-               values (@hash, @sourceType, @eventType, @text, @authorId, @chatId, @messageId)
+               values (@hashParam, @sourceType, @eventType, @textParam, @authorId, @chatId, @messageId)
                on conflict (hash)
                do update
                set event_type = @eventType,
-                   text = @text,
+                   text = @textParam,
                    author_id = @authorId,
                    chat_id = @chatId,
                    message_id = @messageId
                returning hash, source_type, event_type, text, author_id, chat_id, message_id;`,
-		sql.Named("hash", entity.Hash),
-		sql.Named("sourceType", entity.SourceType.String()),
-		sql.Named("eventType", entity.EventType.String()),
-		sql.Named("text", entity.Text),
-		sql.Named("authorId", entity.AuthorId),
-		sql.Named("chatId", entity.ChatId),
-		sql.Named("messageUd", entity.MessageId),
-	)
+		pgx.NamedArgs{
+			"hashParam":  entity.Hash,
+			"sourceType": entity.SourceType.String(),
+			"eventType":  entity.EventType.String(),
+			"textParam":  entity.Text,
+			"authorId":   entity.AuthorId,
+			"chatId":     entity.ChatId,
+			"messageId":  entity.MessageId,
+		})
 
 	if err != nil {
 		return nil, err
 	}
 
 	saved := &domain.MessageEvent{}
-	err = rows.Scan(&saved.Hash, &saved.SourceType, &saved.EventType, &saved.Text, &saved.AuthorId, &saved.ChatId, &saved.MessageId)
+	if rows.Next() {
+		err = rows.Scan(&saved.Hash, &saved.SourceType, &saved.EventType, &saved.Text, &saved.AuthorId, &saved.ChatId, &saved.MessageId)
+	}
 	if err != nil {
 		return nil, err
 	}
