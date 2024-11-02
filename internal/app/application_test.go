@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/compose"
+	"github.com/testcontainers/testcontainers-go/wait"
 	"os"
 	"testing"
 	"time"
@@ -107,7 +108,11 @@ func TestApplication(t *testing.T) {
 		require.NoError(t, err, "compose.Down()")
 	})
 
-	require.NoError(t, environment.Up(testCtx, compose.Wait(true)), "compose.Up()")
+	err = environment.
+		WaitForService("flyway", wait.ForExit().WithPollInterval(1*time.Second)).
+		WaitForService("kafka", wait.ForHealthCheck().WithPollInterval(1*time.Second)).
+		Up(testCtx)
+	require.NoError(t, environment.Up(testCtx), "compose.Up()")
 
 	kafkaContainer, err := environment.ServiceContainer(testCtx, "kafka")
 	require.NoError(t, err, "Kafka container")
