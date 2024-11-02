@@ -18,14 +18,10 @@ type MessageEventEntity struct {
 }
 
 func (receiver *MessageEventEntity) ToDomain() *domain.MessageEvent {
-	var eventType domain.EventType
-	eventType.FromString(receiver.EventType)
-	var sourceType domain.SourceType
-	sourceType.FromString(receiver.SourceType)
 	return &domain.MessageEvent{
 		Hash:       receiver.Hash,
-		EventType:  eventType,
-		SourceType: sourceType,
+		EventType:  domain.EventTypeFromString(receiver.EventType),
+		SourceType: domain.SourceTypeFromString(receiver.SourceType),
 		Text:       receiver.Text,
 		AuthorId:   receiver.AuthorId,
 		ChatId:     receiver.ChatId,
@@ -35,14 +31,16 @@ func (receiver *MessageEventEntity) ToDomain() *domain.MessageEvent {
 	}
 }
 
-func (receiver *MessageEventEntity) FromDomain(domain *domain.MessageEvent) {
-	receiver.Hash = domain.Hash
-	receiver.EventType = domain.EventType.String()
-	receiver.SourceType = domain.SourceType.String()
-	receiver.Text = domain.Text
-	receiver.AuthorId = domain.AuthorId
-	receiver.ChatId = domain.ChatId
-	receiver.MessageId = domain.MessageId
-	receiver.CreateTs = domain.CreateTs
-	receiver.UpdateTs = domain.UpdateTs
+func MessageEventEntityFromDomain(domain *domain.MessageEvent) *MessageEventEntity {
+	return &MessageEventEntity{
+		Hash:       domain.Hash,
+		EventType:  domain.EventType.String(),
+		SourceType: domain.SourceType.String(),
+		Text:       domain.Text,
+		AuthorId:   domain.AuthorId,
+		ChatId:     domain.ChatId,
+		MessageId:  domain.MessageId,
+		CreateTs:   domain.CreateTs,
+		UpdateTs:   domain.UpdateTs,
+	}
 }

@@ -38,14 +38,9 @@ func (receiver *PostgreSQLQueryHelper) GetMessageEvent(hash string) (*domain.Mes
 }
 
 func (receiver *PostgreSQLQueryHelper) SaveMessageEvent(domain *domain.MessageEvent) (*domain.MessageEvent, error) {
-	entity := &MessageEventEntity{}
-	entity.FromDomain(domain)
-
-	result := &MessageEventEntity{}
-
 	rows, err := receiver.db.NamedQuery(
-		`insert into wombatsm.message_event(hash, source_type, event_type, text, author_id, chat_id, message_id, create_ts, update_ts)
-               values (:hash, :source_type, :event_type, :text, :author_id, :chat_id, :message_id, :create_ts, :update_ts)
+		`insert into wombatsm.message_event(hash, source_type, event_type, text, author_id, chat_id, message_id)
+               values (:hash, :source_type, :event_type, :text, :author_id, :chat_id, :message_id)
                on conflict (hash)
                do update
                set event_type = :event_type,
@@ -55,14 +50,15 @@ func (receiver *PostgreSQLQueryHelper) SaveMessageEvent(domain *domain.MessageEv
                    message_id = :message_id,
                	   update_ts = :update_ts
                returning *;`,
-		entity,
+		MessageEventEntityFromDomain(domain),
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	entity := &MessageEventEntity{}
 	if rows.Next() {
-		err = rows.StructScan(result)
+		err = rows.StructScan(entity)
 		if err != nil {
 			return nil, err
 		}
@@ -70,5 +66,5 @@ func (receiver *PostgreSQLQueryHelper) SaveMessageEvent(domain *domain.MessageEv
 		return nil, nil
 	}
 
-	return result.ToDomain(), nil
+	return entity.ToDomain(), nil
 }

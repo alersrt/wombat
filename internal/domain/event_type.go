@@ -24,8 +24,8 @@ func (receiver *EventType) String() string {
 	return eventTypeToString[*receiver]
 }
 
-func (receiver *EventType) FromString(s string) {
-	*receiver = eventTypeFromString[s]
+func EventTypeFromString(s string) EventType {
+	return eventTypeFromString[s]
 }
 
 func (receiver *EventType) MarshalJSON() ([]byte, error) {
