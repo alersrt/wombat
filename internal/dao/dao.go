@@ -9,28 +9,26 @@ import (
 	"wombat/internal/domain"
 )
 
-type QueryManager interface {
+type QueryHelper interface {
 	SaveMessageEvent(ctx context.Context, entity *domain.MessageEvent) (result *domain.MessageEvent, err error)
 }
 
-type postgreSQLManager struct {
-	url *string
+type postgreSQLQueryHelper struct {
+	db  *sql.DB
 	ctx context.Context
 }
 
-func NewPostgreSQLManager(ctx context.Context, url *string) QueryManager {
-	return &postgreSQLManager{url: url, ctx: ctx}
-}
-
-func (receiver *postgreSQLManager) SaveMessageEvent(ctx context.Context, entity *domain.MessageEvent) (result *domain.MessageEvent, err error) {
-	conn, err := sql.Open("pgx", *receiver.url)
-	defer conn.Close()
+func NewQueryHelper(ctx context.Context, url *string) (QueryHelper, error) {
+	db, err := sql.Open("pgx", *url)
 	if err != nil {
 		slog.Error(err.Error())
-		return
+		return nil, err
 	}
+	return &postgreSQLQueryHelper{db: db, ctx: ctx}, nil
+}
 
-	rows, err := conn.Query(
+func (receiver *postgreSQLQueryHelper) SaveMessageEvent(ctx context.Context, entity *domain.MessageEvent) (result *domain.MessageEvent, err error) {
+	rows, err := receiver.db.Query(
 		`insert into wombatsm.message_event(hash, source_type, event_type, text, author_id, chat_id, message_id)
                values (@hashParam, @sourceType, @eventType, @textParam, @authorId, @chatId, @messageId)
                on conflict (hash)

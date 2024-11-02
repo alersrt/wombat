@@ -40,7 +40,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	queryHelper := dao.NewPostgreSQLManager(mainCtx, &conf.PostgreSQL.Url)
+	queryHelper, err := dao.NewQueryHelper(mainCtx, &conf.PostgreSQL.Url)
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
 
 	updates := make(chan any)
 

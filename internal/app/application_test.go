@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/compose"
+	"log/slog"
 	"os"
 	"testing"
 	"time"
@@ -80,8 +81,11 @@ func setup(
 		t.Fatal(err)
 	}
 
-	pgUrl := conf.PostgreSQL.FormatURL()
-	queryHelper := dao.NewPostgreSQLManager(mainCtx, &pgUrl)
+	queryHelper, err := dao.NewQueryHelper(mainCtx, &conf.PostgreSQL.Url)
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
 
 	telegram := &source.MockSource{Source: mockUpdatesChan, Done: doneChan}
 

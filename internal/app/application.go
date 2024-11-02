@@ -30,7 +30,7 @@ type application struct {
 	mainCancelCauseFunc context.CancelCauseFunc
 	routeChan           chan any
 	kafkaHelper         messaging.KafkaHelper
-	queryHelper         dao.QueryManager
+	queryHelper         dao.QueryHelper
 	telegram            source.Source
 }
 
@@ -38,7 +38,7 @@ func NewApplication(
 	executor *daemon.Daemon,
 	routeChan chan any,
 	kafkaHelper messaging.KafkaHelper,
-	queryHelper dao.QueryManager,
+	queryHelper dao.QueryHelper,
 	telegram source.Source,
 ) (Application, error) {
 	conf, ok := executor.GetConfig().(*config.Config)
