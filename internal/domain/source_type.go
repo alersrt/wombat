@@ -23,9 +23,8 @@ func (receiver *SourceType) String() string {
 	return sourceTypeToString[*receiver]
 }
 
-func (receiver *SourceType) FromString(s string) error {
+func (receiver *SourceType) FromString(s string) {
 	*receiver = sourceTypeFromString[s]
-	return nil
 }
 
 func (receiver *SourceType) MarshalJSON() ([]byte, error) {
