@@ -1,7 +1,6 @@
 package dao
 
 import (
-	"context"
 	"database/sql"
 	"github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -10,25 +9,24 @@ import (
 )
 
 type QueryHelper interface {
-	GetMessageEvent(ctx context.Context, hash string) (*domain.MessageEvent, error)
-	SaveMessageEvent(ctx context.Context, entity *domain.MessageEvent) (*domain.MessageEvent, error)
+	GetMessageEvent(hash string) (*domain.MessageEvent, error)
+	SaveMessageEvent(entity *domain.MessageEvent) (*domain.MessageEvent, error)
 }
 
 type postgreSQLQueryHelper struct {
-	db  *sql.DB
-	ctx context.Context
+	db *sql.DB
 }
 
-func NewQueryHelper(ctx context.Context, url *string) (QueryHelper, error) {
+func NewQueryHelper(url *string) (QueryHelper, error) {
 	db, err := sql.Open("pgx", *url)
 	if err != nil {
 		slog.Error(err.Error())
 		return nil, err
 	}
-	return &postgreSQLQueryHelper{db: db, ctx: ctx}, nil
+	return &postgreSQLQueryHelper{db: db}, nil
 }
 
-func (receiver *postgreSQLQueryHelper) GetMessageEvent(ctx context.Context, hash string) (*domain.MessageEvent, error) {
+func (receiver *postgreSQLQueryHelper) GetMessageEvent(hash string) (*domain.MessageEvent, error) {
 	rows, err := receiver.db.Query(
 		`select hash, source_type, event_type, text, author_id, chat_id, message_id
                from wombatsm.message_event
@@ -39,7 +37,7 @@ func (receiver *postgreSQLQueryHelper) GetMessageEvent(ctx context.Context, hash
 		return nil, err
 	}
 
-	res, err := scanMessageEvents(ctx, rows)
+	res, err := scanMessageEvents(rows)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +49,7 @@ func (receiver *postgreSQLQueryHelper) GetMessageEvent(ctx context.Context, hash
 	return res[0], nil
 }
 
-func (receiver *postgreSQLQueryHelper) SaveMessageEvent(ctx context.Context, entity *domain.MessageEvent) (*domain.MessageEvent, error) {
+func (receiver *postgreSQLQueryHelper) SaveMessageEvent(entity *domain.MessageEvent) (*domain.MessageEvent, error) {
 	rows, err := receiver.db.Query(
 		`insert into wombatsm.message_event(hash, source_type, event_type, text, author_id, chat_id, message_id)
                values (@hashParam, @sourceType, @eventType, @textParam, @authorId, @chatId, @messageId)
@@ -76,7 +74,7 @@ func (receiver *postgreSQLQueryHelper) SaveMessageEvent(ctx context.Context, ent
 		return nil, err
 	}
 
-	res, err := scanMessageEvents(ctx, rows)
+	res, err := scanMessageEvents(rows)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +86,7 @@ func (receiver *postgreSQLQueryHelper) SaveMessageEvent(ctx context.Context, ent
 	return res[0], nil
 }
 
-func scanMessageEvent(ctx context.Context, row *sql.Row) (*domain.MessageEvent, error) {
+func scanMessageEvent(row *sql.Row) (*domain.MessageEvent, error) {
 	saved := &domain.MessageEvent{}
 	var sourceType, eventType string
 
@@ -104,7 +102,7 @@ func scanMessageEvent(ctx context.Context, row *sql.Row) (*domain.MessageEvent, 
 	return saved, nil
 }
 
-func scanMessageEvents(ctx context.Context, rows *sql.Rows) ([]*domain.MessageEvent, error) {
+func scanMessageEvents(rows *sql.Rows) ([]*domain.MessageEvent, error) {
 	var results []*domain.MessageEvent
 	for rows.Next() {
 		saved := &domain.MessageEvent{}

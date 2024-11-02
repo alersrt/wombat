@@ -9,48 +9,16 @@ import (
 )
 
 type Daemon struct {
-	ctx             context.Context
-	cancelCauseFunc context.CancelCauseFunc
-	conf            Config
+	conf  Config
+	tasks []Task
 }
 
-func Create(ctx context.Context, cancelCauseFunc context.CancelCauseFunc, conf Config) *Daemon {
-	dmn := &Daemon{
-		ctx:             ctx,
-		cancelCauseFunc: cancelCauseFunc,
-		conf:            conf,
-	}
-
-	go dmn.handleSignals()
-
+func Create(conf Config) *Daemon {
+	dmn := &Daemon{conf: conf}
 	return dmn
 }
 
-func (receiver *Daemon) Start(task Task) {
-	if !receiver.conf.IsInitiated() {
-		err := receiver.conf.Init(os.Args)
-		if err != nil {
-			slog.Error(err.Error())
-			os.Exit(1)
-		}
-	}
-
-	for {
-		task()
-	}
-}
-
-func (receiver *Daemon) GetConfig() Config {
-	return receiver.conf
-}
-func (receiver *Daemon) GetContext() context.Context {
-	return receiver.ctx
-}
-func (receiver *Daemon) GetCancelCauseFunc() context.CancelCauseFunc {
-	return receiver.cancelCauseFunc
-}
-
-func (receiver *Daemon) handleSignals() {
+func (receiver *Daemon) handleSignals(ctx context.Context) {
 	signalChan := make(chan os.Signal, 1)
 
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGHUP)
@@ -65,16 +33,14 @@ func (receiver *Daemon) handleSignals() {
 				slog.Error(err.Error())
 			}
 		case os.Interrupt:
-			receiver.cancelCauseFunc(nil)
 			os.Exit(130)
 		case os.Kill:
 			os.Exit(137)
 		case syscall.SIGTERM:
-			receiver.cancelCauseFunc(nil)
 			os.Exit(143)
 		}
-	case <-receiver.ctx.Done():
-		if err := receiver.ctx.Err(); err != nil {
+	case <-ctx.Done():
+		if err := ctx.Err(); err != nil {
 			slog.Error(err.Error())
 			os.Exit(1)
 		} else {
@@ -82,4 +48,34 @@ func (receiver *Daemon) handleSignals() {
 			os.Exit(0)
 		}
 	}
+}
+
+func (receiver *Daemon) AddTask(task Task) *Daemon {
+	receiver.tasks = append(receiver.tasks, task)
+	return receiver
+}
+
+func (receiver *Daemon) AddTasks(tasks ...Task) *Daemon {
+	receiver.tasks = append(receiver.tasks, tasks...)
+	return receiver
+}
+
+func (receiver *Daemon) Start(ctx context.Context) {
+	if !receiver.conf.IsInitiated() {
+		err := receiver.conf.Init(os.Args)
+		if err != nil {
+			slog.Error(err.Error())
+			os.Exit(1)
+		}
+	}
+
+	go receiver.handleSignals(ctx)
+
+	for _, task := range receiver.tasks {
+		go task()
+	}
+}
+
+func (receiver *Daemon) GetConfig() Config {
+	return receiver.conf
 }

@@ -16,6 +16,7 @@ import (
 
 func main() {
 	mainCtx, mainCancelCauseFunc := context.WithCancelCause(context.Background())
+	defer mainCancelCauseFunc(nil)
 
 	conf := new(config.Config)
 	args, err := parseArgs(os.Args)
@@ -40,7 +41,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	queryHelper, err := dao.NewQueryHelper(mainCtx, &conf.PostgreSQL.Url)
+	queryHelper, err := dao.NewQueryHelper(&conf.PostgreSQL.Url)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
@@ -52,7 +53,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	dmn := daemon.Create(mainCtx, mainCancelCauseFunc, conf)
+	dmn := daemon.Create(conf)
 
 	runner, err := app.NewApplication(dmn, make(chan any), kafkaHelper, queryHelper, telegram)
 	if err != nil {
@@ -60,7 +61,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	runner.Run()
+	runner.Run(mainCtx)
 }
 
 func parseArgs(args []string) ([]string, error) {
