@@ -1,4 +1,4 @@
-package source
+package app
 
 import (
 	"fmt"
@@ -6,21 +6,21 @@ import (
 	"log/slog"
 )
 
-type Telegram struct {
+type TelegramSource struct {
 	bot *tgbotapi.BotAPI
 }
 
-func NewTelegramSource(token string) (*Telegram, error) {
+func NewTelegramSource(token string) (*TelegramSource, error) {
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		slog.Error(err.Error())
 		return nil, err
 	}
 
-	return &Telegram{bot: bot}, nil
+	return &TelegramSource{bot: bot}, nil
 }
 
-func (receiver *Telegram) ForwardTo(target chan any) {
+func (receiver *TelegramSource) ForwardTo(target chan any) {
 	u := tgbotapi.NewUpdate(0)
 	u.AllowedUpdates = append(
 		u.AllowedUpdates,

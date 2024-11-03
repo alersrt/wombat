@@ -1,4 +1,4 @@
-package config
+package app
 
 import (
 	"gopkg.in/yaml.v2"
@@ -6,6 +6,19 @@ import (
 	"mvdan.cc/sh/v3/shell"
 	"os"
 )
+
+type MockConfig struct {
+	*Config
+}
+
+func (receiver *MockConfig) Init(args []string) error {
+	receiver.isInitiated = true
+	return nil
+}
+
+func (receiver *MockConfig) IsInitiated() bool {
+	return true
+}
 
 type Bot struct {
 	Tag   string `yaml:"tag,omitempty"`

@@ -13,11 +13,8 @@ import (
 	"os"
 	"testing"
 	"time"
-	"wombat/internal/config"
 	"wombat/internal/dao"
 	"wombat/internal/domain"
-	"wombat/internal/messaging"
-	"wombat/internal/source"
 	"wombat/pkg/daemon"
 	"wombat/pkg/utils"
 )
@@ -49,18 +46,18 @@ func setup(
 		return nil, err
 	}
 
-	conf := &config.MockConfig{Config: &config.Config{
-		Database: &config.Database{
-			PostgreSQL: &config.PostgreSQL{
+	conf := &MockConfig{Config: &Config{
+		Database: &Database{
+			PostgreSQL: &PostgreSQL{
 				Url: fmt.Sprintf("postgres://wombat_rw:wombat_rw@%s:%d/wombatdb?sslmode=disable", pgHost, pgPort.Int()),
 			},
 		},
-		Kafka: &config.Kafka{
+		Kafka: &Kafka{
 			GroupId:   "wombat",
 			Bootstrap: kafkaBootstrap,
 			Topic:     "wombat.test",
 		},
-		Bot: &config.Bot{Tag: "(TEST-\\d+)", Emoji: "👍"},
+		Bot: &Bot{Tag: "(TEST-\\d+)", Emoji: "👍"},
 	}}
 	err = conf.Init(os.Args)
 	if err != nil {
@@ -74,7 +71,7 @@ func setup(
 		"group.id":          conf.Kafka.GroupId,
 		"auto.offset.reset": "earliest",
 	}
-	kafkaHelper, err := messaging.NewKafkaHelper(kafkaConf)
+	kafkaHelper, err := NewKafkaHelper(kafkaConf)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +81,7 @@ func setup(
 		return nil, err
 	}
 
-	telegram := &source.MockSource{Source: mockUpdatesChan}
+	telegram := &MockSource{SourceChan: mockUpdatesChan}
 
 	return NewApplication(dmn, make(chan any), kafkaHelper, messageEventRepository, telegram)
 }

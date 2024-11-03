@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
-	"wombat/internal/config"
 	"wombat/internal/dao"
 	"wombat/internal/domain"
 	"wombat/pkg/daemon"
@@ -19,9 +18,19 @@ type Source interface {
 	ForwardTo(chan any)
 }
 
+type MockSource struct {
+	SourceChan chan any
+}
+
+func (receiver *MockSource) ForwardTo(target chan any) {
+	for update := range receiver.SourceChan {
+		target <- update
+	}
+}
+
 type Application struct {
 	executor               *daemon.Daemon
-	conf                   *config.Config
+	conf                   *Config
 	routeChan              chan any
 	kafkaHelper            MessageHelper
 	messageEventRepository dao.QueryHelper[domain.MessageEvent, string]
@@ -35,7 +44,7 @@ func NewApplication(
 	messageEventRepository dao.QueryHelper[domain.MessageEvent, string],
 	telegram Source,
 ) (*Application, error) {
-	conf, ok := executor.GetConfig().(*config.Config)
+	conf, ok := executor.GetConfig().(*Config)
 	if !ok {
 		return nil, errors.NewError("Wrong config type")
 	}

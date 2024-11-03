@@ -7,10 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"wombat/internal/app"
-	"wombat/internal/config"
 	"wombat/internal/dao"
-	"wombat/internal/messaging"
-	"wombat/internal/source"
 	"wombat/pkg/daemon"
 )
 
@@ -18,7 +15,7 @@ func main() {
 	mainCtx, mainCancelCauseFunc := context.WithCancelCause(context.Background())
 	defer mainCancelCauseFunc(nil)
 
-	conf := new(config.Config)
+	conf := new(app.Config)
 	args, err := parseArgs(os.Args)
 	if err != nil {
 		slog.Error(err.Error())
@@ -35,7 +32,7 @@ func main() {
 		"group.id":          conf.Kafka.GroupId,
 		"auto.offset.reset": "earliest",
 	}
-	kafkaHelper, err := messaging.NewKafkaHelper(kafkaConf)
+	kafkaHelper, err := app.NewKafkaHelper(kafkaConf)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
@@ -47,7 +44,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	telegram, err := source.NewTelegramSource(conf.Telegram.Token)
+	telegram, err := app.NewTelegramSource(conf.Telegram.Token)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)

@@ -1,4 +1,4 @@
-package messaging
+package app
 
 import (
 	"github.com/confluentinc/confluent-kafka-go/kafka"
