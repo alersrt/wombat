@@ -18,16 +18,6 @@ type Source interface {
 	ForwardTo(chan any)
 }
 
-type MockSource struct {
-	SourceChan chan any
-}
-
-func (receiver *MockSource) ForwardTo(target chan any) {
-	for update := range receiver.SourceChan {
-		target <- update
-	}
-}
-
 type Application struct {
 	executor               *daemon.Daemon
 	conf                   *Config

@@ -19,6 +19,29 @@ import (
 	"wombat/pkg/utils"
 )
 
+type MockConfig struct {
+	*Config
+}
+
+func (receiver *MockConfig) Init(args []string) error {
+	receiver.isInitiated = true
+	return nil
+}
+
+func (receiver *MockConfig) IsInitiated() bool {
+	return true
+}
+
+type MockSource struct {
+	SourceChan chan any
+}
+
+func (receiver *MockSource) ForwardTo(target chan any) {
+	for update := range receiver.SourceChan {
+		target <- update
+	}
+}
+
 var (
 	mockUpdatesChan = make(chan any)
 )
