@@ -36,21 +36,25 @@ func (receiver *TelegramSource) ForwardTo(target chan *domain.MessageEvent) {
 
 	for update := range receiver.bot.GetUpdatesChan(u) {
 
-		if update.Message != nil {
-
-			messageId := strconv.Itoa(update.Message.MessageID)
-			chatId := strconv.FormatInt(update.Message.Chat.ID, 10)
-
+		processMessage := func(message *tgbotapi.Message) {
+			messageId := strconv.Itoa(message.MessageID)
+			chatId := strconv.FormatInt(message.Chat.ID, 10)
 			msg := &domain.MessageEvent{
 				Hash:       domain.Hash(domain.TELEGRAM, chatId, messageId),
 				SourceType: domain.TELEGRAM,
-				Text:       update.Message.Text,
-				AuthorId:   update.Message.From.UserName,
+				Text:       message.Text,
+				AuthorId:   message.From.UserName,
 				ChatId:     chatId,
 				MessageId:  messageId,
 			}
-
 			target <- msg
+		}
+
+		if update.Message != nil {
+			processMessage(update.Message)
+		}
+		if update.EditedMessage != nil {
+			processMessage(update.EditedMessage)
 		}
 	}
 }
