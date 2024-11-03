@@ -16,7 +16,6 @@ import (
 	"wombat/internal/dao"
 	"wombat/internal/domain"
 	"wombat/pkg/daemon"
-	"wombat/pkg/utils"
 )
 
 type MockConfig struct {
@@ -114,7 +113,7 @@ func TestApplication(t *testing.T) {
 	testCtx, testCancelFunc := context.WithCancel(context.Background())
 	t.Cleanup(testCancelFunc)
 
-	composePath, err := utils.FindFilePath("docker", "docker-compose.yaml")
+	composePath, err := FindFilePath("docker", "docker-compose.yaml")
 	require.NoError(t, err, "Compose location")
 	environment, err := compose.NewDockerCompose(composePath)
 	require.NoError(t, err, "NewDockerComposeAPI()")
