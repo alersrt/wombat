@@ -47,7 +47,7 @@ func (receiver *MessageEventRepository) Save(domain *domain.MessageEvent) (*doma
                returning *;`
 	entity := MessageEventEntityFromDomain(domain)
 	saved, err := receiver.SaveEntity(query, entity)
-	if err != nil {
+	if err != nil || saved == nil {
 		return nil, err
 	}
 	return saved.ToDomain(), nil

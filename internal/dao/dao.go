@@ -38,15 +38,14 @@ func (receiver *PostgreSQLQueryHelper[D, ID]) SaveEntity(query string, entity En
 		return nil, err
 	}
 
-	saved := receiver.entityFactory.EmptyEntity()
 	if rows.Next() {
+		saved := receiver.entityFactory.EmptyEntity()
 		err = rows.StructScan(saved)
 		if err != nil {
 			return nil, err
 		}
-	} else {
-		return nil, nil
+		return saved, nil
 	}
 
-	return entity, nil
+	return nil, nil
 }
