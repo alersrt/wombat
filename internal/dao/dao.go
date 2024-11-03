@@ -16,6 +16,7 @@ type QueryHelper[D any, ID any] interface {
 
 type EntityFactory[D any] interface {
 	EmptyEntity() Entity[D]
+	FromDomain(*D) Entity[D]
 }
 
 type PostgreSQLQueryHelper[D any, ID any] struct {

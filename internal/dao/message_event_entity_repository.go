@@ -45,7 +45,7 @@ func (receiver *MessageEventRepository) Save(domain *domain.MessageEvent) (*doma
                    message_id = :message_id,
                	   update_ts = current_timestamp
                returning *;`
-	entity := MessageEventEntityFromDomain(domain)
+	entity := receiver.entityFactory.FromDomain(domain)
 	saved, err := receiver.SaveEntity(query, entity)
 	if err != nil || saved == nil {
 		return nil, err
