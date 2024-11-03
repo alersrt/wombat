@@ -25,6 +25,7 @@ func (receiver *Application) send() {
 			string(event.Key),
 			saved,
 		))
+
 		return nil
 	})
 
