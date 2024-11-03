@@ -44,3 +44,9 @@ func MessageEventEntityFromDomain(domain *domain.MessageEvent) *MessageEventEnti
 		UpdateTs:   domain.UpdateTs,
 	}
 }
+
+type MessageEventEntityFactory struct{}
+
+func (receiver *MessageEventEntityFactory) EmptyEntity() Entity[domain.MessageEvent] {
+	return &MessageEventEntity{}
+}

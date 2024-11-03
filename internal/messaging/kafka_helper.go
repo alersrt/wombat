@@ -6,12 +6,12 @@ import (
 	"log/slog"
 )
 
-type KafkaHelper interface {
+type MessageHelper interface {
 	SendToTopic(topic string, message []byte) error
 	Subscribe(topics []string, handler func(*kafka.Message) error) error
 }
 
-func NewKafkaHelper(configMap *kafka.ConfigMap) (KafkaHelper, error) {
+func NewKafkaHelper(configMap *kafka.ConfigMap) (MessageHelper, error) {
 	producer, err := kafka.NewProducer(configMap)
 	if err != nil {
 		slog.Error(err.Error())
@@ -22,18 +22,18 @@ func NewKafkaHelper(configMap *kafka.ConfigMap) (KafkaHelper, error) {
 		slog.Error(err.Error())
 		return nil, err
 	}
-	return &kafkaHelper{
+	return &KafkaMessageHelper{
 		producer: producer,
 		consumer: consumer,
 	}, nil
 }
 
-type kafkaHelper struct {
+type KafkaMessageHelper struct {
 	producer *kafka.Producer
 	consumer *kafka.Consumer
 }
 
-func (receiver *kafkaHelper) SendToTopic(topic string, message []byte) error {
+func (receiver *KafkaMessageHelper) SendToTopic(topic string, message []byte) error {
 	key, err := uuid.New().MarshalText()
 	if err != nil {
 		slog.Warn(err.Error())
@@ -49,7 +49,7 @@ func (receiver *kafkaHelper) SendToTopic(topic string, message []byte) error {
 	}, nil)
 }
 
-func (receiver *kafkaHelper) Subscribe(topics []string, handler func(*kafka.Message) error) error {
+func (receiver *KafkaMessageHelper) Subscribe(topics []string, handler func(*kafka.Message) error) error {
 	err := receiver.consumer.SubscribeTopics(topics, nil)
 	if err != nil {
 		slog.Error(err.Error())

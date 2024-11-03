@@ -3,62 +3,44 @@ package dao
 import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"log/slog"
-	"wombat/internal/domain"
 )
 
-type QueryHelper interface {
-	GetMessageEvent(hash string) (*domain.MessageEvent, error)
-	SaveMessageEvent(entity *domain.MessageEvent) (*domain.MessageEvent, error)
+type Entity[D any] interface {
+	ToDomain() *D
 }
 
-type PostgreSQLQueryHelper struct {
-	db *sqlx.DB
+type QueryHelper[D any, ID any] interface {
+	GetById(id ID) (*D, error)
+	Save(domain *D) (*D, error)
 }
 
-func NewQueryHelper(url *string) (QueryHelper, error) {
-	db, err := sqlx.Connect("postgres", *url)
+type EntityFactory[D any] interface {
+	EmptyEntity() Entity[D]
+}
+
+type PostgreSQLQueryHelper[D any, ID any] struct {
+	db            *sqlx.DB
+	entityFactory EntityFactory[D]
+}
+
+func (receiver *PostgreSQLQueryHelper[D, ID]) GetEntityById(query string, id ID) (Entity[D], error) {
+	entity := receiver.entityFactory.EmptyEntity()
+	err := receiver.db.QueryRowx(query, id).StructScan(entity)
 	if err != nil {
-		slog.Error(err.Error())
 		return nil, err
 	}
-	return &PostgreSQLQueryHelper{db: db}, nil
+	return entity, nil
 }
 
-func (receiver *PostgreSQLQueryHelper) GetMessageEvent(hash string) (*domain.MessageEvent, error) {
-	entity := &MessageEventEntity{}
-	err := receiver.db.QueryRowx("select * from wombatsm.message_event where hash = $1", hash).StructScan(entity)
-	if err != nil {
-		return nil, err
-	}
-	if entity == nil {
-		return nil, nil
-	}
-	return entity.ToDomain(), nil
-}
-
-func (receiver *PostgreSQLQueryHelper) SaveMessageEvent(domain *domain.MessageEvent) (*domain.MessageEvent, error) {
-	rows, err := receiver.db.NamedQuery(
-		`insert into wombatsm.message_event(hash, source_type, event_type, text, author_id, chat_id, message_id)
-               values (:hash, :source_type, :event_type, :text, :author_id, :chat_id, :message_id)
-               on conflict (hash)
-               do update
-               set event_type = :event_type,
-                   text = :text,
-                   author_id = :author_id,
-                   chat_id = :chat_id,
-                   message_id = :message_id,
-               	   update_ts = current_timestamp
-               returning *;`,
-		MessageEventEntityFromDomain(domain),
-	)
+func (receiver *PostgreSQLQueryHelper[D, ID]) SaveEntity(query string, entity Entity[D]) (Entity[D], error) {
+	rows, err := receiver.db.NamedQuery(query, entity)
 	if err != nil {
 		return nil, err
 	}
 
-	entity := &MessageEventEntity{}
+	saved := receiver.entityFactory.EmptyEntity()
 	if rows.Next() {
-		err = rows.StructScan(entity)
+		err = rows.StructScan(saved)
 		if err != nil {
 			return nil, err
 		}
@@ -66,5 +48,5 @@ func (receiver *PostgreSQLQueryHelper) SaveMessageEvent(domain *domain.MessageEv
 		return nil, nil
 	}
 
-	return entity.ToDomain(), nil
+	return entity, nil
 }

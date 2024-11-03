@@ -20,19 +20,19 @@ import (
 )
 
 type Application struct {
-	executor    *daemon.Daemon
-	conf        *config.Config
-	routeChan   chan any
-	kafkaHelper messaging.KafkaHelper
-	queryHelper dao.QueryHelper
-	telegram    source.Source
+	executor               *daemon.Daemon
+	conf                   *config.Config
+	routeChan              chan any
+	kafkaHelper            messaging.MessageHelper
+	messageEventRepository dao.QueryHelper[domain.MessageEvent, string]
+	telegram               source.Source
 }
 
 func NewApplication(
 	executor *daemon.Daemon,
 	routeChan chan any,
-	kafkaHelper messaging.KafkaHelper,
-	queryHelper dao.QueryHelper,
+	kafkaHelper messaging.MessageHelper,
+	messageEventRepository dao.QueryHelper[domain.MessageEvent, string],
 	telegram source.Source,
 ) (*Application, error) {
 	conf, ok := executor.GetConfig().(*config.Config)
@@ -40,12 +40,12 @@ func NewApplication(
 		return nil, errors.NewError("Wrong config type")
 	}
 	return &Application{
-		conf:        conf,
-		executor:    executor,
-		routeChan:   routeChan,
-		kafkaHelper: kafkaHelper,
-		queryHelper: queryHelper,
-		telegram:    telegram,
+		conf:                   conf,
+		executor:               executor,
+		routeChan:              routeChan,
+		kafkaHelper:            kafkaHelper,
+		messageEventRepository: messageEventRepository,
+		telegram:               telegram,
 	}, nil
 }
 
@@ -115,7 +115,7 @@ func (receiver *Application) route() {
 			return err
 		}
 
-		saved, err := receiver.queryHelper.SaveMessageEvent(msg)
+		saved, err := receiver.messageEventRepository.Save(msg)
 		if err != nil {
 			return err
 		}

@@ -15,6 +15,7 @@ import (
 	"time"
 	"wombat/internal/config"
 	"wombat/internal/dao"
+	"wombat/internal/domain"
 	"wombat/internal/messaging"
 	"wombat/internal/source"
 	"wombat/pkg/daemon"
@@ -26,7 +27,7 @@ var (
 )
 
 var (
-	queryHelper dao.QueryHelper
+	messageEventRepository dao.QueryHelper[domain.MessageEvent, string]
 )
 
 func setup(
@@ -83,14 +84,14 @@ func setup(
 		return nil, err
 	}
 
-	queryHelper, err = dao.NewQueryHelper(&conf.PostgreSQL.Url)
+	messageEventRepository, err = dao.NewMessageEventRepository(&conf.PostgreSQL.Url)
 	if err != nil {
 		return nil, err
 	}
 
 	telegram := &source.MockSource{Source: mockUpdatesChan}
 
-	return NewApplication(dmn, make(chan any), kafkaHelper, queryHelper, telegram)
+	return NewApplication(dmn, make(chan any), kafkaHelper, messageEventRepository, telegram)
 }
 
 func TestApplication(t *testing.T) {
@@ -145,7 +146,7 @@ func TestApplication(t *testing.T) {
 			}
 
 			hash := uuid.NewSHA1(uuid.NameSpaceURL, []byte("TELEGRAM"+"1"+"1")).String()
-			saved, geterr := queryHelper.GetMessageEvent(hash)
+			saved, geterr := messageEventRepository.GetById(hash)
 			if geterr != nil || saved == nil {
 				continue
 			}
