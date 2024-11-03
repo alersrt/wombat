@@ -48,7 +48,7 @@ func (receiver *PostgreSQLQueryHelper) SaveMessageEvent(domain *domain.MessageEv
                    author_id = :author_id,
                    chat_id = :chat_id,
                    message_id = :message_id,
-               	   update_ts = :update_ts
+               	   update_ts = current_timestamp
                returning *;`,
 		MessageEventEntityFromDomain(domain),
 	)
