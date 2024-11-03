@@ -13,27 +13,34 @@ import (
 	"wombat/internal/config"
 	"wombat/internal/dao"
 	"wombat/internal/domain"
-	"wombat/internal/messaging"
-	"wombat/internal/source"
 	"wombat/pkg/daemon"
 	"wombat/pkg/errors"
 )
+
+type MessageHelper interface {
+	SendToTopic(topic string, message []byte) error
+	Subscribe(topics []string, handler func(*kafka.Message) error) error
+}
+
+type Source interface {
+	ForwardTo(chan any)
+}
 
 type Application struct {
 	executor               *daemon.Daemon
 	conf                   *config.Config
 	routeChan              chan any
-	kafkaHelper            messaging.MessageHelper
+	kafkaHelper            MessageHelper
 	messageEventRepository dao.QueryHelper[domain.MessageEvent, string]
-	telegram               source.Source
+	telegram               Source
 }
 
 func NewApplication(
 	executor *daemon.Daemon,
 	routeChan chan any,
-	kafkaHelper messaging.MessageHelper,
+	kafkaHelper MessageHelper,
 	messageEventRepository dao.QueryHelper[domain.MessageEvent, string],
-	telegram source.Source,
+	telegram Source,
 ) (*Application, error) {
 	conf, ok := executor.GetConfig().(*config.Config)
 	if !ok {

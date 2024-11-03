@@ -6,12 +6,7 @@ import (
 	"log/slog"
 )
 
-type MessageHelper interface {
-	SendToTopic(topic string, message []byte) error
-	Subscribe(topics []string, handler func(*kafka.Message) error) error
-}
-
-func NewKafkaHelper(configMap *kafka.ConfigMap) (MessageHelper, error) {
+func NewKafkaHelper(configMap *kafka.ConfigMap) (*KafkaMessageHelper, error) {
 	producer, err := kafka.NewProducer(configMap)
 	if err != nil {
 		slog.Error(err.Error())
