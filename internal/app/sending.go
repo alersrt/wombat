@@ -16,15 +16,12 @@ func (receiver *Application) send() {
 		}
 
 		saved, err := receiver.messageEventRepository.Save(msg)
+
 		if err != nil {
 			return err
 		}
-		slog.Info(fmt.Sprintf(
-			"Consumed event from topic %s: key = %-10s value = %+v",
-			*event.TopicPartition.Topic,
-			string(event.Key),
-			saved,
-		))
+		slog.Info(fmt.Sprintf("Consume message: %s", string(event.Key)))
+		slog.Info(fmt.Sprintf("Value: %+v", saved))
 
 		return nil
 	})

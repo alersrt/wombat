@@ -10,7 +10,7 @@ import (
 )
 
 type MessageHelper interface {
-	SendToTopic(topic string, message []byte) error
+	SendToTopic(topic string, key []byte, message []byte) error
 	Subscribe(topics []string, handler func(*kafka.Message) error) error
 }
 

@@ -21,12 +21,12 @@ func (receiver *Application) route() {
 				return
 			}
 
-			err = receiver.kafkaHelper.SendToTopic(receiver.conf.Kafka.Topic, jsonifiedMsg)
+			err = receiver.kafkaHelper.SendToTopic(receiver.conf.Kafka.Topic, []byte(update.Hash), jsonifiedMsg)
 			if err != nil {
 				slog.Warn(err.Error())
 				return
 			}
-			slog.Info(fmt.Sprintf("Sent message: %s", update.Hash))
+			slog.Info(fmt.Sprintf("Send message: %s", update.Hash))
 		}
 	}
 }
