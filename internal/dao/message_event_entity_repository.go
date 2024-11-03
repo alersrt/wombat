@@ -7,7 +7,7 @@ import (
 )
 
 type MessageEventRepository struct {
-	PostgreSQLQueryHelper[domain.MessageEvent, string]
+	*PostgreSQLQueryHelper[domain.MessageEvent, string]
 }
 
 func NewMessageEventRepository(url *string) (*MessageEventRepository, error) {
@@ -17,7 +17,7 @@ func NewMessageEventRepository(url *string) (*MessageEventRepository, error) {
 		return nil, err
 	}
 	return &MessageEventRepository{
-		PostgreSQLQueryHelper[domain.MessageEvent, string]{
+		&PostgreSQLQueryHelper[domain.MessageEvent, string]{
 			db:            db,
 			entityFactory: &MessageEventEntityFactory{},
 		},
