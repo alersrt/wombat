@@ -52,7 +52,7 @@ func main() {
 
 	dmn := daemon.Create(conf)
 
-	runner, err := app.NewApplication(dmn, make(chan any), kafkaHelper, messageEventRepository, telegram)
+	runner, err := app.NewApplication(dmn, kafkaHelper, messageEventRepository, telegram)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)

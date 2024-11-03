@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -32,17 +31,17 @@ func (receiver *MockConfig) IsInitiated() bool {
 }
 
 type MockSource struct {
-	SourceChan chan any
+	SourceChan chan *domain.MessageEvent
 }
 
-func (receiver *MockSource) ForwardTo(target chan any) {
+func (receiver *MockSource) ForwardTo(target chan *domain.MessageEvent) {
 	for update := range receiver.SourceChan {
 		target <- update
 	}
 }
 
 var (
-	mockUpdatesChan = make(chan any)
+	mockUpdatesChan = make(chan *domain.MessageEvent)
 )
 
 var (
@@ -105,7 +104,7 @@ func setup(
 
 	telegram := &MockSource{SourceChan: mockUpdatesChan}
 
-	return NewApplication(dmn, make(chan any), kafkaHelper, messageEventRepository, telegram)
+	return NewApplication(dmn, kafkaHelper, messageEventRepository, telegram)
 }
 
 func TestApplication(t *testing.T) {
@@ -143,13 +142,14 @@ func TestApplication(t *testing.T) {
 	/*------ Actions ------*/
 	go testedUnit.Run(testCtx)
 
-	mockUpdatesChan <- tgbotapi.Update{
-		Message: &tgbotapi.Message{
-			Text:      "TEST-100",
-			From:      &tgbotapi.User{},
-			Chat:      tgbotapi.Chat{ID: 1},
-			MessageID: 1,
-		},
+	hash := uuid.NewSHA1(uuid.NameSpaceURL, []byte("TELEGRAM"+"1"+"1")).String()
+	mockUpdatesChan <- &domain.MessageEvent{
+		Hash:       hash,
+		SourceType: domain.TELEGRAM,
+		EventType:  domain.CREATE,
+		ChatId:     "1",
+		MessageId:  "1",
+		Text:       "TEST-100",
 	}
 
 	/*------ Asserts ------*/
@@ -159,7 +159,6 @@ func TestApplication(t *testing.T) {
 			case <-time.After(1 * time.Second):
 			}
 
-			hash := uuid.NewSHA1(uuid.NameSpaceURL, []byte("TELEGRAM"+"1"+"1")).String()
 			saved, geterr := messageEventRepository.GetById(hash)
 			if geterr != nil || saved == nil {
 				continue

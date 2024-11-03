@@ -15,13 +15,13 @@ type MessageHelper interface {
 }
 
 type Source interface {
-	ForwardTo(chan any)
+	ForwardTo(chan *domain.MessageEvent)
 }
 
 type Application struct {
 	executor               *daemon.Daemon
 	conf                   *Config
-	routeChan              chan any
+	sourceChan             chan *domain.MessageEvent
 	kafkaHelper            MessageHelper
 	messageEventRepository dao.QueryHelper[domain.MessageEvent, string]
 	telegram               Source
@@ -29,7 +29,6 @@ type Application struct {
 
 func NewApplication(
 	executor *daemon.Daemon,
-	routeChan chan any,
 	kafkaHelper MessageHelper,
 	messageEventRepository dao.QueryHelper[domain.MessageEvent, string],
 	telegram Source,
@@ -41,7 +40,7 @@ func NewApplication(
 	return &Application{
 		conf:                   conf,
 		executor:               executor,
-		routeChan:              routeChan,
+		sourceChan:             make(chan *domain.MessageEvent),
 		kafkaHelper:            kafkaHelper,
 		messageEventRepository: messageEventRepository,
 		telegram:               telegram,

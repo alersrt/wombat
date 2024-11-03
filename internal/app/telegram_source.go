@@ -4,6 +4,8 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log/slog"
+	"strconv"
+	"wombat/internal/domain"
 )
 
 type TelegramSource struct {
@@ -20,7 +22,7 @@ func NewTelegramSource(token string) (*TelegramSource, error) {
 	return &TelegramSource{bot: bot}, nil
 }
 
-func (receiver *TelegramSource) ForwardTo(target chan any) {
+func (receiver *TelegramSource) ForwardTo(target chan *domain.MessageEvent) {
 	u := tgbotapi.NewUpdate(0)
 	u.AllowedUpdates = append(
 		u.AllowedUpdates,
@@ -33,6 +35,23 @@ func (receiver *TelegramSource) ForwardTo(target chan any) {
 	slog.Info(fmt.Sprintf("Authorized on account %s", receiver.bot.Self.UserName))
 
 	for update := range receiver.bot.GetUpdatesChan(u) {
-		target <- update
+
+		if update.Message != nil {
+
+			messageId := strconv.Itoa(update.Message.MessageID)
+			chatId := strconv.FormatInt(update.Message.Chat.ID, 10)
+
+			msg := &domain.MessageEvent{
+				Hash:       domain.Hash(domain.TELEGRAM, chatId, messageId),
+				EventType:  domain.CREATE,
+				SourceType: domain.TELEGRAM,
+				Text:       update.Message.Text,
+				AuthorId:   update.Message.From.UserName,
+				ChatId:     chatId,
+				MessageId:  messageId,
+			}
+
+			target <- msg
+		}
 	}
 }
