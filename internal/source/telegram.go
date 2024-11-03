@@ -6,21 +6,21 @@ import (
 	"log/slog"
 )
 
-type telegram struct {
+type Telegram struct {
 	bot *tgbotapi.BotAPI
 }
 
-func NewTelegramSource(token string) (Source, error) {
+func NewTelegramSource(token string) (*Telegram, error) {
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		slog.Error(err.Error())
 		return nil, err
 	}
 
-	return &telegram{bot: bot}, nil
+	return &Telegram{bot: bot}, nil
 }
 
-func (receiver *telegram) ForwardTo(target chan any) {
+func (receiver *Telegram) ForwardTo(target chan any) {
 	u := tgbotapi.NewUpdate(0)
 	u.AllowedUpdates = append(
 		u.AllowedUpdates,

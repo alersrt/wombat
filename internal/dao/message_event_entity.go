@@ -31,7 +31,13 @@ func (receiver *MessageEventEntity) ToDomain() *domain.MessageEvent {
 	}
 }
 
-func MessageEventEntityFromDomain(domain *domain.MessageEvent) *MessageEventEntity {
+type MessageEventEntityFactory struct{}
+
+func (receiver *MessageEventEntityFactory) EmptyEntity() Entity[domain.MessageEvent] {
+	return &MessageEventEntity{}
+}
+
+func (receiver *MessageEventEntityFactory) FromDomain(domain *domain.MessageEvent) Entity[domain.MessageEvent] {
 	return &MessageEventEntity{
 		Hash:       domain.Hash,
 		EventType:  domain.EventType.String(),

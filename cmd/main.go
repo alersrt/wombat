@@ -41,7 +41,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	queryHelper, err := dao.NewQueryHelper(&conf.PostgreSQL.Url)
+	messageEventRepository, err := dao.NewMessageEventRepository(&conf.PostgreSQL.Url)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
@@ -55,7 +55,7 @@ func main() {
 
 	dmn := daemon.Create(conf)
 
-	runner, err := app.NewApplication(dmn, make(chan any), kafkaHelper, queryHelper, telegram)
+	runner, err := app.NewApplication(dmn, make(chan any), kafkaHelper, messageEventRepository, telegram)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
