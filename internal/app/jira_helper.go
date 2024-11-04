@@ -2,6 +2,11 @@ package app
 
 import "github.com/andygrunwald/go-jira"
 
+type JiraHelper interface {
+	AddComment(issue string, text string) (string, error)
+	UpdateComment(issue string, commentId string, text string) error
+}
+
 type JiraClient struct {
 	client *jira.Client
 }

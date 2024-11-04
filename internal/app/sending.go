@@ -15,11 +15,36 @@ func (receiver *Application) send() {
 			return err
 		}
 
-		saved, err := receiver.messageEventRepository.Save(msg)
-
+		saved, err := receiver.messageEventRepository.GetById(msg.Hash)
 		if err != nil {
 			return err
 		}
+
+		if saved == nil || saved.CommentId == "" {
+			for _, tag := range msg.Tags {
+				commentId, err := receiver.jiraHelper.AddComment(tag, msg.Text)
+				if err != nil {
+					return err
+				}
+				msg.CommentId = commentId
+				_, err = receiver.messageEventRepository.Save(msg)
+				if err != nil {
+					return err
+				}
+			}
+		} else {
+			for _, tag := range msg.Tags {
+				err = receiver.jiraHelper.UpdateComment(tag, saved.CommentId, msg.Text)
+				if err != nil {
+					return err
+				}
+				_, err = receiver.messageEventRepository.Save(msg)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
 		slog.Info(fmt.Sprintf("Consume message: %s", string(event.Key)))
 		slog.Info(fmt.Sprintf("Value: %+v", saved))
 

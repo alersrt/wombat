@@ -23,6 +23,7 @@ type Application struct {
 	conf                   *Config
 	sourceChan             chan *domain.MessageEvent
 	kafkaHelper            MessageHelper
+	jiraHelper             JiraHelper
 	messageEventRepository dao.QueryHelper[domain.MessageEvent, string]
 	telegramSource         Source
 }
@@ -30,6 +31,7 @@ type Application struct {
 func NewApplication(
 	executor *daemon.Daemon,
 	kafkaHelper MessageHelper,
+	jiraHelper JiraHelper,
 	messageEventRepository dao.QueryHelper[domain.MessageEvent, string],
 	telegramSource Source,
 ) (*Application, error) {
@@ -42,6 +44,7 @@ func NewApplication(
 		executor:               executor,
 		sourceChan:             make(chan *domain.MessageEvent),
 		kafkaHelper:            kafkaHelper,
+		jiraHelper:             jiraHelper,
 		messageEventRepository: messageEventRepository,
 		telegramSource:         telegramSource,
 	}, nil
