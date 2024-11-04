@@ -40,6 +40,17 @@ func (receiver *MockSource) ForwardTo(target chan *domain.MessageEvent) {
 	}
 }
 
+type MockJiraHelper struct{}
+
+func (receiver *MockJiraHelper) AddComment(issue string, text string) (string, error) {
+	uuidStr := uuid.New().String()
+	return uuidStr, nil
+}
+
+func (receiver *MockJiraHelper) UpdateComment(issue string, commentId string, text string) error {
+	return nil
+}
+
 var (
 	mockUpdatesChan = make(chan *domain.MessageEvent)
 )
@@ -97,6 +108,8 @@ func setup(
 		return nil, err
 	}
 
+	jiraHelper := &MockJiraHelper{}
+
 	messageEventRepository, err = dao.NewMessageEventRepository(&conf.PostgreSQL.Url)
 	if err != nil {
 		return nil, err
@@ -104,7 +117,7 @@ func setup(
 
 	telegram := &MockSource{SourceChan: mockUpdatesChan}
 
-	return NewApplication(dmn, kafkaHelper, messageEventRepository, telegram)
+	return NewApplication(dmn, kafkaHelper, jiraHelper, messageEventRepository, telegram)
 }
 
 func TestApplication(t *testing.T) {
@@ -146,7 +159,6 @@ func TestApplication(t *testing.T) {
 	mockUpdatesChan <- &domain.MessageEvent{
 		Hash:       hash,
 		SourceType: domain.TELEGRAM,
-		EventType:  domain.CREATE,
 		ChatId:     "1",
 		MessageId:  "1",
 		Text:       "TEST-100",

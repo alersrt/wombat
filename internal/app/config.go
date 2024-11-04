@@ -12,6 +12,12 @@ type Bot struct {
 	Emoji string `yaml:"emoji,omitempty"`
 }
 
+type Jira struct {
+	Url      string `yaml:"url,omitempty"`
+	Username string `yaml:"username,omitempty"`
+	Password string `yaml:"password,omitempty"`
+}
+
 type Telegram struct {
 	Token   string `yaml:"token,omitempty"`
 	Webhook string `yaml:"webhook,omitempty"`
@@ -34,6 +40,7 @@ type Database struct {
 type Config struct {
 	isInitiated bool
 	*Bot        `yaml:"bot,omitempty"`
+	*Jira       `yaml:"jira,omitempty"`
 	*Telegram   `yaml:"telegram,omitempty"`
 	*Kafka      `yaml:"kafka,omitempty"`
 	*Database   `yaml:"database,omitempty"`

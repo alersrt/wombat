@@ -27,7 +27,7 @@ func (receiver *Application) send() {
 					return err
 				}
 				msg.CommentId = commentId
-				_, err = receiver.messageEventRepository.Save(msg)
+				saved, err = receiver.messageEventRepository.Save(msg)
 				if err != nil {
 					return err
 				}
@@ -38,7 +38,7 @@ func (receiver *Application) send() {
 				if err != nil {
 					return err
 				}
-				_, err = receiver.messageEventRepository.Save(msg)
+				saved, err = receiver.messageEventRepository.Save(msg)
 				if err != nil {
 					return err
 				}

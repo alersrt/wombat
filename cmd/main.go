@@ -50,9 +50,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	jiraHelper, err := app.NewJiraClient(conf.Jira.Url, conf.Jira.Username, conf.Jira.Password)
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+
 	dmn := daemon.Create(conf)
 
-	runner, err := app.NewApplication(dmn, kafkaHelper, messageEventRepository, telegram)
+	runner, err := app.NewApplication(dmn, kafkaHelper, jiraHelper, messageEventRepository, telegram)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
