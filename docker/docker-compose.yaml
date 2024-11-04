@@ -102,6 +102,7 @@ services:
       - JVM_MAXIMUM_MEMORY=2G
     volumes:
       - jira-volume:/var/atlassian/application-data/jira
+      - ./jira/jira-config.properties:/var/atlassian/application-data/jira/jira-config.properties:ro
     ports:
       - "8083:8080"
     depends_on:

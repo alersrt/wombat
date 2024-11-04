@@ -26,22 +26,24 @@ func NewMessageEventRepository(url *string) (*MessageEventRepository, error) {
 
 func (receiver *MessageEventRepository) GetById(id string) (*domain.MessageEvent, error) {
 	entity, err := receiver.GetEntityById("select * from wombatsm.message_event where hash = $1", id)
-	if err != nil {
+	if err != nil || entity == nil {
 		return nil, err
 	}
-
 	return entity.ToDomain(), nil
 }
 
 func (receiver *MessageEventRepository) Save(domain *domain.MessageEvent) (*domain.MessageEvent, error) {
-	query := `insert into wombatsm.message_event(hash, source_type, text, author_id, chat_id, message_id)
-               values (:hash, :source_type, :text, :author_id, :chat_id, :message_id)
-               on conflict (hash)
+	query := `insert into wombatsm.message_event(hash, source_type, text, author_id, chat_id, message_id, comment_id)
+               values (:hash, :source_type, :text, :author_id, :chat_id, :message_id, :comment_id)
+               on conflict (source_type, chat_id, message_id)
                do update
-               set text = :text,
+               set hash = :hash,
+                   source_type = :source_type,
+                   text = :text,
                    author_id = :author_id,
                    chat_id = :chat_id,
                    message_id = :message_id,
+                   comment_id = :comment_id,
                	   update_ts = current_timestamp
                returning *;`
 	entity := receiver.entityFactory.FromDomain(domain)
