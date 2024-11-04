@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
@@ -13,17 +12,47 @@ import (
 	"os"
 	"testing"
 	"time"
-	"wombat/internal/config"
 	"wombat/internal/dao"
 	"wombat/internal/domain"
-	"wombat/internal/messaging"
-	"wombat/internal/source"
 	"wombat/pkg/daemon"
-	"wombat/pkg/utils"
 )
 
+type MockConfig struct {
+	*Config
+}
+
+func (receiver *MockConfig) Init(args []string) error {
+	receiver.isInitiated = true
+	return nil
+}
+
+func (receiver *MockConfig) IsInitiated() bool {
+	return true
+}
+
+type MockSource struct {
+	SourceChan chan *domain.MessageEvent
+}
+
+func (receiver *MockSource) ForwardTo(target chan *domain.MessageEvent) {
+	for update := range receiver.SourceChan {
+		target <- update
+	}
+}
+
+type MockJiraHelper struct{}
+
+func (receiver *MockJiraHelper) AddComment(issue string, text string) (string, error) {
+	uuidStr := uuid.New().String()
+	return uuidStr, nil
+}
+
+func (receiver *MockJiraHelper) UpdateComment(issue string, commentId string, text string) error {
+	return nil
+}
+
 var (
-	mockUpdatesChan = make(chan any)
+	mockUpdatesChan = make(chan *domain.MessageEvent)
 )
 
 var (
@@ -49,23 +78,18 @@ func setup(
 		return nil, err
 	}
 
-	conf := &config.MockConfig{Config: &config.Config{
-		Database: &config.Database{
-			PostgreSQL: &config.PostgreSQL{
-				Url:      fmt.Sprintf("postgres://wombat_rw:wombat_rw@%s:%d/wombatdb?sslmode=disable", pgHost, pgPort.Int()),
-				Database: "wombatdb",
-				Host:     pgHost,
-				Port:     pgPort.Int(),
-				Username: "wombat_rw",
-				Password: "wombat_rw",
+	conf := &MockConfig{Config: &Config{
+		Database: &Database{
+			PostgreSQL: &PostgreSQL{
+				Url: fmt.Sprintf("postgres://wombat_rw:wombat_rw@%s:%d/wombatdb?sslmode=disable", pgHost, pgPort.Int()),
 			},
 		},
-		Kafka: &config.Kafka{
+		Kafka: &Kafka{
 			GroupId:   "wombat",
 			Bootstrap: kafkaBootstrap,
 			Topic:     "wombat.test",
 		},
-		Bot: &config.Bot{Tag: "(TEST-\\d+)", Emoji: "👍"},
+		Bot: &Bot{Tag: "(TEST-\\d+)", Emoji: "👍"},
 	}}
 	err = conf.Init(os.Args)
 	if err != nil {
@@ -79,19 +103,21 @@ func setup(
 		"group.id":          conf.Kafka.GroupId,
 		"auto.offset.reset": "earliest",
 	}
-	kafkaHelper, err := messaging.NewKafkaHelper(kafkaConf)
+	kafkaHelper, err := NewKafkaHelper(kafkaConf)
 	if err != nil {
 		return nil, err
 	}
+
+	jiraHelper := &MockJiraHelper{}
 
 	messageEventRepository, err = dao.NewMessageEventRepository(&conf.PostgreSQL.Url)
 	if err != nil {
 		return nil, err
 	}
 
-	telegram := &source.MockSource{Source: mockUpdatesChan}
+	telegram := &MockSource{SourceChan: mockUpdatesChan}
 
-	return NewApplication(dmn, make(chan any), kafkaHelper, messageEventRepository, telegram)
+	return NewApplication(dmn, kafkaHelper, jiraHelper, messageEventRepository, telegram)
 }
 
 func TestApplication(t *testing.T) {
@@ -99,7 +125,7 @@ func TestApplication(t *testing.T) {
 	testCtx, testCancelFunc := context.WithCancel(context.Background())
 	t.Cleanup(testCancelFunc)
 
-	composePath, err := utils.FindFilePath("docker", "docker-compose.yaml")
+	composePath, err := FindFilePath("docker", "docker-compose.yaml")
 	require.NoError(t, err, "Compose location")
 	environment, err := compose.NewDockerCompose(composePath)
 	require.NoError(t, err, "NewDockerComposeAPI()")
@@ -129,13 +155,13 @@ func TestApplication(t *testing.T) {
 	/*------ Actions ------*/
 	go testedUnit.Run(testCtx)
 
-	mockUpdatesChan <- tgbotapi.Update{
-		Message: &tgbotapi.Message{
-			Text:      "TEST-100",
-			From:      &tgbotapi.User{},
-			Chat:      tgbotapi.Chat{ID: 1},
-			MessageID: 1,
-		},
+	hash := uuid.NewSHA1(uuid.NameSpaceURL, []byte("TELEGRAM"+"1"+"1")).String()
+	mockUpdatesChan <- &domain.MessageEvent{
+		Hash:       hash,
+		SourceType: domain.TELEGRAM,
+		ChatId:     "1",
+		MessageId:  "1",
+		Text:       "TEST-100",
 	}
 
 	/*------ Asserts ------*/
@@ -145,9 +171,8 @@ func TestApplication(t *testing.T) {
 			case <-time.After(1 * time.Second):
 			}
 
-			hash := uuid.NewSHA1(uuid.NameSpaceURL, []byte("TELEGRAM"+"1"+"1")).String()
-			saved, geterr := messageEventRepository.GetById(hash)
-			if geterr != nil || saved == nil {
+			saved := messageEventRepository.GetById(hash)
+			if saved == nil {
 				continue
 			}
 

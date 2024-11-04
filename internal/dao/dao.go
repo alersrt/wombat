@@ -3,6 +3,7 @@ package dao
 import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"log/slog"
 )
 
 type Entity[D any] interface {
@@ -10,8 +11,8 @@ type Entity[D any] interface {
 }
 
 type QueryHelper[D any, ID any] interface {
-	GetById(id ID) (*D, error)
-	Save(domain *D) (*D, error)
+	GetById(id ID) *D
+	Save(domain *D) *D
 }
 
 type EntityFactory[D any] interface {
@@ -24,29 +25,32 @@ type PostgreSQLQueryHelper[D any, ID any] struct {
 	entityFactory EntityFactory[D]
 }
 
-func (receiver *PostgreSQLQueryHelper[D, ID]) GetEntityById(query string, id ID) (Entity[D], error) {
+func (receiver *PostgreSQLQueryHelper[D, ID]) GetEntityById(query string, id ID) Entity[D] {
 	entity := receiver.entityFactory.EmptyEntity()
 	err := receiver.db.QueryRowx(query, id).StructScan(entity)
 	if err != nil {
-		return nil, err
+		slog.Warn(err.Error())
+		return nil
 	}
-	return entity, nil
+	return entity
 }
 
-func (receiver *PostgreSQLQueryHelper[D, ID]) SaveEntity(query string, entity Entity[D]) (Entity[D], error) {
+func (receiver *PostgreSQLQueryHelper[D, ID]) SaveEntity(query string, entity Entity[D]) Entity[D] {
 	rows, err := receiver.db.NamedQuery(query, entity)
 	if err != nil {
-		return nil, err
+		slog.Warn(err.Error())
+		return nil
 	}
 
 	if rows.Next() {
 		saved := receiver.entityFactory.EmptyEntity()
 		err = rows.StructScan(saved)
 		if err != nil {
-			return nil, err
+			slog.Warn(err.Error())
+			return nil
 		}
-		return saved, nil
+		return saved
 	}
 
-	return nil, nil
+	return nil
 }

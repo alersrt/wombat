@@ -1,8 +1,7 @@
-package messaging
+package app
 
 import (
 	"github.com/confluentinc/confluent-kafka-go/kafka"
-	"github.com/google/uuid"
 	"log/slog"
 )
 
@@ -28,12 +27,7 @@ type KafkaMessageHelper struct {
 	consumer *kafka.Consumer
 }
 
-func (receiver *KafkaMessageHelper) SendToTopic(topic string, message []byte) error {
-	key, err := uuid.New().MarshalText()
-	if err != nil {
-		slog.Warn(err.Error())
-		return err
-	}
+func (receiver *KafkaMessageHelper) SendToTopic(topic string, key []byte, message []byte) error {
 	return receiver.producer.Produce(&kafka.Message{
 		Key:   key,
 		Value: message,

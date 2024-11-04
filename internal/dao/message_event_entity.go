@@ -7,12 +7,12 @@ import (
 
 type MessageEventEntity struct {
 	Hash       string    `db:"hash"`
-	EventType  string    `db:"event_type"`
 	SourceType string    `db:"source_type"`
 	Text       string    `db:"text"`
 	AuthorId   string    `db:"author_id"`
 	ChatId     string    `db:"chat_id"`
 	MessageId  string    `db:"message_id"`
+	CommentId  string    `db:"comment_id"`
 	CreateTs   time.Time `db:"create_ts"`
 	UpdateTs   time.Time `db:"update_ts"`
 }
@@ -20,7 +20,6 @@ type MessageEventEntity struct {
 func (receiver *MessageEventEntity) ToDomain() *domain.MessageEvent {
 	return &domain.MessageEvent{
 		Hash:       receiver.Hash,
-		EventType:  domain.EventTypeFromString(receiver.EventType),
 		SourceType: domain.SourceTypeFromString(receiver.SourceType),
 		Text:       receiver.Text,
 		AuthorId:   receiver.AuthorId,
@@ -28,6 +27,7 @@ func (receiver *MessageEventEntity) ToDomain() *domain.MessageEvent {
 		MessageId:  receiver.MessageId,
 		CreateTs:   receiver.CreateTs,
 		UpdateTs:   receiver.UpdateTs,
+		CommentId:  receiver.CommentId,
 	}
 }
 
@@ -40,7 +40,6 @@ func (receiver *MessageEventEntityFactory) EmptyEntity() Entity[domain.MessageEv
 func (receiver *MessageEventEntityFactory) FromDomain(domain *domain.MessageEvent) Entity[domain.MessageEvent] {
 	return &MessageEventEntity{
 		Hash:       domain.Hash,
-		EventType:  domain.EventType.String(),
 		SourceType: domain.SourceType.String(),
 		Text:       domain.Text,
 		AuthorId:   domain.AuthorId,
@@ -48,5 +47,6 @@ func (receiver *MessageEventEntityFactory) FromDomain(domain *domain.MessageEven
 		MessageId:  domain.MessageId,
 		CreateTs:   domain.CreateTs,
 		UpdateTs:   domain.UpdateTs,
+		CommentId:  domain.CommentId,
 	}
 }

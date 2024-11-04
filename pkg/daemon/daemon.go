@@ -8,6 +8,13 @@ import (
 	"syscall"
 )
 
+type Task func()
+
+type Config interface {
+	Init(args []string) error
+	IsInitiated() bool
+}
+
 type Daemon struct {
 	conf  Config
 	tasks []Task
