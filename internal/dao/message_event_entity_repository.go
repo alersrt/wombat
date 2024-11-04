@@ -34,12 +34,11 @@ func (receiver *MessageEventRepository) GetById(id string) (*domain.MessageEvent
 }
 
 func (receiver *MessageEventRepository) Save(domain *domain.MessageEvent) (*domain.MessageEvent, error) {
-	query := `insert into wombatsm.message_event(hash, source_type, event_type, text, author_id, chat_id, message_id)
-               values (:hash, :source_type, :event_type, :text, :author_id, :chat_id, :message_id)
+	query := `insert into wombatsm.message_event(hash, source_type, text, author_id, chat_id, message_id)
+               values (:hash, :source_type, :text, :author_id, :chat_id, :message_id)
                on conflict (hash)
                do update
-               set event_type = :event_type,
-                   text = :text,
+               set text = :text,
                    author_id = :author_id,
                    chat_id = :chat_id,
                    message_id = :message_id,
