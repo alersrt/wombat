@@ -15,10 +15,7 @@ func (receiver *Application) send() {
 			return err
 		}
 
-		saved, err := receiver.messageEventRepository.GetById(msg.Hash)
-		if err != nil {
-			return err
-		}
+		saved := receiver.messageEventRepository.GetById(msg.Hash)
 
 		if saved == nil || saved.CommentId == "" {
 			for _, tag := range msg.Tags {
@@ -27,21 +24,15 @@ func (receiver *Application) send() {
 					return err
 				}
 				msg.CommentId = commentId
-				saved, err = receiver.messageEventRepository.Save(msg)
-				if err != nil {
-					return err
-				}
+				saved = receiver.messageEventRepository.Save(msg)
 			}
 		} else {
 			for _, tag := range msg.Tags {
-				err = receiver.jiraHelper.UpdateComment(tag, saved.CommentId, msg.Text)
+				err := receiver.jiraHelper.UpdateComment(tag, saved.CommentId, msg.Text)
 				if err != nil {
 					return err
 				}
-				saved, err = receiver.messageEventRepository.Save(msg)
-				if err != nil {
-					return err
-				}
+				saved = receiver.messageEventRepository.Save(msg)
 			}
 		}
 

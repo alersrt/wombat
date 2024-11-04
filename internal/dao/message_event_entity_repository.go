@@ -24,15 +24,15 @@ func NewMessageEventRepository(url *string) (*MessageEventRepository, error) {
 	}, nil
 }
 
-func (receiver *MessageEventRepository) GetById(id string) (*domain.MessageEvent, error) {
-	entity, err := receiver.GetEntityById("select * from wombatsm.message_event where hash = $1", id)
-	if err != nil || entity == nil {
-		return nil, err
+func (receiver *MessageEventRepository) GetById(id string) *domain.MessageEvent {
+	entity := receiver.GetEntityById("select * from wombatsm.message_event where hash = $1", id)
+	if entity == nil {
+		return nil
 	}
-	return entity.ToDomain(), nil
+	return entity.ToDomain()
 }
 
-func (receiver *MessageEventRepository) Save(domain *domain.MessageEvent) (*domain.MessageEvent, error) {
+func (receiver *MessageEventRepository) Save(domain *domain.MessageEvent) *domain.MessageEvent {
 	query := `insert into wombatsm.message_event(hash, source_type, text, author_id, chat_id, message_id, comment_id)
                values (:hash, :source_type, :text, :author_id, :chat_id, :message_id, :comment_id)
                on conflict (source_type, chat_id, message_id)
@@ -47,9 +47,9 @@ func (receiver *MessageEventRepository) Save(domain *domain.MessageEvent) (*doma
                	   update_ts = current_timestamp
                returning *;`
 	entity := receiver.entityFactory.FromDomain(domain)
-	saved, err := receiver.SaveEntity(query, entity)
-	if err != nil || saved == nil {
-		return nil, err
+	saved := receiver.SaveEntity(query, entity)
+	if saved == nil {
+		return nil
 	}
-	return saved.ToDomain(), nil
+	return saved.ToDomain()
 }

@@ -171,8 +171,8 @@ func TestApplication(t *testing.T) {
 			case <-time.After(1 * time.Second):
 			}
 
-			saved, geterr := messageEventRepository.GetById(hash)
-			if geterr != nil || saved == nil {
+			saved := messageEventRepository.GetById(hash)
+			if saved == nil {
 				continue
 			}
 
