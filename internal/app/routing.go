@@ -12,7 +12,7 @@ func (receiver *Application) route() {
 		pattern := regexp.MustCompile(receiver.conf.Bot.Tag)
 		tags := pattern.FindAllString(update.Text, -1)
 
-		if len(tags) > 0 {
+		if update.AuthorId != "" && len(tags) > 0 {
 			update.Tags = tags
 
 			jsonifiedMsg, err := json.Marshal(update)

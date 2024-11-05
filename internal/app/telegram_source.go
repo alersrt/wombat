@@ -43,7 +43,7 @@ func (receiver *TelegramSource) ForwardTo(target chan *domain.MessageEvent) {
 				Hash:       domain.Hash(domain.TELEGRAM, chatId, messageId),
 				SourceType: domain.TELEGRAM,
 				Text:       message.Text,
-				AuthorId:   strconv.FormatInt(message.From.ID, 10),
+				AuthorId:   message.From.UserName,
 				ChatId:     chatId,
 				MessageId:  messageId,
 			}
