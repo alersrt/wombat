@@ -26,7 +26,7 @@ func (receiver *Application) route() {
 				slog.Warn(err.Error())
 				return
 			}
-			slog.Info(fmt.Sprintf("Send message: %s", key))
+			slog.Info(fmt.Sprintf("Send message: %s", string(key)))
 		}
 	}
 }

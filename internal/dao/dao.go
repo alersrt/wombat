@@ -36,7 +36,7 @@ func (receiver *PostgreSQLQueryHelper[D, ID]) GetEntityById(query string, id ID)
 }
 
 func (receiver *PostgreSQLQueryHelper[D, ID]) GetEntitiesByArgs(query string, args ...any) []Entity[D] {
-	rows, err := receiver.db.Queryx(query, args)
+	rows, err := receiver.db.Queryx(query, args...)
 	if err != nil {
 		slog.Warn(err.Error())
 		return nil
