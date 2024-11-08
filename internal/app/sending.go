@@ -30,7 +30,7 @@ func (receiver *Application) send() {
 					CommentId: commentId,
 				})
 
-				slog.Info(fmt.Sprintf("Comsumed: %+v", saved))
+				slog.Info(fmt.Sprintf("Comsumed: %+v %+v", saved, saved.Message))
 			}
 		} else {
 			taggedComments := map[string]*domain.Comment{}
