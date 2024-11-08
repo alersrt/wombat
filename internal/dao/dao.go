@@ -35,6 +35,27 @@ func (receiver *PostgreSQLQueryHelper[D, ID]) GetEntityById(query string, id ID)
 	return entity
 }
 
+func (receiver *PostgreSQLQueryHelper[D, ID]) GetEntitiesByArgs(query string, args ...any) []Entity[D] {
+	rows, err := receiver.db.Queryx(query, args)
+	if err != nil {
+		slog.Warn(err.Error())
+		return nil
+	}
+
+	var entities []Entity[D]
+	if rows.Next() {
+		entity := receiver.entityFactory.EmptyEntity()
+		err = rows.StructScan(entity)
+		if err != nil {
+			slog.Warn(err.Error())
+			return nil
+		}
+		entities = append(entities, entity)
+	}
+
+	return entities
+}
+
 func (receiver *PostgreSQLQueryHelper[D, ID]) SaveEntity(query string, entity Entity[D]) Entity[D] {
 	rows, err := receiver.db.NamedQuery(query, entity)
 	if err != nil {

@@ -31,10 +31,10 @@ func (receiver *MockConfig) IsInitiated() bool {
 }
 
 type MockSource struct {
-	SourceChan chan *domain.MessageEvent
+	SourceChan chan *domain.Message
 }
 
-func (receiver *MockSource) ForwardTo(target chan *domain.MessageEvent) {
+func (receiver *MockSource) ForwardTo(target chan *domain.Message) {
 	for update := range receiver.SourceChan {
 		target <- update
 	}
@@ -43,7 +43,7 @@ func (receiver *MockSource) ForwardTo(target chan *domain.MessageEvent) {
 type MockJiraHelper struct{}
 
 func (receiver *MockJiraHelper) AddComment(issue string, text string) (string, error) {
-	uuidStr := uuid.New().String()
+	uuidStr := savedCommentId
 	return uuidStr, nil
 }
 
@@ -52,11 +52,9 @@ func (receiver *MockJiraHelper) UpdateComment(issue string, commentId string, te
 }
 
 var (
-	mockUpdatesChan = make(chan *domain.MessageEvent)
-)
-
-var (
-	messageEventRepository dao.QueryHelper[domain.MessageEvent, string]
+	mockUpdatesChan   = make(chan *domain.Message)
+	commentRepository *dao.CommentRepository
+	savedCommentId    = uuid.New().String()
 )
 
 func setup(
@@ -110,14 +108,14 @@ func setup(
 
 	jiraHelper := &MockJiraHelper{}
 
-	messageEventRepository, err = dao.NewMessageEventRepository(&conf.PostgreSQL.Url)
+	commentRepository, err = dao.NewCommentRepository(&conf.PostgreSQL.Url)
 	if err != nil {
 		return nil, err
 	}
 
 	telegram := &MockSource{SourceChan: mockUpdatesChan}
 
-	return NewApplication(dmn, kafkaHelper, jiraHelper, messageEventRepository, telegram)
+	return NewApplication(dmn, kafkaHelper, jiraHelper, commentRepository, telegram)
 }
 
 func TestApplication(t *testing.T) {
@@ -155,9 +153,7 @@ func TestApplication(t *testing.T) {
 	/*------ Actions ------*/
 	go testedUnit.Run(testCtx)
 
-	hash := uuid.NewSHA1(uuid.NameSpaceURL, []byte("TELEGRAM"+"1"+"1")).String()
-	mockUpdatesChan <- &domain.MessageEvent{
-		Hash:       hash,
+	mockUpdatesChan <- &domain.Message{
 		SourceType: domain.TELEGRAM,
 		ChatId:     "1",
 		MessageId:  "1",
@@ -171,12 +167,10 @@ func TestApplication(t *testing.T) {
 			case <-time.After(1 * time.Second):
 			}
 
-			saved := messageEventRepository.GetById(hash)
+			saved := commentRepository.GetById(savedCommentId)
 			if saved == nil {
 				continue
-			}
-
-			if saved.Hash == hash {
+			} else {
 				succ <- true
 			}
 		}

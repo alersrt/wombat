@@ -22,7 +22,7 @@ func NewTelegramSource(token string) (*TelegramSource, error) {
 	return &TelegramSource{bot: bot}, nil
 }
 
-func (receiver *TelegramSource) ForwardTo(target chan *domain.MessageEvent) {
+func (receiver *TelegramSource) ForwardTo(target chan *domain.Message) {
 	u := tgbotapi.NewUpdate(0)
 	u.AllowedUpdates = append(
 		u.AllowedUpdates,
@@ -37,10 +37,14 @@ func (receiver *TelegramSource) ForwardTo(target chan *domain.MessageEvent) {
 	for update := range receiver.bot.GetUpdatesChan(u) {
 
 		processMessage := func(message *tgbotapi.Message) {
+			if message.From.UserName == "" {
+				slog.Warn("Missed username")
+				return
+			}
+
 			messageId := strconv.Itoa(message.MessageID)
 			chatId := strconv.FormatInt(message.Chat.ID, 10)
-			msg := &domain.MessageEvent{
-				Hash:       domain.Hash(domain.TELEGRAM, chatId, messageId),
+			msg := &domain.Message{
 				SourceType: domain.TELEGRAM,
 				Text:       message.Text,
 				AuthorId:   message.From.UserName,
