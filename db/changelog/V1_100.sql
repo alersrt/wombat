@@ -13,6 +13,8 @@ create table if not exists wombatsm.comment
 
 create table if not exists wombatsm.acl
 (
-    author_id  varchar primary key not null,
-    is_allowed boolean             not null
+    author_id  varchar primary key      not null,
+    is_allowed boolean                  not null,
+    create_ts  timestamp with time zone not null default current_timestamp,
+    update_ts  timestamp with time zone not null default current_timestamp
 )

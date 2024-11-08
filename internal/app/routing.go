@@ -9,7 +9,8 @@ import (
 
 func (receiver *Application) route() {
 	for update := range receiver.sourceChan {
-		if update.AuthorId != "" && receiver.tagsRegex.MatchString(update.Text) {
+
+		if receiver.aclRepository.IsAuthorAllowed(update.AuthorId) && receiver.tagsRegex.MatchString(update.Text) {
 			jsonifiedMsg, err := json.Marshal(update)
 			if err != nil {
 				slog.Warn(err.Error())

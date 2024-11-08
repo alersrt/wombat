@@ -25,6 +25,7 @@ type Application struct {
 	sourceChan        chan *domain.Message
 	kafkaHelper       MessageHelper
 	jiraHelper        JiraHelper
+	aclRepository     *dao.AclRepository
 	commentRepository *dao.CommentRepository
 	telegramSource    Source
 	tagsRegex         *regexp.Regexp
@@ -34,6 +35,7 @@ func NewApplication(
 	executor *daemon.Daemon,
 	kafkaHelper MessageHelper,
 	jiraHelper JiraHelper,
+	aclRepository *dao.AclRepository,
 	commentRepository *dao.CommentRepository,
 	telegramSource Source,
 ) (*Application, error) {
@@ -47,6 +49,7 @@ func NewApplication(
 		sourceChan:        make(chan *domain.Message),
 		kafkaHelper:       kafkaHelper,
 		jiraHelper:        jiraHelper,
+		aclRepository:     aclRepository,
 		commentRepository: commentRepository,
 		telegramSource:    telegramSource,
 		tagsRegex:         regexp.MustCompile(conf.Bot.Tag),

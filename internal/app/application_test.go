@@ -54,6 +54,7 @@ func (receiver *MockJiraHelper) UpdateComment(issue string, commentId string, te
 var (
 	mockUpdatesChan   = make(chan *domain.Message)
 	commentRepository *dao.CommentRepository
+	aclRepository     *dao.AclRepository
 	savedCommentId    = uuid.New().String()
 )
 
@@ -108,6 +109,10 @@ func setup(
 
 	jiraHelper := &MockJiraHelper{}
 
+	aclRepository, err = dao.NewAclRepository(&conf.PostgreSQL.Url)
+	if err != nil {
+		return nil, err
+	}
 	commentRepository, err = dao.NewCommentRepository(&conf.PostgreSQL.Url)
 	if err != nil {
 		return nil, err
@@ -115,7 +120,7 @@ func setup(
 
 	telegram := &MockSource{SourceChan: mockUpdatesChan}
 
-	return NewApplication(dmn, kafkaHelper, jiraHelper, commentRepository, telegram)
+	return NewApplication(dmn, kafkaHelper, jiraHelper, aclRepository, commentRepository, telegram)
 }
 
 func TestApplication(t *testing.T) {
@@ -151,6 +156,11 @@ func TestApplication(t *testing.T) {
 	succ := make(chan bool, 1)
 
 	/*------ Actions ------*/
+	aclRepository.Save(&domain.Acl{
+		AuthorId:  "@testuser",
+		IsAllowed: true,
+	})
+
 	go testedUnit.Run(testCtx)
 
 	mockUpdatesChan <- &domain.Message{
