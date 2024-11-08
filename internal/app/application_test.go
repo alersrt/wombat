@@ -158,6 +158,7 @@ func TestApplication(t *testing.T) {
 		ChatId:     "1",
 		MessageId:  "1",
 		Text:       "TEST-100",
+		AuthorId:   "@testuser",
 	}
 
 	/*------ Asserts ------*/

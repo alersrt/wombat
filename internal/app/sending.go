@@ -30,8 +30,7 @@ func (receiver *Application) send() {
 					CommentId: commentId,
 				})
 
-				slog.Info(fmt.Sprintf("Consume message: %s", string(event.Key)))
-				slog.Info(fmt.Sprintf("Value: %+v", saved))
+				slog.Info(fmt.Sprintf("Comsumed: %+v", saved))
 			}
 		} else {
 			taggedComments := map[string]*domain.Comment{}
@@ -44,14 +43,14 @@ func (receiver *Application) send() {
 				if err != nil {
 					return err
 				}
+
 				saved := receiver.commentRepository.Save(&domain.Comment{
 					Message:   msg,
 					Tag:       tag,
 					CommentId: comment.CommentId,
 				})
 
-				slog.Info(fmt.Sprintf("Consume message: %s", string(event.Key)))
-				slog.Info(fmt.Sprintf("Value: %+v", saved))
+				slog.Info(fmt.Sprintf("Comsumed: %+v", saved))
 			}
 		}
 
