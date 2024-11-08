@@ -10,34 +10,49 @@ import (
 
 func (receiver *Application) send() {
 	err := receiver.kafkaHelper.Subscribe([]string{receiver.conf.Kafka.Topic}, func(event *kafka.Message) error {
-		msg := &domain.MessageEvent{}
+		msg := &domain.Message{}
 		if err := json.Unmarshal(event.Value, msg); err != nil {
 			return err
 		}
 
-		saved := receiver.messageEventRepository.GetById(msg.Hash)
-
-		if saved == nil || saved.CommentId == "" {
-			for _, tag := range msg.Tags {
+		tags := receiver.tagsRegex.FindAllString(msg.Text, -1)
+		savedComments := receiver.commentRepository.GetMessagesByMetadata(msg.ChatId, msg.MessageId)
+		if len(savedComments) == 0 {
+			for _, tag := range tags {
 				commentId, err := receiver.jiraHelper.AddComment(tag, msg.Text)
 				if err != nil {
 					return err
 				}
-				msg.CommentId = commentId
-				saved = receiver.messageEventRepository.Save(msg)
+
+				saved := receiver.commentRepository.Save(&domain.Comment{
+					Message:   msg,
+					Tag:       tag,
+					CommentId: commentId,
+				})
+
+				slog.Info(fmt.Sprintf("Comsumed: %+v %+v", saved, saved.Message))
 			}
 		} else {
-			for _, tag := range msg.Tags {
-				err := receiver.jiraHelper.UpdateComment(tag, saved.CommentId, msg.Text)
+			taggedComments := map[string]*domain.Comment{}
+			for _, comment := range savedComments {
+				taggedComments[comment.Tag] = comment
+			}
+			for _, tag := range tags {
+				comment := taggedComments[tag]
+				err := receiver.jiraHelper.UpdateComment(tag, comment.CommentId, msg.Text)
 				if err != nil {
 					return err
 				}
-				saved = receiver.messageEventRepository.Save(msg)
+
+				saved := receiver.commentRepository.Save(&domain.Comment{
+					Message:   msg,
+					Tag:       tag,
+					CommentId: comment.CommentId,
+				})
+
+				slog.Info(fmt.Sprintf("Comsumed: %+v", saved))
 			}
 		}
-
-		slog.Info(fmt.Sprintf("Consume message: %s", string(event.Key)))
-		slog.Info(fmt.Sprintf("Value: %+v", saved))
 
 		return nil
 	})

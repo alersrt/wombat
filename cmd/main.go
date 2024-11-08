@@ -38,7 +38,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	messageEventRepository, err := dao.NewMessageEventRepository(&conf.PostgreSQL.Url)
+	aclRepository, err := dao.NewAclRepository(&conf.PostgreSQL.Url)
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+	commentRepository, err := dao.NewCommentRepository(&conf.PostgreSQL.Url)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
@@ -58,7 +63,7 @@ func main() {
 
 	dmn := daemon.Create(conf)
 
-	runner, err := app.NewApplication(dmn, kafkaHelper, jiraHelper, messageEventRepository, telegram)
+	runner, err := app.NewApplication(dmn, kafkaHelper, jiraHelper, aclRepository, commentRepository, telegram)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)

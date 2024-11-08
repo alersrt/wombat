@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"regexp"
 	"wombat/internal/dao"
 	"wombat/internal/domain"
 	"wombat/pkg/daemon"
@@ -15,24 +16,27 @@ type MessageHelper interface {
 }
 
 type Source interface {
-	ForwardTo(chan *domain.MessageEvent)
+	ForwardTo(chan *domain.Message)
 }
 
 type Application struct {
-	executor               *daemon.Daemon
-	conf                   *Config
-	sourceChan             chan *domain.MessageEvent
-	kafkaHelper            MessageHelper
-	jiraHelper             JiraHelper
-	messageEventRepository dao.QueryHelper[domain.MessageEvent, string]
-	telegramSource         Source
+	executor          *daemon.Daemon
+	conf              *Config
+	sourceChan        chan *domain.Message
+	kafkaHelper       MessageHelper
+	jiraHelper        JiraHelper
+	aclRepository     *dao.AclRepository
+	commentRepository *dao.CommentRepository
+	telegramSource    Source
+	tagsRegex         *regexp.Regexp
 }
 
 func NewApplication(
 	executor *daemon.Daemon,
 	kafkaHelper MessageHelper,
 	jiraHelper JiraHelper,
-	messageEventRepository dao.QueryHelper[domain.MessageEvent, string],
+	aclRepository *dao.AclRepository,
+	commentRepository *dao.CommentRepository,
 	telegramSource Source,
 ) (*Application, error) {
 	conf, ok := executor.GetConfig().(*Config)
@@ -40,13 +44,15 @@ func NewApplication(
 		return nil, errors.NewError("Wrong config type")
 	}
 	return &Application{
-		conf:                   conf,
-		executor:               executor,
-		sourceChan:             make(chan *domain.MessageEvent),
-		kafkaHelper:            kafkaHelper,
-		jiraHelper:             jiraHelper,
-		messageEventRepository: messageEventRepository,
-		telegramSource:         telegramSource,
+		conf:              conf,
+		executor:          executor,
+		sourceChan:        make(chan *domain.Message),
+		kafkaHelper:       kafkaHelper,
+		jiraHelper:        jiraHelper,
+		aclRepository:     aclRepository,
+		commentRepository: commentRepository,
+		telegramSource:    telegramSource,
+		tagsRegex:         regexp.MustCompile(conf.Bot.Tag),
 	}, nil
 }
 
