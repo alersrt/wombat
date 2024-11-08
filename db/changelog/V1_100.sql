@@ -1,4 +1,4 @@
-create table if not exists wombatsm.message_event
+create table if not exists wombatsm.comment
 (
     comment_id  varchar primary key      not null,
     source_type varchar(64)              not null,

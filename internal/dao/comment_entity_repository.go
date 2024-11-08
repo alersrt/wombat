@@ -25,7 +25,7 @@ func NewCommentRepository(url *string) (*CommentRepository, error) {
 }
 
 func (receiver *CommentRepository) GetById(id string) *domain.Comment {
-	entity := receiver.GetEntityById("select * from wombatsm.message_event where comment_id = $1", id)
+	entity := receiver.GetEntityById("select * from wombatsm.comment where comment_id = $1", id)
 	if entity == nil {
 		return nil
 	}
@@ -33,7 +33,7 @@ func (receiver *CommentRepository) GetById(id string) *domain.Comment {
 }
 
 func (receiver *CommentRepository) Save(domain *domain.Comment) *domain.Comment {
-	query := `insert into wombatsm.message_event(source_type, text, author_id, chat_id, message_id, comment_id, tag)
+	query := `insert into wombatsm.comment(source_type, text, author_id, chat_id, message_id, comment_id, tag)
                values (:source_type, :text, :author_id, :chat_id, :message_id, :comment_id, :tag)
                on conflict (comment_id)
                do update
@@ -55,7 +55,7 @@ func (receiver *CommentRepository) Save(domain *domain.Comment) *domain.Comment 
 }
 
 func (receiver *CommentRepository) GetMessagesByMetadata(chatId string, messageId string) []*domain.Comment {
-	entities := receiver.GetEntitiesByArgs("select * from wombatsm.message_event where chat_id = $1 and message_id = $2", chatId, messageId)
+	entities := receiver.GetEntitiesByArgs("select * from wombatsm.comment where chat_id = $1 and message_id = $2", chatId, messageId)
 	if entities == nil {
 		return nil
 	}
