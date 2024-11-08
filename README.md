@@ -6,13 +6,14 @@ Why Wombat? Working bot for messengers, w-m-bot.
 Description
 -----------
 
-The main idea of this bot is providing possibility to add comments/texts to Jira tasks or Confluence articles directly from messenger.
+The main idea of this bot is providing possibility to add comments/texts to Jira tasks directly from messenger.
 
 The main idea:
-1. User sends message directly to bot or places reaction in group chat.
+
+1. User sends message directly to bot.
 2. Bot get messages from API.
-3. Reads hashtags.
-4. Sends comment to Jira or edits articles in Confluence based on hashtag.
+3. Parses message to match issues' numbers pattern.
+4. Creates comment in related Jira task or edits existed one.
 
 ```mermaid
 flowchart LR
@@ -36,10 +37,30 @@ flowchart LR
 Auth
 ----
 
-The main idea about authentication and authorization is using messenger user identifier and Crowd group policy.
+Right now it supports only really simple auth: small table with list of usernames and flags of allowing.
 
-How it looks work to:
-- User setups its messenger user ID in Jira profile.
-- When message is coming via Telegram API, it is going to be processed by filter what looks in Crowd by user ID in messenger field and allowed groups.
+Usage
+------
+
+It's necessary to specify path to custom [config](./cmd/config.yaml): `--config=/path/to/config`. There is possibility to specify environment variables in config also.
+
+### Default environment variables (can be changed)
+
+| Env                 | Description | Default           |
+|:--------------------|:------------|:------------------|
+| `TAG_PATTERN`       |             | `(TEST-\\d+)`     |
+| `JIRA_URL`          |             |                   |
+| `JIRA_USERNAME`     |             |                   |
+| `JIRA_PASSWORD`     |             |                   |
+| `TELEGRAM_TOKEN`    |             |                   |
+| `POSTGRES_USERNAME` |             | `wombat_rw`       |
+| `POSTGRES_PASSWORD` |             | `wombat_rw`       |
+| `POSTGRES_HOST`     |             | `localhost`       |
+| `POSTGRES_PORT`     |             | `5432`            |
+| `POSTGRES_DATABASE` |             | `wombatdb`        |
+| `POSTGRES_SSLMODE`  |             | `disable`         |
+| `KAFKA_GROUP_ID`    |             | `wombat`          |
+| `KAFKA_BOOTSTRAP`   |             | `localhost:9092`  |
+| `KAFKA_TOPIC`       |             | `wombat.response` |
 
 [extra]: https://github.com/golang-standards/project-layout

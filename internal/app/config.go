@@ -8,8 +8,7 @@ import (
 )
 
 type Bot struct {
-	Tag   string `yaml:"tag,omitempty"`
-	Emoji string `yaml:"emoji,omitempty"`
+	Tag string `yaml:"tag,omitempty"`
 }
 
 type Jira struct {
@@ -19,8 +18,7 @@ type Jira struct {
 }
 
 type Telegram struct {
-	Token   string `yaml:"token,omitempty"`
-	Webhook string `yaml:"webhook,omitempty"`
+	Token string `yaml:"token,omitempty"`
 }
 
 type Kafka struct {

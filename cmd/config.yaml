@@ -1,11 +1,11 @@
 bot:
-  tag: (TEST-\\d+)
-  emoji: 👍
+  tag: ${TAG_PATTERN:-(TEST-\\d+)}
 jira:
-  role: TELEGRAM_POSTER
+  url: ${JIRA_URL}
+  username: ${JIRA_USERNAME}
+  password: ${JIRA_PASSWORD}
 telegram:
   token: ${TELEGRAM_TOKEN}
-  webhook: "<your webhook link>"
 database:
   postgresql:
     url: postgres://${POSTGRES_USERNAME:-wombat_rw}:${POSTGRES_PASSWORD:-wombat_rw}@${POSTGRES_HOST:-localhost}:${POSTGRES_PORT:-5432}/${POSTGRES_DATABASE:-wombatdb}?sslmode=${POSTGRES_SSLMODE:-disable}

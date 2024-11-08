@@ -88,7 +88,7 @@ func setup(
 			Bootstrap: kafkaBootstrap,
 			Topic:     "wombat.test",
 		},
-		Bot: &Bot{Tag: "(TEST-\\d+)", Emoji: "👍"},
+		Bot: &Bot{Tag: "(TEST-\\d+)"},
 	}}
 	err = conf.Init(os.Args)
 	if err != nil {

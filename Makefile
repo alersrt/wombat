@@ -77,7 +77,7 @@ deps: go.deps
 ###############
 
 pkgname = wombat
-pkgver ?= 0.1.0
+pkgver ?= current
 builddir ?= ./build/bin
 mainpath ?= ./cmd/main.go
 
@@ -88,9 +88,9 @@ go.build:
 	export CGO_CXXFLAGS="${CXXFLAGS}"
 	export CGO_LDFLAGS="${LDFLAGS}"
 	export GOFLAGS="-buildmode=pie -trimpath -ldflags=-linkmode=external -mod=readonly -modcacherw"
-	GOARCH=amd64 GOOS=darwin go build -o ${builddir}/${pkgname}-${pkgver}-darwin ${mainpath}
+	#GOARCH=amd64 GOOS=darwin go build -o ${builddir}/${pkgname}-${pkgver}-darwin ${mainpath}
 	GOARCH=amd64 GOOS=linux go build -o ${builddir}/${pkgname}-${pkgver}-linux ${mainpath}
-	GOARCH=amd64 GOOS=windows go build -o ${builddir}/${pkgname}-${pkgver}-windows ${mainpath}
+#	GOARCH=amd64 GOOS=windows go build -o ${builddir}/${pkgname}-${pkgver}-windows ${mainpath}
 
 go.clean:
 	go clean
