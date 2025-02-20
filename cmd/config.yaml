@@ -1,5 +1,5 @@
 bot:
-  tag: ${TAG_PATTERN:-(TEST-\\d+)}
+  tag: ${TAG_PATTERN:-(TEST-\d+)}
 jira:
   url: ${JIRA_URL}
   username: ${JIRA_USERNAME}
@@ -12,4 +12,4 @@ database:
 kafka:
   group-id: ${KAFKA_GROUP_ID:-wombat}
   bootstrap: ${KAFKA_BOOTSTRAP:-localhost:9092}
-  topic: ${KAFKA_TOPIC:-wombat.response}
+  topic: ${KAFKA_TOPIC:-wombat.routing.response}

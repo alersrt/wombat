@@ -10,24 +10,32 @@ import (
 func (receiver *Application) route() {
 	for update := range receiver.sourceChan {
 
-		if receiver.aclRepository.IsAuthorAllowed(update.AuthorId) && receiver.tagsRegex.MatchString(update.Text) {
-			jsonifiedMsg, err := json.Marshal(update)
-			if err != nil {
-				slog.Warn(err.Error())
-				return
-			}
-
-			key, err := uuid.New().MarshalBinary()
-			if err != nil {
-				slog.Warn(err.Error())
-				return
-			}
-			err = receiver.kafkaHelper.SendToTopic(receiver.conf.Kafka.Topic, key, jsonifiedMsg)
-			if err != nil {
-				slog.Warn(err.Error())
-				return
-			}
-			slog.Info(fmt.Sprintf("Send message: %s", key))
+		if !receiver.aclRepository.IsAuthorAllowed(update.AuthorId) {
+			slog.Info(fmt.Sprintf("Author is not allowed: %s", update.AuthorId))
+			return
 		}
+
+		if !receiver.tagsRegex.MatchString(update.Text) {
+			slog.Info(fmt.Sprintf("Tag not found"))
+			return
+		}
+
+		jsonifiedMsg, err := json.Marshal(update)
+		if err != nil {
+			slog.Warn(err.Error())
+			return
+		}
+
+		key, err := uuid.New().MarshalBinary()
+		if err != nil {
+			slog.Warn(err.Error())
+			return
+		}
+		err = receiver.kafkaHelper.SendToTopic(receiver.conf.Kafka.Topic, key, jsonifiedMsg)
+		if err != nil {
+			slog.Warn(err.Error())
+			return
+		}
+		slog.Info(fmt.Sprintf("Send message: %s", key))
 	}
 }
