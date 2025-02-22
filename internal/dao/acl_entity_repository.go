@@ -50,10 +50,14 @@ func (receiver *AclRepository) Save(domain *domain.Acl) *domain.Acl {
 	return saved.ToDomain()
 }
 
-func (receiver *AclRepository) IsAuthorAllowed(authorId string) bool {
-	result := receiver.GetById(authorId)
-	if result != nil {
-		return result.IsAllowed
+func (receiver *AclRepository) IsAuthorAllowed(sourceType domain.SourceType, authorId string) bool {
+	query := `select is_allowed
+              from wombatsm.acl
+              where source_type = $1
+                and author_id = $2;`
+	result := receiver.GetEntitiesByArgs(query, sourceType.String(), authorId)
+	if result != nil && len(result) == 1 {
+		return result[0].ToDomain().IsAllowed
 	} else {
 		return false
 	}

@@ -1,7 +1,7 @@
 bot:
   tag: ${TAG_PATTERN:-(KAN-\d+)}
 jira:
-  url: ${JIRA_URL:-https://al-sr.atlassian.net}
+  url: ${JIRA_URL}
 telegram:
   token: ${TELEGRAM_TOKEN}
 database:
