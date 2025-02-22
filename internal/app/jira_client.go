@@ -2,19 +2,13 @@ package app
 
 import "github.com/andygrunwald/go-jira"
 
-type JiraHelper interface {
-	AddComment(issue string, text string) (string, error)
-	UpdateComment(issue string, commentId string, text string) error
-}
-
 type JiraClient struct {
 	client *jira.Client
 }
 
-func NewJiraClient(url string, username string, token string) (*JiraClient, error) {
-	tp := jira.BasicAuthTransport{
-		Username: username,
-		Password: token,
+func NewJiraClient(url string, token string) (*JiraClient, error) {
+	tp := jira.PATAuthTransport{
+		Token: token,
 	}
 	client, err := jira.NewClient(tp.Client(), url)
 	if err != nil {
@@ -25,12 +19,12 @@ func NewJiraClient(url string, username string, token string) (*JiraClient, erro
 	}, nil
 }
 
-func (receiver *JiraClient) UpdateComment(issue string, commentId string, text string) error {
+func (receiver *JiraClient) Update(issue string, commentId string, text string) error {
 	_, _, err := receiver.client.Issue.UpdateComment(issue, &jira.Comment{ID: commentId, Body: text})
 	return err
 }
 
-func (receiver *JiraClient) AddComment(issue string, text string) (string, error) {
+func (receiver *JiraClient) Add(issue string, text string) (string, error) {
 	comment, _, err := receiver.client.Issue.AddComment(issue, &jira.Comment{
 		Body: text,
 	})

@@ -15,6 +15,11 @@ type MessageHelper interface {
 	Subscribe(topics []string, handler func(*kafka.Message) error) error
 }
 
+type TargetClient interface {
+	Add(tag string, text string) (string, error)
+	Update(tag string, commentId string, text string) error
+}
+
 type Source interface {
 	ForwardTo(chan *domain.Message)
 }
