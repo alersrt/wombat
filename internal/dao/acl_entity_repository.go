@@ -34,11 +34,12 @@ func (receiver *AclRepository) GetById(id uuid.UUID) *domain.Acl {
 }
 
 func (receiver *AclRepository) Save(domain *domain.Acl) *domain.Acl {
-	query := `insert into wombatsm.acl(author_id, is_allowed)
-               values (:author_id, :is_allowed)
-               on conflict (author_id)
+	query := `insert into wombatsm.acl(source_type, author_id, is_allowed)
+               values (:source_type, :author_id, :is_allowed)
+               on conflict (source_type, author_id)
                do update
-               set author_id = :author_id,
+               set source_type = :source_type,
+                   author_id = :author_id,
                    is_allowed = :is_allowed,
                	   update_ts = current_timestamp
                returning *;`
@@ -51,7 +52,7 @@ func (receiver *AclRepository) Save(domain *domain.Acl) *domain.Acl {
 }
 
 func (receiver *AclRepository) IsAuthorAllowed(sourceType domain.SourceType, authorId string) bool {
-	query := `select is_allowed
+	query := `select *
               from wombatsm.acl
               where source_type = $1
                 and author_id = $2;`
