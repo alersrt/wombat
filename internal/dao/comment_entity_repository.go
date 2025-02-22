@@ -67,7 +67,7 @@ func (receiver *CommentRepository) GetMessagesByMetadata(sourceType domain.Sourc
                                                   from wombatsm.comments
                                                   where chat_id = $1
                                                     and message_id = $2
-                                                    and source_type = $3`, chatId, messageId, sourceType.String())
+                                                    and source_type = $3`, chatId, messageId, sourceType)
 	if entities == nil {
 		return nil
 	}
