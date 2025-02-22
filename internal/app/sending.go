@@ -11,7 +11,8 @@ import (
 func (receiver *Application) getTargetClient(targetType domain.TargetType, sourceType domain.SourceType, authorId string) (TargetClient, error) {
 	switch targetType {
 	case domain.JIRA:
-		return NewJiraClient(receiver.conf.Jira.Url, jiraToken)
+		token := receiver.connectionRepository.GetToken(targetType, sourceType, authorId)
+		return NewJiraClient(receiver.conf.Jira.Url, token)
 	}
 	return nil, nil
 }

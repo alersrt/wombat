@@ -37,5 +37,6 @@ create table if not exists wombatsm.connections
     token       varchar                  not null,
     create_ts   timestamp with time zone not null default current_timestamp,
     update_ts   timestamp with time zone not null default current_timestamp,
-    constraint acl_author_source_fk foreign key (author_id, source_type) references wombatsm.acl (author_id, source_type)
+    constraint connections_acl_author_source_fk foreign key (author_id, source_type) references wombatsm.acl (author_id, source_type),
+    constraint connections_author_source_u unique (target_type, author_id, source_type)
 )

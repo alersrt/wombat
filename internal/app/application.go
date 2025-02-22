@@ -25,14 +25,15 @@ type Source interface {
 }
 
 type Application struct {
-	executor          *daemon.Daemon
-	conf              *Config
-	sourceChan        chan *domain.Message
-	kafkaHelper       MessageHelper
-	aclRepository     *dao.AclRepository
-	commentRepository *dao.CommentRepository
-	telegramSource    Source
-	tagsRegex         *regexp.Regexp
+	executor             *daemon.Daemon
+	conf                 *Config
+	sourceChan           chan *domain.Message
+	kafkaHelper          MessageHelper
+	aclRepository        *dao.AclRepository
+	commentRepository    *dao.CommentRepository
+	connectionRepository *dao.ConnectionRepository
+	telegramSource       Source
+	tagsRegex            *regexp.Regexp
 }
 
 func NewApplication(
@@ -40,6 +41,7 @@ func NewApplication(
 	kafkaHelper MessageHelper,
 	aclRepository *dao.AclRepository,
 	commentRepository *dao.CommentRepository,
+	connectionRepository *dao.ConnectionRepository,
 	telegramSource Source,
 ) (*Application, error) {
 	conf, ok := executor.GetConfig().(*Config)
@@ -47,14 +49,15 @@ func NewApplication(
 		return nil, errors.NewError("Wrong config type")
 	}
 	return &Application{
-		conf:              conf,
-		executor:          executor,
-		sourceChan:        make(chan *domain.Message),
-		kafkaHelper:       kafkaHelper,
-		aclRepository:     aclRepository,
-		commentRepository: commentRepository,
-		telegramSource:    telegramSource,
-		tagsRegex:         regexp.MustCompile(conf.Bot.Tag),
+		conf:                 conf,
+		executor:             executor,
+		sourceChan:           make(chan *domain.Message),
+		kafkaHelper:          kafkaHelper,
+		aclRepository:        aclRepository,
+		commentRepository:    commentRepository,
+		connectionRepository: connectionRepository,
+		telegramSource:       telegramSource,
+		tagsRegex:            regexp.MustCompile(conf.Bot.Tag),
 	}, nil
 }
 
