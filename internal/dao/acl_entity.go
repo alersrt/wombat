@@ -1,21 +1,24 @@
 package dao
 
 import (
+	"github.com/google/uuid"
 	"time"
 	"wombat/internal/domain"
 )
 
 type AclEntity struct {
-	SourceType domain.SourceType `db:"source_type"`
-	AuthorId   string            `db:"author_id"`
-	IsAllowed  bool              `db:"is_allowed"`
-	CreateTs   time.Time         `db:"create_ts"`
-	UpdateTs   time.Time         `db:"update_ts"`
+	Gid        uuid.UUID `db:"gid"`
+	SourceType string    `db:"source_type"`
+	AuthorId   string    `db:"author_id"`
+	IsAllowed  bool      `db:"is_allowed"`
+	CreateTs   time.Time `db:"create_ts"`
+	UpdateTs   time.Time `db:"update_ts"`
 }
 
 func (receiver *AclEntity) ToDomain() *domain.Acl {
 	return &domain.Acl{
-		SourceType: receiver.SourceType,
+		Gid:        receiver.Gid,
+		SourceType: domain.SourceTypeFromString(receiver.SourceType),
 		AuthorId:   receiver.AuthorId,
 		IsAllowed:  receiver.IsAllowed,
 		CreateTs:   receiver.CreateTs,
@@ -31,7 +34,8 @@ func (receiver *AclEntityFactory) EmptyEntity() Entity[domain.Acl] {
 
 func (receiver *AclEntityFactory) FromDomain(domain *domain.Acl) Entity[domain.Acl] {
 	return &AclEntity{
-		SourceType: domain.SourceType,
+		Gid:        domain.Gid,
+		SourceType: domain.SourceType.String(),
 		AuthorId:   domain.AuthorId,
 		IsAllowed:  domain.IsAllowed,
 		CreateTs:   domain.CreateTs,

@@ -56,7 +56,7 @@ func (receiver *AclRepository) IsAuthorAllowed(sourceType domain.SourceType, aut
               from wombatsm.acl
               where source_type = $1
                 and author_id = $2;`
-	result := receiver.GetEntitiesByArgs(query, sourceType, authorId)
+	result := receiver.GetEntitiesByArgs(query, sourceType.String(), authorId)
 	if result != nil && len(result) == 1 {
 		return result[0].ToDomain().IsAllowed
 	} else {

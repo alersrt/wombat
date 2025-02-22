@@ -25,7 +25,7 @@ func (receiver *Application) send() {
 		}
 
 		if !receiver.aclRepository.IsAuthorAllowed(msg.SourceType, msg.AuthorId) {
-			slog.Info(fmt.Sprintf("Author is not allowed: %s", msg.AuthorId))
+			slog.Info(fmt.Sprintf("Author is not allowed: %s:%s", msg.SourceType.String(), msg.AuthorId))
 			return nil
 		}
 
@@ -71,7 +71,7 @@ func (receiver *Application) send() {
 					CommentId:  comment.CommentId,
 				})
 
-				slog.Info(fmt.Sprintf("Comsumed: %+v", saved))
+				slog.Info(fmt.Sprintf("Consumed: %+v", saved))
 			}
 		}
 

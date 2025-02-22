@@ -55,7 +55,7 @@ func (receiver *ConnectionRepository) GetToken(targetType domain.TargetType, sou
               where target_type = $1
                 and source_type = $2
                 and author_id = $3;`
-	result := receiver.GetEntitiesByArgs(query, targetType, sourceType, authorId)
+	result := receiver.GetEntitiesByArgs(query, targetType.String(), sourceType.String(), authorId)
 	if result != nil && len(result) == 1 {
 		return result[0].ToDomain().Token
 	} else {

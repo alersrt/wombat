@@ -1,8 +1,12 @@
 package domain
 
-import "time"
+import (
+	"github.com/google/uuid"
+	"time"
+)
 
 type Acl struct {
+	Gid        uuid.UUID  `json:"gid"`
 	SourceType SourceType `json:"source_type"`
 	AuthorId   string     `json:"author_id"`
 	IsAllowed  bool       `json:"is_allowed"`

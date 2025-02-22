@@ -1,10 +1,12 @@
 package domain
 
 import (
+	"github.com/google/uuid"
 	"time"
 )
 
 type Comment struct {
+	Gid uuid.UUID `json:"gid"`
 	*Message
 	Tag        string     `json:"tag"`
 	TargetType TargetType `json:"target_type"`
