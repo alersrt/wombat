@@ -9,6 +9,7 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/compose"
 	"github.com/testcontainers/testcontainers-go/wait"
+	"log/slog"
 	"os"
 	"testing"
 	"time"
@@ -115,10 +116,15 @@ func setup(
 	if err != nil {
 		return nil, err
 	}
+	connectionRepository, err := dao.NewConnectionRepository(&conf.PostgreSQL.Url)
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
 
 	telegram := &MockSource{SourceChan: mockUpdatesChan}
 
-	return NewApplication(dmn, kafkaHelper, aclRepository, commentRepository, telegram)
+	return NewApplication(dmn, kafkaHelper, aclRepository, commentRepository, connectionRepository, telegram)
 }
 
 func TestApplication(t *testing.T) {
