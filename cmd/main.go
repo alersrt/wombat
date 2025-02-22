@@ -49,6 +49,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	connectionRepository, err := dao.NewConnectionRepository(&conf.PostgreSQL.Url)
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
+
 	telegram, err := app.NewTelegramSource(conf.Telegram.Token)
 	if err != nil {
 		slog.Error(err.Error())
@@ -57,7 +63,7 @@ func main() {
 
 	dmn := daemon.Create(conf)
 
-	runner, err := app.NewApplication(dmn, kafkaHelper, aclRepository, commentRepository, telegram)
+	runner, err := app.NewApplication(dmn, kafkaHelper, aclRepository, commentRepository, connectionRepository, telegram)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
