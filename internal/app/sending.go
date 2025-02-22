@@ -23,7 +23,7 @@ func (receiver *Application) send() {
 			return err
 		}
 
-		if !receiver.aclRepository.IsAuthorAllowed(msg.AuthorId) {
+		if !receiver.aclRepository.IsAuthorAllowed(msg.SourceType, msg.AuthorId) {
 			slog.Info(fmt.Sprintf("Author is not allowed: %s", msg.AuthorId))
 			return nil
 		}
@@ -34,7 +34,7 @@ func (receiver *Application) send() {
 		}
 
 		tags := receiver.tagsRegex.FindAllString(msg.Text, -1)
-		savedComments := receiver.commentRepository.GetMessagesByMetadata(msg.ChatId, msg.MessageId)
+		savedComments := receiver.commentRepository.GetMessagesByMetadata(msg.SourceType, msg.ChatId, msg.MessageId)
 		if len(savedComments) == 0 {
 			for _, tag := range tags {
 				commentId, err := client.Add(tag, msg.Text)

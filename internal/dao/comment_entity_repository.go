@@ -1,13 +1,14 @@
 package dao
 
 import (
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"log/slog"
 	"wombat/internal/domain"
 )
 
 type CommentRepository struct {
-	*PostgreSQLQueryHelper[domain.Comment, string]
+	*PostgreSQLQueryHelper[domain.Comment, uuid.UUID]
 }
 
 func NewCommentRepository(url *string) (*CommentRepository, error) {
@@ -17,14 +18,14 @@ func NewCommentRepository(url *string) (*CommentRepository, error) {
 		return nil, err
 	}
 	return &CommentRepository{
-		&PostgreSQLQueryHelper[domain.Comment, string]{
+		&PostgreSQLQueryHelper[domain.Comment, uuid.UUID]{
 			db:            db,
 			entityFactory: &CommentEntityFactory{},
 		},
 	}, nil
 }
 
-func (receiver *CommentRepository) GetById(id string) *domain.Comment {
+func (receiver *CommentRepository) GetById(id uuid.UUID) *domain.Comment {
 	entity := receiver.GetEntityById("select * from wombatsm.comments where comment_id = $1", id)
 	if entity == nil {
 		return nil
@@ -33,16 +34,23 @@ func (receiver *CommentRepository) GetById(id string) *domain.Comment {
 }
 
 func (receiver *CommentRepository) Save(domain *domain.Comment) *domain.Comment {
-	query := `insert into wombatsm.comments(source_type, text, author_id, chat_id, message_id, comment_id, tag)
-               values (:source_type, :text, :author_id, :chat_id, :message_id, :comment_id, :tag)
-               on conflict (comment_id)
+	query := `insert into wombatsm.comments(
+                              target_type,
+                              source_type,
+                              text,
+                              author_id,
+                              chat_id,
+                              message_id,
+                              comment_id,
+                              tag)
+               values (:target_type, :source_type, :text, :author_id, :chat_id, :message_id, :comment_id, :tag)
+               on conflict (target_type, comment_id)
                do update
                set source_type = :source_type,
                    text = :text,
                    author_id = :author_id,
                    chat_id = :chat_id,
                    message_id = :message_id,
-                   comment_id = :comment_id,
                    tag = :tag,
                	   update_ts = current_timestamp
                returning *;`
@@ -54,8 +62,12 @@ func (receiver *CommentRepository) Save(domain *domain.Comment) *domain.Comment 
 	return saved.ToDomain()
 }
 
-func (receiver *CommentRepository) GetMessagesByMetadata(chatId string, messageId string) []*domain.Comment {
-	entities := receiver.GetEntitiesByArgs("select * from wombatsm.comments where chat_id = $1 and message_id = $2", chatId, messageId)
+func (receiver *CommentRepository) GetMessagesByMetadata(sourceType domain.SourceType, chatId string, messageId string) []*domain.Comment {
+	entities := receiver.GetEntitiesByArgs(`select *
+                                                  from wombatsm.comments
+                                                  where chat_id = $1
+                                                    and message_id = $2
+                                                    and source_type = $3`, chatId, messageId, sourceType.String())
 	if entities == nil {
 		return nil
 	}

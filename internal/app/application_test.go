@@ -40,14 +40,14 @@ func (receiver *MockSource) ForwardTo(target chan *domain.Message) {
 	}
 }
 
-type MockJiraHelper struct{}
+type MockJiraClient struct{}
 
-func (receiver *MockJiraHelper) AddComment(issue string, text string) (string, error) {
+func (receiver *MockJiraClient) Add(issue string, text string) (string, error) {
 	uuidStr := savedCommentId
 	return uuidStr, nil
 }
 
-func (receiver *MockJiraHelper) UpdateComment(issue string, commentId string, text string) error {
+func (receiver *MockJiraClient) Update(issue string, commentId string, text string) error {
 	return nil
 }
 
@@ -107,8 +107,6 @@ func setup(
 		return nil, err
 	}
 
-	jiraHelper := &MockJiraHelper{}
-
 	aclRepository, err = dao.NewAclRepository(&conf.PostgreSQL.Url)
 	if err != nil {
 		return nil, err
@@ -120,7 +118,7 @@ func setup(
 
 	telegram := &MockSource{SourceChan: mockUpdatesChan}
 
-	return NewApplication(dmn, kafkaHelper, jiraHelper, aclRepository, commentRepository, telegram)
+	return NewApplication(dmn, kafkaHelper, aclRepository, commentRepository, telegram)
 }
 
 func TestApplication(t *testing.T) {
@@ -178,7 +176,11 @@ func TestApplication(t *testing.T) {
 			case <-time.After(1 * time.Second):
 			}
 
-			saved := commentRepository.GetById(savedCommentId)
+			jira := domain.JIRA
+			saved := commentRepository.GetEntitiesByArgs(`select *
+                                                                from wombatsm.comments
+                                                                where target_type = $1
+                                                                  and comment_id = $2;`, jira.String(), savedCommentId)
 			if saved == nil {
 				continue
 			} else {
