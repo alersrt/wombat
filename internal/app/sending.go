@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"log/slog"
+	"os"
 	"wombat/internal/domain"
 )
 
@@ -13,6 +14,17 @@ func (receiver *Application) send() {
 		msg := &domain.Message{}
 		if err := json.Unmarshal(event.Value, msg); err != nil {
 			return err
+		}
+
+		if !receiver.aclRepository.IsAuthorAllowed(msg.AuthorId) {
+			slog.Info(fmt.Sprintf("Author is not allowed: %s", msg.AuthorId))
+			return nil
+		}
+
+		jiraHelper, err := NewJiraClient(receiver.conf.Jira.Url, conf.Jira.Username, conf.Jira.Token)
+		if err != nil {
+			slog.Error(err.Error())
+			os.Exit(1)
 		}
 
 		tags := receiver.tagsRegex.FindAllString(msg.Text, -1)

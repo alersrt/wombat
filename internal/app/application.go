@@ -24,7 +24,6 @@ type Application struct {
 	conf              *Config
 	sourceChan        chan *domain.Message
 	kafkaHelper       MessageHelper
-	jiraHelper        JiraHelper
 	aclRepository     *dao.AclRepository
 	commentRepository *dao.CommentRepository
 	telegramSource    Source
@@ -34,7 +33,6 @@ type Application struct {
 func NewApplication(
 	executor *daemon.Daemon,
 	kafkaHelper MessageHelper,
-	jiraHelper JiraHelper,
 	aclRepository *dao.AclRepository,
 	commentRepository *dao.CommentRepository,
 	telegramSource Source,
@@ -48,7 +46,6 @@ func NewApplication(
 		executor:          executor,
 		sourceChan:        make(chan *domain.Message),
 		kafkaHelper:       kafkaHelper,
-		jiraHelper:        jiraHelper,
 		aclRepository:     aclRepository,
 		commentRepository: commentRepository,
 		telegramSource:    telegramSource,

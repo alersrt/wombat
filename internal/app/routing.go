@@ -9,12 +9,6 @@ import (
 
 func (receiver *Application) route() {
 	for update := range receiver.sourceChan {
-
-		if !receiver.aclRepository.IsAuthorAllowed(update.AuthorId) {
-			slog.Info(fmt.Sprintf("Author is not allowed: %s", update.AuthorId))
-			return
-		}
-
 		if !receiver.tagsRegex.MatchString(update.Text) {
 			slog.Info(fmt.Sprintf("Tag not found"))
 			return

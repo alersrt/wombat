@@ -2,8 +2,6 @@ bot:
   tag: ${TAG_PATTERN:-(KAN-\d+)}
 jira:
   url: ${JIRA_URL:-https://al-sr.atlassian.net}
-  username: ${JIRA_USERNAME:-strtmg@gmail.com}
-  token: ${JIRA_TOKEN:-ATATT3xFfGF01GgMt8W_hC6mFoLaON0jxflOe2pmQuHoECSTW9-9AOaNHIYe4VIvqYw6vppAYt77a0GZcxEIk94jFUxv0A5F8VCFWCsL5_nWBnC7jPzfGEg-gLp1R7qh2HMgbLbQfH4AwAKeC_vBnUp9WKB74Rt3RrnnvQOnlC3RH6c1lMzRZ_A=52E87E83}
 telegram:
   token: ${TELEGRAM_TOKEN}
 database:
