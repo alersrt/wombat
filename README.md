@@ -51,11 +51,11 @@ It's necessary to specify path to custom [config](./cmd/config.yaml): `--config=
 | `TAG_PATTERN`       |             | `(TEST-\d+)`              |
 | `JIRA_TOKEN`        |             |                           |
 | `TELEGRAM_TOKEN`    |             |                           |
-| `POSTGRES_USERNAME` |             | `wombat_rw`               |
-| `POSTGRES_PASSWORD` |             | `wombat_rw`               |
+| `POSTGRES_USERNAME` |             | `postgres`                |
+| `POSTGRES_PASSWORD` |             | `postgres`                |
 | `POSTGRES_HOST`     |             | `localhost`               |
 | `POSTGRES_PORT`     |             | `5432`                    |
-| `POSTGRES_DATABASE` |             | `wombatdb`                |
+| `POSTGRES_DATABASE` |             | `postgres`                |
 | `POSTGRES_SSLMODE`  |             | `disable`                 |
 | `KAFKA_GROUP_ID`    |             | `wombat`                  |
 | `KAFKA_BOOTSTRAP`   |             | `localhost:9092`          |
