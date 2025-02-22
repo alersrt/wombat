@@ -11,10 +11,10 @@ type JiraClient struct {
 	client *jira.Client
 }
 
-func NewJiraClient(url string, username string, password string) (*JiraClient, error) {
+func NewJiraClient(url string, username string, token string) (*JiraClient, error) {
 	tp := jira.BasicAuthTransport{
 		Username: username,
-		Password: password,
+		Password: token,
 	}
 	client, err := jira.NewClient(tp.Client(), url)
 	if err != nil {

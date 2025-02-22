@@ -14,7 +14,7 @@ type Bot struct {
 type Jira struct {
 	Url      string `yaml:"url,omitempty"`
 	Username string `yaml:"username,omitempty"`
-	Password string `yaml:"password,omitempty"`
+	Token    string `yaml:"token,omitempty"`
 }
 
 type Telegram struct {

@@ -55,7 +55,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	jiraHelper, err := app.NewJiraClient(conf.Jira.Url, conf.Jira.Username, conf.Jira.Password)
+	jiraHelper, err := app.NewJiraClient(conf.Jira.Url, conf.Jira.Username, conf.Jira.Token)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)

@@ -48,10 +48,10 @@ It's necessary to specify path to custom [config](./cmd/config.yaml): `--config=
 
 | Env                 | Description | Default           |
 |:--------------------|:------------|:------------------|
-| `TAG_PATTERN`       |             | `(TEST-\\d+)`     |
+| `TAG_PATTERN`       |             | `(TEST-\d+)`      |
 | `JIRA_URL`          |             |                   |
 | `JIRA_USERNAME`     |             |                   |
-| `JIRA_PASSWORD`     |             |                   |
+| `JIRA_TOKEN`        |             |                   |
 | `TELEGRAM_TOKEN`    |             |                   |
 | `POSTGRES_USERNAME` |             | `wombat_rw`       |
 | `POSTGRES_PASSWORD` |             | `wombat_rw`       |
