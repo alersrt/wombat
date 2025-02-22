@@ -6,18 +6,20 @@ import (
 )
 
 type AclEntity struct {
-	AuthorId  string    `db:"author_id"`
-	IsAllowed bool      `db:"is_allowed"`
-	CreateTs  time.Time `db:"create_ts"`
-	UpdateTs  time.Time `db:"update_ts"`
+	SourceType domain.SourceType `db:"source_type"`
+	AuthorId   string            `db:"author_id"`
+	IsAllowed  bool              `db:"is_allowed"`
+	CreateTs   time.Time         `db:"create_ts"`
+	UpdateTs   time.Time         `db:"update_ts"`
 }
 
 func (receiver *AclEntity) ToDomain() *domain.Acl {
 	return &domain.Acl{
-		AuthorId:  receiver.AuthorId,
-		IsAllowed: receiver.IsAllowed,
-		CreateTs:  receiver.CreateTs,
-		UpdateTs:  receiver.UpdateTs,
+		SourceType: receiver.SourceType,
+		AuthorId:   receiver.AuthorId,
+		IsAllowed:  receiver.IsAllowed,
+		CreateTs:   receiver.CreateTs,
+		UpdateTs:   receiver.UpdateTs,
 	}
 }
 
@@ -29,9 +31,10 @@ func (receiver *AclEntityFactory) EmptyEntity() Entity[domain.Acl] {
 
 func (receiver *AclEntityFactory) FromDomain(domain *domain.Acl) Entity[domain.Acl] {
 	return &AclEntity{
-		AuthorId:  domain.AuthorId,
-		IsAllowed: domain.IsAllowed,
-		CreateTs:  domain.CreateTs,
-		UpdateTs:  domain.UpdateTs,
+		SourceType: domain.SourceType,
+		AuthorId:   domain.AuthorId,
+		IsAllowed:  domain.IsAllowed,
+		CreateTs:   domain.CreateTs,
+		UpdateTs:   domain.UpdateTs,
 	}
 }

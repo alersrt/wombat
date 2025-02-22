@@ -6,15 +6,16 @@ import (
 )
 
 type CommentEntity struct {
-	SourceType string    `db:"source_type"`
-	Text       string    `db:"text"`
-	AuthorId   string    `db:"author_id"`
-	ChatId     string    `db:"chat_id"`
-	MessageId  string    `db:"message_id"`
-	CommentId  string    `db:"comment_id"`
-	Tag        string    `db:"tag"`
-	CreateTs   time.Time `db:"create_ts"`
-	UpdateTs   time.Time `db:"update_ts"`
+	SourceType string            `db:"source_type"`
+	Text       string            `db:"text"`
+	AuthorId   string            `db:"author_id"`
+	ChatId     string            `db:"chat_id"`
+	MessageId  string            `db:"message_id"`
+	TargetType domain.TargetType `db:"target_type"`
+	CommentId  string            `db:"comment_id"`
+	Tag        string            `db:"tag"`
+	CreateTs   time.Time         `db:"create_ts"`
+	UpdateTs   time.Time         `db:"update_ts"`
 }
 
 func (receiver *CommentEntity) ToDomain() *domain.Comment {
@@ -26,10 +27,11 @@ func (receiver *CommentEntity) ToDomain() *domain.Comment {
 			ChatId:     receiver.ChatId,
 			MessageId:  receiver.MessageId,
 		},
-		Tag:       receiver.Tag,
-		CommentId: receiver.CommentId,
-		CreateTs:  receiver.CreateTs,
-		UpdateTs:  receiver.UpdateTs,
+		Tag:        receiver.Tag,
+		TargetType: receiver.TargetType,
+		CommentId:  receiver.CommentId,
+		CreateTs:   receiver.CreateTs,
+		UpdateTs:   receiver.UpdateTs,
 	}
 }
 
@@ -46,6 +48,7 @@ func (receiver *CommentEntityFactory) FromDomain(domain *domain.Comment) Entity[
 		AuthorId:   domain.AuthorId,
 		ChatId:     domain.ChatId,
 		MessageId:  domain.MessageId,
+		TargetType: domain.TargetType,
 		CommentId:  domain.CommentId,
 		Tag:        domain.Tag,
 		CreateTs:   domain.CreateTs,
