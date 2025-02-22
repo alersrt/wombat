@@ -9,12 +9,12 @@ volumes:
 services:
 
   postgres:
+    container_name: postgres
     image: postgres:15
     restart: always
     ports:
       - "5432:5432"
     volumes:
-      - ./postgres/sql/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
       - postgres-volume:/var/lib/postgresql/data
     environment:
       - POSTGRES_USER=wombat_rw
@@ -30,11 +30,15 @@ services:
       - internal-network
 
   flyway:
+    container_name: flyway
     image: redgate/flyway
     command: migrate info
     volumes:
-      - ./flyway/flyway.toml:/flyway/conf/flyway.toml:ro
       - ../db/changelog/:/flyway/sql:ro
+    environment:
+      - FLYWAY_URL=jdbc:postgresql://postgres:5432/wombatdb
+      - FLYWAY_USER=wombat_rw
+      - FLYWAY_PASSWORD=wombat_rw
     networks:
       - internal-network
     depends_on:
@@ -42,6 +46,7 @@ services:
         condition: service_healthy
 
   kafka:
+    container_name: kafka
     image: confluentinc/cp-kafka:latest
     environment:
       - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,DOCKER:PLAINTEXT,HOST:PLAINTEXT
@@ -73,6 +78,7 @@ services:
       - internal-network
 
   kafka-ui:
+    container_name: kafka-ui
     image: ghcr.io/kafbat/kafka-ui:latest
     environment:
       - DYNAMIC_CONFIG_ENABLED=true
@@ -85,24 +91,3 @@ services:
         condition: service_healthy
     networks:
       - internal-network
-
-#  jira:
-#    image: atlassian/jira-core:latest
-#    environment:
-#      - ATL_DB_TYPE=postgres72
-#      - ATL_DB_DRIVER=org.postgresql.Driver
-#      - ATL_DB_SCHEMA_NAME=jirasm
-#      - ATL_JDBC_USER=wombat_rw
-#      - ATL_JDBC_PASSWORD=wombat_rw
-#      - ATL_JDBC_URL=jdbc:postgresql://postgres:5432/wombatdb
-#      - JVM_MAXIMUM_MEMORY=2G
-#    volumes:
-#      - jira-volume:/var/atlassian/application-data/jira
-#      - ./jira/jira-config.properties:/var/atlassian/application-data/jira/jira-config.properties:ro
-#    ports:
-#      - "8083:8080"
-#    depends_on:
-#      postgres:
-#        condition: service_healthy
-#    networks:
-#      - internal-network
