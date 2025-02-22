@@ -3,34 +3,39 @@ create schema if not exists wombatsm;
 
 create table if not exists wombatsm.comments
 (
-    comment_id  varchar primary key      not null,
+    gid         uuid primary key                  default gen_random_uuid(),
+    comment_id  varchar                  not null,
     target_type varchar(64)              not null,
-    source_type varchar(64)              not null,
     text        text                     not null,
+    source_type varchar(64)              not null,
     author_id   varchar                  not null,
     chat_id     varchar                  not null,
     message_id  varchar                  not null,
     tag         varchar                  not null,
     create_ts   timestamp with time zone not null default current_timestamp,
-    update_ts   timestamp with time zone not null default current_timestamp
+    update_ts   timestamp with time zone not null default current_timestamp,
+    constraint comments_comment_target_u unique (comment_id, target_type)
 );
 
 create table if not exists wombatsm.acl
 (
+    gid         uuid primary key                  default gen_random_uuid(),
     author_id   varchar                  not null,
     source_type varchar(64)              not null,
     is_allowed  boolean                  not null,
     create_ts   timestamp with time zone not null default current_timestamp,
     update_ts   timestamp with time zone not null default current_timestamp,
-    primary key (author_id, source_type)
+    constraint acl_author_source_u unique (author_id, source_type)
 );
 
 create table if not exists wombatsm.connections
 (
-    author_id   varchar references acl (author_id),
-    source_type varchar(46) references acl (source_type),
+    gid         uuid primary key                  default gen_random_uuid(),
+    author_id   varchar                  not null,
+    source_type varchar(64)              not null,
     target_type varchar(64)              not null,
     token       varchar                  not null,
     create_ts   timestamp with time zone not null default current_timestamp,
-    update_ts   timestamp with time zone not null default current_timestamp
+    update_ts   timestamp with time zone not null default current_timestamp,
+    constraint acl_author_source_fk foreign key (author_id, source_type) references acl (author_id, source_type)
 )

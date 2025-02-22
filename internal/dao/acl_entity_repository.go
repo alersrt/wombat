@@ -1,13 +1,14 @@
 package dao
 
 import (
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"log/slog"
 	"wombat/internal/domain"
 )
 
 type AclRepository struct {
-	*PostgreSQLQueryHelper[domain.Acl, string]
+	*PostgreSQLQueryHelper[domain.Acl, uuid.UUID]
 }
 
 func NewAclRepository(url *string) (*AclRepository, error) {
@@ -17,15 +18,15 @@ func NewAclRepository(url *string) (*AclRepository, error) {
 		return nil, err
 	}
 	return &AclRepository{
-		&PostgreSQLQueryHelper[domain.Acl, string]{
+		&PostgreSQLQueryHelper[domain.Acl, uuid.UUID]{
 			db:            db,
 			entityFactory: &AclEntityFactory{},
 		},
 	}, nil
 }
 
-func (receiver *AclRepository) GetById(id string) *domain.Acl {
-	entity := receiver.GetEntityById("select * from wombatsm.acl where author_id = $1", id)
+func (receiver *AclRepository) GetById(id uuid.UUID) *domain.Acl {
+	entity := receiver.GetEntityById("select * from wombatsm.acl where gid = $1", id)
 	if entity == nil {
 		return nil
 	}
