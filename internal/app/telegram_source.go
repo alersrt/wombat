@@ -45,6 +45,7 @@ func (receiver *TelegramSource) ForwardTo(target chan *domain.Message) {
 			messageId := strconv.Itoa(message.MessageID)
 			chatId := strconv.FormatInt(message.Chat.ID, 10)
 			msg := &domain.Message{
+				TargetType: domain.JIRA,
 				SourceType: domain.TELEGRAM,
 				Text:       message.Text,
 				AuthorId:   message.From.UserName,

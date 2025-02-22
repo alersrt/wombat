@@ -122,9 +122,13 @@ func setup(
 		os.Exit(1)
 	}
 
+	targetClientFactory := func(targetType domain.TargetType, sourceType domain.SourceType, authorId string) (TargetClient, error) {
+		return &MockJiraClient{}, nil
+	}
+
 	telegram := &MockSource{SourceChan: mockUpdatesChan}
 
-	return NewApplication(dmn, kafkaHelper, aclRepository, commentRepository, connectionRepository, telegram)
+	return NewApplication(dmn, kafkaHelper, aclRepository, commentRepository, connectionRepository, targetClientFactory, telegram)
 }
 
 func TestApplication(t *testing.T) {

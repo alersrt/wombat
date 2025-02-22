@@ -8,6 +8,7 @@ import (
 	"os"
 	"wombat/internal/app"
 	"wombat/internal/dao"
+	"wombat/internal/domain"
 	"wombat/pkg/daemon"
 )
 
@@ -48,11 +49,19 @@ func main() {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
-
 	connectionRepository, err := dao.NewConnectionRepository(&conf.PostgreSQL.Url)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
+	}
+
+	targetClientFactory := func(targetType domain.TargetType, sourceType domain.SourceType, authorId string) (app.TargetClient, error) {
+		switch targetType {
+		case domain.JIRA:
+			token := connectionRepository.GetToken(targetType, sourceType, authorId)
+			return app.NewJiraClient(conf.Jira.Url, token)
+		}
+		return nil, nil
 	}
 
 	telegram, err := app.NewTelegramSource(conf.Telegram.Token)
@@ -63,7 +72,7 @@ func main() {
 
 	dmn := daemon.Create(conf)
 
-	runner, err := app.NewApplication(dmn, kafkaHelper, aclRepository, commentRepository, connectionRepository, telegram)
+	runner, err := app.NewApplication(dmn, kafkaHelper, aclRepository, commentRepository, connectionRepository, targetClientFactory, telegram)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)

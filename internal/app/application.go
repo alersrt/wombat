@@ -32,6 +32,7 @@ type Application struct {
 	aclRepository        *dao.AclRepository
 	commentRepository    *dao.CommentRepository
 	connectionRepository *dao.ConnectionRepository
+	targetClientFactory  func(targetType domain.TargetType, sourceType domain.SourceType, authorId string) (TargetClient, error)
 	telegramSource       Source
 	tagsRegex            *regexp.Regexp
 }
@@ -42,6 +43,7 @@ func NewApplication(
 	aclRepository *dao.AclRepository,
 	commentRepository *dao.CommentRepository,
 	connectionRepository *dao.ConnectionRepository,
+	targetClientFactory func(targetType domain.TargetType, sourceType domain.SourceType, authorId string) (TargetClient, error),
 	telegramSource Source,
 ) (*Application, error) {
 	conf, ok := executor.GetConfig().(*Config)
@@ -56,6 +58,7 @@ func NewApplication(
 		aclRepository:        aclRepository,
 		commentRepository:    commentRepository,
 		connectionRepository: connectionRepository,
+		targetClientFactory:  targetClientFactory,
 		telegramSource:       telegramSource,
 		tagsRegex:            regexp.MustCompile(conf.Bot.Tag),
 	}, nil

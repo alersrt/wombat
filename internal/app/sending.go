@@ -8,15 +8,6 @@ import (
 	"wombat/internal/domain"
 )
 
-func (receiver *Application) getTargetClient(targetType domain.TargetType, sourceType domain.SourceType, authorId string) (TargetClient, error) {
-	switch targetType {
-	case domain.JIRA:
-		token := receiver.connectionRepository.GetToken(targetType, sourceType, authorId)
-		return NewJiraClient(receiver.conf.Jira.Url, token)
-	}
-	return nil, nil
-}
-
 func (receiver *Application) send() {
 	err := receiver.kafkaHelper.Subscribe([]string{receiver.conf.Kafka.Topic}, func(event *kafka.Message) error {
 		msg := &domain.Message{}
@@ -29,7 +20,7 @@ func (receiver *Application) send() {
 			return nil
 		}
 
-		client, err := receiver.getTargetClient(domain.JIRA, msg.SourceType, msg.AuthorId)
+		client, err := receiver.targetClientFactory(msg.TargetType, msg.SourceType, msg.AuthorId)
 		if err != nil {
 			return err
 		}
@@ -44,10 +35,9 @@ func (receiver *Application) send() {
 				}
 
 				saved := receiver.commentRepository.Save(&domain.Comment{
-					TargetType: domain.JIRA,
-					Message:    msg,
-					Tag:        tag,
-					CommentId:  commentId,
+					Message:   msg,
+					Tag:       tag,
+					CommentId: commentId,
 				})
 
 				slog.Info(fmt.Sprintf("Consumed: %+v %+v", saved, saved.Message))
@@ -65,10 +55,9 @@ func (receiver *Application) send() {
 				}
 
 				saved := receiver.commentRepository.Save(&domain.Comment{
-					TargetType: domain.JIRA,
-					Message:    msg,
-					Tag:        tag,
-					CommentId:  comment.CommentId,
+					Message:   msg,
+					Tag:       tag,
+					CommentId: comment.CommentId,
 				})
 
 				slog.Info(fmt.Sprintf("Consumed: %+v", saved))

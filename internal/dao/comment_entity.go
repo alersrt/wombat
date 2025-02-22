@@ -29,12 +29,12 @@ func (receiver *CommentEntity) ToDomain() *domain.Comment {
 			AuthorId:   receiver.AuthorId,
 			ChatId:     receiver.ChatId,
 			MessageId:  receiver.MessageId,
+			TargetType: domain.TargetTypeFromString(receiver.TargetType),
 		},
-		Tag:        receiver.Tag,
-		TargetType: domain.TargetTypeFromString(receiver.TargetType),
-		CommentId:  receiver.CommentId,
-		CreateTs:   receiver.CreateTs,
-		UpdateTs:   receiver.UpdateTs,
+		Tag:       receiver.Tag,
+		CommentId: receiver.CommentId,
+		CreateTs:  receiver.CreateTs,
+		UpdateTs:  receiver.UpdateTs,
 	}
 }
 
