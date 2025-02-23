@@ -89,35 +89,35 @@ services:
     networks:
       - internal-network
 
-#  jira:
-#    image: atlassian/jira-core:latest
-#    environment:
-#      - ATL_DB_TYPE=postgres72
-#      - ATL_DB_DRIVER=org.postgresql.Driver
-#      - ATL_DB_SCHEMA_NAME=jirasm
-#      - ATL_JDBC_USER=postgres
-#      - ATL_JDBC_PASSWORD=postgres
-#      - ATL_JDBC_URL=jdbc:postgresql://postgres:5432/postgres
-#      - ATL_LICENSE_KEY=AAABCA0ODAoPeNpdj01PwkAURffzKyZxZ1IyUzARkllQ24gRaQMtGnaP8VEmtjPNfFT59yJVFyzfubkn796Ux0Bz6SmbUM5nbDzj97RISxozHpMUnbSq88poUaLztFEStUN6MJZ2TaiVpu/YY2M6tI6sQrtHmx8qd74EZ+TBIvyUU/AoYs7jiE0jzknWQxMuifA2IBlUbnQ7AulVjwN9AaU9atASs69O2dNFU4wXJLc1aOUGw9w34JwCTTZoe7RPqUgep2X0Vm0n0fNut4gSxl/Jcnj9nFb6Q5tP/Ueu3L+0PHW4ghZFmm2zZV5k6/95CbR7Y9bYGo/zGrV3Ir4jRbDyCA6vt34DO8p3SDAsAhQnJjLD5k9Fr3uaIzkXKf83o5vDdQIUe4XequNCC3D+9ht9ZYhNZFKmnhc=X02dh
-#      - VERBOSE_LOGS=false
-#      - JVM_MAXIMUM_MEMORY=2G
-#    volumes:
-#      - jira-volume:/var/atlassian/application-data/jira
-#      - ./jira/jira-config.properties:/var/atlassian/application-data/jira/jira-config.properties:ro
-#    ports:
-#      - "8083:8080"
-#    healthcheck:
-#      test: nc -z localhost 8080 || exit -1
-#      start_period: 5s
-#      interval: 5s
-#      timeout: 3s
-#      retries: 30
-#    depends_on:
-#      postgres:
-#        condition: service_healthy
-#    networks:
-#      - internal-network
-#
+  jira:
+    image: atlassian/jira-core:latest
+    environment:
+      - ATL_DB_TYPE=postgres72
+      - ATL_DB_DRIVER=org.postgresql.Driver
+      - ATL_DB_SCHEMA_NAME=jirasm
+      - ATL_JDBC_USER=postgres
+      - ATL_JDBC_PASSWORD=postgres
+      - ATL_JDBC_URL=jdbc:postgresql://postgres:5432/postgres
+      - ATL_LICENSE_KEY=AAAB8w0ODAoPeNp9Uk2P2jAQvedXWOoNydmELVKLFKlL4u7SLglKQj+27cEkA3gb7GjssMu/rwnQls9DDvHMvPfmvXmTN0BGfE08n3jdftfv927J/SgnXc9/58wRQC5UXQO6j6IAqYGVwgglAxbnLB2nw4w5cbOcAiaziQbUge85oZKGFybmSwjKmiMKvfjATcW1Fly6hVo64waLBdcQcQPBhot6Per5zo4lX9fQjofJaMTScHj3uC+x11rgup0b3z7sudiIi+oSWQa4AhxGweD+fU6/Tb68pZ+fnh7owPO/Os8CuVujKpvCuJsfqtXMvHAE1+KKFQQGG3A+2cp412XJeQjSHLVkzVQXKOrWn/bljH/nNmslXPa30+nESU4/Jikdp0k0CfNhEtNJxmwhCBGsFSWZrolZANmhECYLVQISu9gzFIb8WBhT/+zf3MyVe2DOTbWdoLCd+OWSSBGpDCmFNiimjQGLLDQxihSNNmppU3Yd67c0ILksjhOxqsKU3eUsooPvG4kXUrli/MlF7dayEU7kb6lepJOxOLAf7XneFmkfCuCp95nh+LdwhfegL8E5l0LzNo4IVlApi0Vy0GZvs9O6b+vHZxzBv0toB3Yuk5lCwuualHs8fSD0/3NqdZ48nBd+5bjYilfNdokZr6zmP7TmY5YwLAIUNq8MbmR8GfaV9ulfLz1K+3g9j1YCFDeq7aYROMQbwMIvHimNt7/bJCCIX02nj
+      - VERBOSE_LOGS=false
+      - JVM_MAXIMUM_MEMORY=2G
+    volumes:
+      - jira-volume:/var/atlassian/application-data/jira
+      - ./jira/jira-config.properties:/var/atlassian/application-data/jira/jira-config.properties:ro
+    ports:
+      - "8083:8080"
+    healthcheck:
+      test: nc -z localhost 8080 || exit -1
+      start_period: 5s
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal-network
+
 #  flyway-jirasm:
 #    image: redgate/flyway
 #    command: migrate info
