@@ -34,13 +34,11 @@ func (receiver *Application) send() {
 					return err
 				}
 
-				saved := receiver.commentRepository.Save(&domain.Comment{
+				receiver.commentRepository.Save(&domain.Comment{
 					Message:   msg,
 					Tag:       tag,
 					CommentId: commentId,
 				})
-
-				slog.Info(fmt.Sprintf("Consumed: %+v %+v", saved, saved.Message))
 			}
 		} else {
 			taggedComments := map[string]*domain.Comment{}
@@ -53,14 +51,11 @@ func (receiver *Application) send() {
 				if err != nil {
 					return err
 				}
-
-				saved := receiver.commentRepository.Save(&domain.Comment{
+				receiver.commentRepository.Save(&domain.Comment{
 					Message:   msg,
 					Tag:       tag,
 					CommentId: comment.CommentId,
 				})
-
-				slog.Info(fmt.Sprintf("Consumed: %+v", saved))
 			}
 		}
 

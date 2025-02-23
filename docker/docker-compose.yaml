@@ -1,3 +1,5 @@
+name: wombat
+
 networks:
   internal-network:
 
@@ -9,7 +11,7 @@ volumes:
 services:
 
   postgres:
-    image: postgres:15
+    image: docker.io/library/postgres:15
     restart: always
     ports:
       - "5432:5432"
@@ -30,7 +32,7 @@ services:
       - internal-network
 
   flyway-wombatsm:
-    image: redgate/flyway
+    image: docker.io/redgate/flyway
     command: migrate info
     volumes:
       - ../db/changelog/:/flyway/sql:ro
@@ -45,7 +47,7 @@ services:
         condition: service_healthy
 
   kafka:
-    image: confluentinc/cp-kafka:latest
+    image: docker.io/confluentinc/cp-kafka:latest
     environment:
       - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,DOCKER:PLAINTEXT,HOST:PLAINTEXT
       - KAFKA_LISTENERS=DOCKER://kafka:29092,CONTROLLER://kafka:29093,HOST://0.0.0.0:9092
@@ -90,7 +92,7 @@ services:
       - internal-network
 
   jira:
-    image: atlassian/jira-core:latest
+    image: docker.io/atlassian/jira-core:latest
     environment:
       - ATL_DB_TYPE=postgres72
       - ATL_DB_DRIVER=org.postgresql.Driver
@@ -102,8 +104,8 @@ services:
       - VERBOSE_LOGS=false
       - JVM_MAXIMUM_MEMORY=2G
     volumes:
-      - jira-volume:/var/atlassian/application-data/jira
-      - ./jira/jira-config.properties:/var/atlassian/application-data/jira/jira-config.properties:ro
+      - ./jira:/var/atlassian/jira
+#      - ./jira/jira-config.properties:/var/atlassian/application-data/jira/jira-config.properties:ro
     ports:
       - "8083:8080"
     healthcheck:

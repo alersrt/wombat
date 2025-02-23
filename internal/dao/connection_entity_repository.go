@@ -49,7 +49,7 @@ func (receiver *ConnectionRepository) Save(domain *domain.Connection) *domain.Co
 	return saved.ToDomain()
 }
 
-func (receiver *ConnectionRepository) GetToken(targetType domain.TargetType, sourceType domain.SourceType, authorId string) string {
+func (receiver *ConnectionRepository) GetToken(targetType domain.TargetType, sourceType domain.SourceType, authorId string) (url string, token string) {
 	query := `select *
               from wombatsm.connections
               where target_type = $1
@@ -57,8 +57,8 @@ func (receiver *ConnectionRepository) GetToken(targetType domain.TargetType, sou
                 and author_id = $3;`
 	result := receiver.GetEntitiesByArgs(query, targetType.String(), sourceType.String(), authorId)
 	if result != nil && len(result) == 1 {
-		return result[0].ToDomain().Token
+		return "", result[0].ToDomain().Token
 	} else {
-		return ""
+		return "", ""
 	}
 }
