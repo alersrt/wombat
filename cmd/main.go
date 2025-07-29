@@ -7,8 +7,8 @@ import (
 	"log/slog"
 	"os"
 	"wombat/internal/app"
-	"wombat/internal/dao"
 	"wombat/internal/domain"
+	"wombat/internal/storage"
 	"wombat/pkg/daemon"
 )
 
@@ -39,17 +39,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	aclRepository, err := dao.NewAclRepository(&conf.PostgreSQL.Url)
+	aclRepository, err := storage.NewAclRepository(&conf.PostgreSQL.Url)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
-	commentRepository, err := dao.NewCommentRepository(&conf.PostgreSQL.Url)
+	commentRepository, err := storage.NewCommentRepository(&conf.PostgreSQL.Url)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
-	connectionRepository, err := dao.NewConnectionRepository(&conf.PostgreSQL.Url)
+	connectionRepository, err := storage.NewConnectionRepository(&conf.PostgreSQL.Url)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)

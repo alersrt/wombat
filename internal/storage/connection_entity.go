@@ -1,4 +1,4 @@
-package dao
+package storage
 
 import (
 	"github.com/google/uuid"
@@ -28,13 +28,7 @@ func (receiver *ConnectionEntity) ToDomain() *domain.Connection {
 	}
 }
 
-type ConnectionEntityFactory struct{}
-
-func (receiver *ConnectionEntityFactory) EmptyEntity() Entity[domain.Connection] {
-	return &ConnectionEntity{}
-}
-
-func (receiver *ConnectionEntityFactory) FromDomain(domain *domain.Connection) Entity[domain.Connection] {
+func (receiver *ConnectionEntity) FromDomain(domain *domain.Connection) Entity[domain.Connection] {
 	return &ConnectionEntity{
 		Gid:        domain.Gid,
 		TargetType: domain.TargetType.String(),

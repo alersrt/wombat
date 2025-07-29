@@ -1,4 +1,4 @@
-package dao
+package storage
 
 import (
 	"github.com/google/uuid"
@@ -26,13 +26,7 @@ func (receiver *AclEntity) ToDomain() *domain.Acl {
 	}
 }
 
-type AclEntityFactory struct{}
-
-func (receiver *AclEntityFactory) EmptyEntity() Entity[domain.Acl] {
-	return &AclEntity{}
-}
-
-func (receiver *AclEntityFactory) FromDomain(domain *domain.Acl) Entity[domain.Acl] {
+func (receiver *AclEntity) FromDomain(domain *domain.Acl) *AclEntity {
 	return &AclEntity{
 		Gid:        domain.Gid,
 		SourceType: domain.SourceType.String(),

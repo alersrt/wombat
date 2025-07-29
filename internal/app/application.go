@@ -4,8 +4,8 @@ import (
 	"context"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"regexp"
-	"wombat/internal/dao"
 	"wombat/internal/domain"
+	"wombat/internal/storage"
 	"wombat/pkg/daemon"
 	"wombat/pkg/errors"
 )
@@ -29,9 +29,9 @@ type Application struct {
 	conf                 *Config
 	sourceChan           chan *domain.Message
 	kafkaHelper          MessageHelper
-	aclRepository        *dao.AclRepository
-	commentRepository    *dao.CommentRepository
-	connectionRepository *dao.ConnectionRepository
+	aclRepository        *storage.AclRepository
+	commentRepository    *storage.CommentRepository
+	connectionRepository *storage.ConnectionRepository
 	targetClientFactory  func(targetType domain.TargetType, sourceType domain.SourceType, authorId string) (TargetClient, error)
 	telegramSource       Source
 	tagsRegex            *regexp.Regexp
@@ -40,9 +40,9 @@ type Application struct {
 func NewApplication(
 	executor *daemon.Daemon,
 	kafkaHelper MessageHelper,
-	aclRepository *dao.AclRepository,
-	commentRepository *dao.CommentRepository,
-	connectionRepository *dao.ConnectionRepository,
+	aclRepository *storage.AclRepository,
+	commentRepository *storage.CommentRepository,
+	connectionRepository *storage.ConnectionRepository,
 	targetClientFactory func(targetType domain.TargetType, sourceType domain.SourceType, authorId string) (TargetClient, error),
 	telegramSource Source,
 ) (*Application, error) {

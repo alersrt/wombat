@@ -1,4 +1,4 @@
-package dao
+package storage
 
 import (
 	"github.com/google/uuid"
@@ -38,13 +38,7 @@ func (receiver *CommentEntity) ToDomain() *domain.Comment {
 	}
 }
 
-type CommentEntityFactory struct{}
-
-func (receiver *CommentEntityFactory) EmptyEntity() Entity[domain.Comment] {
-	return &CommentEntity{}
-}
-
-func (receiver *CommentEntityFactory) FromDomain(domain *domain.Comment) Entity[domain.Comment] {
+func (receiver *CommentEntity) FromDomain(domain *domain.Comment) Entity[domain.Comment] {
 	return &CommentEntity{
 		Gid:        domain.Gid,
 		SourceType: domain.SourceType.String(),
