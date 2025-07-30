@@ -6,32 +6,32 @@ import (
 	"wombat/internal/domain"
 )
 
-type AclEntity struct {
+type SourceConnectionEntity struct {
 	Gid        uuid.UUID `db:"gid"`
+	AccountGid uuid.UUID `db:"account_gid"`
 	SourceType string    `db:"source_type"`
-	AuthorId   string    `db:"author_id"`
-	IsAllowed  bool      `db:"is_allowed"`
+	UserId     string    `db:"user_id"`
 	CreateTs   time.Time `db:"create_ts"`
 	UpdateTs   time.Time `db:"update_ts"`
 }
 
-func (receiver *AclEntity) ToDomain() *domain.Acl {
-	return &domain.Acl{
+func (receiver *SourceConnectionEntity) ToDomain() *domain.SourceConnection {
+	return &domain.SourceConnection{
 		Gid:        receiver.Gid,
+		AccountGid: receiver.AccountGid,
 		SourceType: domain.SourceTypeFromString(receiver.SourceType),
-		AuthorId:   receiver.AuthorId,
-		IsAllowed:  receiver.IsAllowed,
+		UserId:     receiver.UserId,
 		CreateTs:   receiver.CreateTs,
 		UpdateTs:   receiver.UpdateTs,
 	}
 }
 
-func (receiver *AclEntity) FromDomain(domain *domain.Acl) *AclEntity {
-	return &AclEntity{
+func (receiver *SourceConnectionEntity) FromDomain(domain *domain.SourceConnection) *SourceConnectionEntity {
+	return &SourceConnectionEntity{
 		Gid:        domain.Gid,
+		AccountGid: domain.AccountGid,
 		SourceType: domain.SourceType.String(),
-		AuthorId:   domain.AuthorId,
-		IsAllowed:  domain.IsAllowed,
+		UserId:     domain.UserId,
 		CreateTs:   domain.CreateTs,
 		UpdateTs:   domain.UpdateTs,
 	}

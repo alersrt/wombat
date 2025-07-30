@@ -6,35 +6,32 @@ import (
 	"wombat/internal/domain"
 )
 
-type ConnectionEntity struct {
+type TargetConnectionEntity struct {
 	Gid        uuid.UUID `db:"gid"`
+	AccountGid string    `db:"account_gid"`
 	TargetType string    `db:"target_type"`
 	Token      string    `db:"token"`
-	SourceType string    `db:"source_type"`
-	AuthorId   string    `db:"author_id"`
 	CreateTs   time.Time `db:"create_ts"`
 	UpdateTs   time.Time `db:"update_ts"`
 }
 
-func (receiver *ConnectionEntity) ToDomain() *domain.Connection {
-	return &domain.Connection{
+func (receiver *TargetConnectionEntity) ToDomain() *domain.TargetConnection {
+	return &domain.TargetConnection{
 		Gid:        receiver.Gid,
+		AccountGid: receiver.AccountGid,
 		TargetType: domain.TargetTypeFromString(receiver.TargetType),
 		Token:      receiver.Token,
-		SourceType: domain.SourceTypeFromString(receiver.SourceType),
-		AuthorId:   receiver.AuthorId,
 		CreateTs:   receiver.CreateTs,
 		UpdateTs:   receiver.UpdateTs,
 	}
 }
 
-func (receiver *ConnectionEntity) FromDomain(domain *domain.Connection) Entity[domain.Connection] {
-	return &ConnectionEntity{
+func (receiver *TargetConnectionEntity) FromDomain(domain *domain.TargetConnection) *TargetConnectionEntity {
+	return &TargetConnectionEntity{
 		Gid:        domain.Gid,
+		AccountGid: domain.AccountGid,
 		TargetType: domain.TargetType.String(),
 		Token:      domain.Token,
-		SourceType: domain.SourceType.String(),
-		AuthorId:   domain.AuthorId,
 		CreateTs:   domain.CreateTs,
 		UpdateTs:   domain.UpdateTs,
 	}

@@ -8,10 +8,10 @@ import (
 
 func (receiver *Application) processTarget() {
 	for update := range receiver.targetChan {
-		isAllowed, err := receiver.dbStorage.IsAuthorAllowed(update.SourceType, update.AuthorId)
+		isAllowed, err := receiver.dbStorage.IsAuthorAllowed(update.SourceType, update.UserId)
 		processError(err)
 		if !isAllowed {
-			slog.Info(fmt.Sprintf("Author is not allowed: %s:%s", update.SourceType.String(), update.AuthorId))
+			slog.Info(fmt.Sprintf("Author is not allowed: %s:%s", update.SourceType.String(), update.UserId))
 			return
 		}
 
