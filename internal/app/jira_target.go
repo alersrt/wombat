@@ -7,7 +7,7 @@ type JiraClient struct {
 }
 
 func NewJiraClient(url string, token string) (*JiraClient, error) {
-	tp := jira.PATAuthTransport{
+	tp := jira.BearerAuthTransport{
 		Token: token,
 	}
 	client, err := jira.NewClient(tp.Client(), url)

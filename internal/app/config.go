@@ -19,12 +19,6 @@ type Telegram struct {
 	Token string `yaml:"token,omitempty"`
 }
 
-type Kafka struct {
-	GroupId   string `yaml:"group-id,omitempty"`
-	Bootstrap string `yaml:"bootstrap,omitempty"`
-	Topic     string `yaml:"topic,omitempty"`
-}
-
 type PostgreSQL struct {
 	Url string `yaml:"url"`
 }
@@ -38,7 +32,6 @@ type Config struct {
 	*Bot        `yaml:"bot,omitempty"`
 	*Jira       `yaml:"jira,omitempty"`
 	*Telegram   `yaml:"telegram,omitempty"`
-	*Kafka      `yaml:"kafka,omitempty"`
 	*Database   `yaml:"database,omitempty"`
 }
 
@@ -64,9 +57,7 @@ func (receiver *Config) Init(args []string) error {
 		return err
 	}
 
-	if err == nil {
-		receiver.isInitiated = true
-	}
+	receiver.isInitiated = true
 	return nil
 }
 

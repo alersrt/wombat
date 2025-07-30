@@ -1,18 +1,17 @@
 module wombat
 
-go 1.23
+go 1.23.0
 
-toolchain go1.23.2
+toolchain go1.24.5
 
 require (
 	github.com/andygrunwald/go-jira v1.16.0
-	github.com/confluentinc/confluent-kafka-go v1.9.2
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/google/uuid v1.6.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/lib/pq v1.10.9
 	gopkg.in/yaml.v2 v2.4.0
-	mvdan.cc/sh/v3 v3.10.0
+	mvdan.cc/sh/v3 v3.12.0
 )
 
 require (

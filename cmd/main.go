@@ -3,11 +3,9 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"log/slog"
 	"os"
 	"wombat/internal/app"
-	"wombat/internal/domain"
 	"wombat/internal/storage"
 	"wombat/pkg/daemon"
 )
@@ -28,40 +26,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	kafkaConf := &kafka.ConfigMap{
-		"bootstrap.servers": conf.Kafka.Bootstrap,
-		"group.id":          conf.Kafka.GroupId,
-		"auto.offset.reset": "earliest",
-	}
-	kafkaHelper, err := app.NewKafkaHelper(kafkaConf)
+	aclRepository, err := storage.NewDbStorage(&conf.PostgreSQL.Url)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
-	}
-
-	aclRepository, err := storage.NewAclRepository(&conf.PostgreSQL.Url)
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
-	commentRepository, err := storage.NewCommentRepository(&conf.PostgreSQL.Url)
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
-	connectionRepository, err := storage.NewConnectionRepository(&conf.PostgreSQL.Url)
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
-
-	targetClientFactory := func(targetType domain.TargetType, sourceType domain.SourceType, authorId string) (app.TargetClient, error) {
-		switch targetType {
-		case domain.JIRA:
-			token := connectionRepository.GetToken(targetType, sourceType, authorId)
-			return app.NewJiraClient(conf.Jira.Url, token)
-		}
-		return nil, nil
 	}
 
 	telegram, err := app.NewTelegramSource(conf.Telegram.Token)
@@ -72,7 +40,7 @@ func main() {
 
 	dmn := daemon.Create(conf)
 
-	runner, err := app.NewApplication(dmn, kafkaHelper, aclRepository, commentRepository, connectionRepository, targetClientFactory, telegram)
+	runner, err := app.NewApplication(dmn, aclRepository, telegram)
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)

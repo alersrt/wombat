@@ -45,51 +45,6 @@ services:
       postgres:
         condition: service_healthy
 
-  kafka:
-    image: docker.io/confluentinc/cp-kafka:latest
-    environment:
-      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,DOCKER:PLAINTEXT,HOST:PLAINTEXT
-      - KAFKA_LISTENERS=DOCKER://kafka:29092,CONTROLLER://kafka:29093,HOST://0.0.0.0:9092
-      - KAFKA_ADVERTISED_LISTENERS=DOCKER://kafka:29092,HOST://localhost:9092
-      - KAFKA_INTER_BROKER_LISTENER_NAME=DOCKER
-      - ALLOW_PLAINTEXT_LISTENER=yes
-      # Setup in KRaft
-      - KAFKA_BROKER_ID=1
-      - KAFKA_PROCESS_ROLES=broker,controller
-      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:29093
-      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
-      # Cluster
-      - CLUSTER_ID=AAAAAAAAAAAAAAAAAAAAAA
-      # Broker config
-      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
-      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
-    volumes:
-      - kafka-volume:/var/lib/kafka/data
-    ports:
-      - "9092:9092"
-    healthcheck:
-      test: nc -z localhost 9092 || exit -1
-      start_period: 5s
-      interval: 5s
-      timeout: 3s
-      retries: 10
-    networks:
-      - internal-network
-
-  kafka-ui:
-    image: ghcr.io/kafbat/kafka-ui:latest
-    environment:
-      - DYNAMIC_CONFIG_ENABLED=true
-      - KAFKA_CLUSTERS_0_NAME=local
-      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:29092
-    ports:
-      - "8082:8080"
-    depends_on:
-      kafka:
-        condition: service_healthy
-    networks:
-      - internal-network
-
   jira:
     image: docker.io/atlassian/jira-core:latest
     environment:
@@ -104,7 +59,6 @@ services:
       - JVM_MAXIMUM_MEMORY=2G
     volumes:
       - ./jira:/var/atlassian/jira
-#      - ./jira/jira-config.properties:/var/atlassian/application-data/jira/jira-config.properties:ro
     ports:
       - "8083:8080"
     healthcheck:
@@ -118,18 +72,3 @@ services:
         condition: service_healthy
     networks:
       - internal-network
-
-#  flyway-jirasm:
-#    image: redgate/flyway
-#    command: migrate info
-#    volumes:
-#      - ../docker/jira/:/flyway/sql:ro
-#    environment:
-#      - FLYWAY_URL=jdbc:postgresql://postgres:5432/postgres
-#      - FLYWAY_USER=postgres
-#      - FLYWAY_PASSWORD=postgres
-#    networks:
-#      - internal-network
-#    depends_on:
-#      jira:
-#        condition: service_healthy

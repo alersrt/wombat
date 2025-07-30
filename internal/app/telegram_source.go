@@ -22,7 +22,7 @@ func NewTelegramSource(token string) (*TelegramSource, error) {
 	return &TelegramSource{bot: bot}, nil
 }
 
-func (receiver *TelegramSource) ForwardTo(target chan *domain.Message) {
+func (receiver *TelegramSource) ForwardTo(source chan *domain.Message) {
 	u := tgbotapi.NewUpdate(0)
 	u.AllowedUpdates = append(
 		u.AllowedUpdates,
@@ -52,7 +52,7 @@ func (receiver *TelegramSource) ForwardTo(target chan *domain.Message) {
 				ChatId:     chatId,
 				MessageId:  messageId,
 			}
-			target <- msg
+			source <- msg
 		}
 
 		if update.Message != nil {

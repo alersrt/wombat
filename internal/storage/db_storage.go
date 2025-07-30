@@ -4,6 +4,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"log/slog"
 	"wombat/internal/domain"
 )
 
@@ -14,6 +15,17 @@ type DbStorage struct {
 type Entity[D any] interface {
 	ToDomain() *D
 	FromDomain(*D) Entity[D]
+}
+
+func NewDbStorage(url *string) (*DbStorage, error) {
+	db, err := sqlx.Connect("postgres", *url)
+	if err != nil {
+		slog.Error(err.Error())
+		return nil, err
+	}
+	return &DbStorage{
+		db: db,
+	}, nil
 }
 
 func (receiver *DbStorage) GetAclById(id uuid.UUID) (*domain.Acl, error) {
@@ -50,14 +62,14 @@ func (receiver *DbStorage) SaveAcl(domain *domain.Acl) (*domain.Acl, error) {
 	return entity.ToDomain(), nil
 }
 
-func (receiver *DbStorage) IsAuthorAllowed(sourceType domain.SourceType, authorId uuid.UUID) (bool, error) {
+func (receiver *DbStorage) IsAuthorAllowed(sourceType domain.SourceType, authorId string) (bool, error) {
 	query := `select *
               from wombatsm.acl
               where source_type = $1
                 and author_id = $2`
 
 	entities := []AclEntity{}
-	err := receiver.db.Select(entities, query, sourceType.String(), authorId.String())
+	err := receiver.db.Select(entities, query, sourceType.String(), authorId)
 
 	if err != nil {
 		return false, err
