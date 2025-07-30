@@ -6,8 +6,8 @@ create table if not exists wombatsm.comments
 (
     gid         uuid primary key                  default gen_random_uuid(),
     target_type varchar(64)              not null,
-    comment_id  varchar                  not null,
     source_type varchar(64)              not null,
+    comment_id  varchar                  not null,
     user_id     varchar                  not null,
     chat_id     varchar                  not null,
     message_id  varchar                  not null,

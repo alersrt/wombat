@@ -1,30 +1,27 @@
 package app
 
 import (
-	"fmt"
 	"log/slog"
 	"wombat/internal/domain"
 )
 
 func (receiver *Application) processTarget() {
 	for update := range receiver.targetChan {
-		isAllowed, err := receiver.dbStorage.IsAuthorAllowed(update.SourceType, update.UserId)
+		tx, err := receiver.dbStorage.BeginTx()
 		processError(err)
-		if !isAllowed {
-			slog.Info(fmt.Sprintf("Author is not allowed: %s:%s", update.SourceType.String(), update.UserId))
-			return
-		}
 
 		client, err := NewJiraClient(receiver.conf.Jira.Url, "")
 		processError(err)
-		tags := receiver.tagsRegex.FindAllString(update.Text, -1)
-		savedComments, err := receiver.dbStorage.GetCommentsByMetadata(update.SourceType, update.ChatId, update.MessageId)
+
+		tags := receiver.tagsRegex.FindAllString(update.Content, -1)
+		savedComments, err := tx.GetCommentsByMetadata(update.SourceType, update.ChatId, update.MessageId)
 		processError(err)
+
 		if len(savedComments) == 0 {
 			for _, tag := range tags {
-				commentId, err := client.Add(tag, update.Text)
+				commentId, err := client.Add(tag, update.Content)
 				processError(err)
-				receiver.dbStorage.SaveComment(&domain.Comment{
+				tx.SaveComment(&domain.Comment{
 					Message:   update,
 					Tag:       tag,
 					CommentId: commentId,
@@ -37,9 +34,9 @@ func (receiver *Application) processTarget() {
 			}
 			for _, tag := range tags {
 				comment := taggedComments[tag]
-				err := client.Update(tag, comment.CommentId, update.Text)
+				err := client.Update(tag, comment.CommentId, update.Content)
 				processError(err)
-				receiver.dbStorage.SaveComment(&domain.Comment{
+				tx.SaveComment(&domain.Comment{
 					Message:   update,
 					Tag:       tag,
 					CommentId: comment.CommentId,

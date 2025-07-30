@@ -47,8 +47,8 @@ func (receiver *TelegramSource) ForwardTo(source chan *domain.Message) {
 			msg := &domain.Message{
 				TargetType: domain.JIRA,
 				SourceType: domain.TELEGRAM,
-				Text:       message.Text,
-				AuthorId:   message.From.UserName,
+				Content:    message.Text,
+				UserId:     message.From.UserName,
 				ChatId:     chatId,
 				MessageId:  messageId,
 			}
