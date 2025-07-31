@@ -9,20 +9,28 @@ import (
 )
 
 type TelegramSource struct {
-	bot *tgbotapi.BotAPI
+	*tgbotapi.BotAPI
+	fwdChan chan *domain.Message
 }
 
-func NewTelegramSource(token string) (*TelegramSource, error) {
+func NewTelegramSource(token string, fwdChan chan *domain.Message) (*TelegramSource, error) {
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		slog.Error(err.Error())
 		return nil, err
 	}
 
-	return &TelegramSource{bot: bot}, nil
+	return &TelegramSource{
+		BotAPI:  bot,
+		fwdChan: fwdChan,
+	}, nil
 }
 
-func (receiver *TelegramSource) ForwardTo(source chan *domain.Message) {
+func (receiver *TelegramSource) GetSourceType() domain.SourceType {
+	return domain.TELEGRAM
+}
+
+func (receiver *TelegramSource) Process() {
 	u := tgbotapi.NewUpdate(0)
 	u.AllowedUpdates = append(
 		u.AllowedUpdates,
@@ -32,9 +40,9 @@ func (receiver *TelegramSource) ForwardTo(source chan *domain.Message) {
 	)
 	u.Timeout = 60
 
-	slog.Info(fmt.Sprintf("Authorized on account %s", receiver.bot.Self.UserName))
+	slog.Info(fmt.Sprintf("Authorized on account %s", receiver.Self.UserName))
 
-	for update := range receiver.bot.GetUpdatesChan(u) {
+	for update := range receiver.GetUpdatesChan(u) {
 
 		processMessage := func(message *tgbotapi.Message) {
 			if message.From.UserName == "" {
@@ -52,7 +60,7 @@ func (receiver *TelegramSource) ForwardTo(source chan *domain.Message) {
 				ChatId:     chatId,
 				MessageId:  messageId,
 			}
-			source <- msg
+			receiver.fwdChan <- msg
 		}
 
 		if update.Message != nil {

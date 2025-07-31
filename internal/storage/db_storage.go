@@ -20,8 +20,8 @@ type Tx struct {
 	*sqlx.Tx
 }
 
-func NewDbStorage(url *string) (*DbStorage, error) {
-	db, err := sqlx.Connect("postgres", *url)
+func NewDbStorage(url string) (*DbStorage, error) {
+	db, err := sqlx.Connect("postgres", url)
 	if err != nil {
 		slog.Error(err.Error())
 		return nil, err

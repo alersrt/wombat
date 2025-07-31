@@ -16,37 +16,30 @@ func main() {
 
 	conf := new(app.Config)
 	args, err := parseArgs(os.Args)
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
+	terminateIfError(err)
+
 	err = conf.Init(args)
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
+	terminateIfError(err)
 
-	aclRepository, err := storage.NewDbStorage(&conf.PostgreSQL.Url)
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
+	dbStorage, err := storage.NewDbStorage(conf.PostgreSQL.Url)
+	terminateIfError(err)
 
-	telegram, err := app.NewTelegramSource(conf.Telegram.Token)
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
+	telegramSource, err := app.NewTelegramSource(conf.Telegram.Token)
+	terminateIfError(err)
 
 	dmn := daemon.Create(conf)
 
-	runner, err := app.NewApplication(dmn, aclRepository, telegram)
+	runner, err := app.NewApplication(dmn, dbStorage, telegramSource)
+	terminateIfError(err)
+
+	runner.Run(mainCtx)
+}
+
+func terminateIfError(err error) {
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
-
-	runner.Run(mainCtx)
 }
 
 func parseArgs(args []string) ([]string, error) {
