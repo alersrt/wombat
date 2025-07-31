@@ -9,7 +9,6 @@ import (
 	"wombat/internal/domain"
 	"wombat/internal/storage"
 	"wombat/pkg/daemon"
-	"wombat/pkg/errors"
 )
 
 func main() {
@@ -35,11 +34,6 @@ func main() {
 	terminateIfError(err)
 
 	dmn := daemon.Create(conf)
-	_, ok := dmn.GetConfig().(*app.Config)
-	if !ok {
-		terminateIfError(errors.NewError("Wrong config type"))
-	}
-
 	go dmn.
 		AddTask(jiraTarget.Process).
 		AddTask(telegramSource.Process).
