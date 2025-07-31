@@ -6,8 +6,10 @@ import (
 	"log/slog"
 	"os"
 	"wombat/internal/app"
+	"wombat/internal/domain"
 	"wombat/internal/storage"
 	"wombat/pkg/daemon"
+	"wombat/pkg/errors"
 )
 
 func main() {
@@ -24,15 +26,26 @@ func main() {
 	dbStorage, err := storage.NewDbStorage(conf.PostgreSQL.Url)
 	terminateIfError(err)
 
-	telegramSource, err := app.NewTelegramSource(conf.Telegram.Token)
+	forwardChannel := make(chan *domain.Message)
+
+	telegramSource, err := app.NewTelegramSource(conf.Telegram.Token, forwardChannel)
+	terminateIfError(err)
+
+	jiraTarget, err := app.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, dbStorage, forwardChannel)
 	terminateIfError(err)
 
 	dmn := daemon.Create(conf)
+	_, ok := dmn.GetConfig().(*app.Config)
+	if !ok {
+		terminateIfError(errors.NewError("Wrong config type"))
+	}
 
-	runner, err := app.NewApplication(dmn, dbStorage, telegramSource)
-	terminateIfError(err)
+	go dmn.
+		AddTask(jiraTarget.Process).
+		AddTask(telegramSource.Process).
+		Start(mainCtx)
 
-	runner.Run(mainCtx)
+	select {}
 }
 
 func terminateIfError(err error) {
