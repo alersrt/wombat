@@ -74,7 +74,7 @@ func (receiver *JiraTarget) GetTargetType() domain.TargetType {
 func (receiver *JiraTarget) Process() {
 	for update := range receiver.srcChan {
 		if !receiver.tagsRegex.MatchString(update.Content) {
-			slog.Info(fmt.Sprintf("Tag not found"))
+			slog.Info(fmt.Sprintf("Tag not found: %v", update.Content))
 			return
 		}
 
