@@ -3,22 +3,28 @@ package app
 import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/pkg/errors"
 	"log/slog"
 	"strconv"
 	"wombat/internal/domain"
+	"wombat/internal/storage"
 )
 
-const (
-	COMMAND_REGISTER   = "register"
-	COMMAND_UNREGISTER = "unregister"
+var (
+	BotCommandRegister = tgbotapi.BotCommand{
+		Command:     "register",
+		Description: "RG",
+	}
 )
 
 type TelegramSource struct {
+	sourceType domain.SourceType
 	*tgbotapi.BotAPI
 	fwdChan chan *domain.Message
+	db      *storage.DbStorage
 }
 
-func NewTelegramSource(token string, fwdChan chan *domain.Message) (*TelegramSource, error) {
+func NewTelegramSource(token string, fwdChan chan *domain.Message, db *storage.DbStorage) (*TelegramSource, error) {
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		slog.Error(err.Error())
@@ -26,16 +32,18 @@ func NewTelegramSource(token string, fwdChan chan *domain.Message) (*TelegramSou
 	}
 
 	return &TelegramSource{
-		BotAPI:  bot,
-		fwdChan: fwdChan,
+		sourceType: domain.TELEGRAM,
+		BotAPI:     bot,
+		fwdChan:    fwdChan,
+		db:         db,
 	}, nil
 }
 
 func (receiver *TelegramSource) GetSourceType() domain.SourceType {
-	return domain.TELEGRAM
+	return receiver.sourceType
 }
 
-func (receiver *TelegramSource) Init() (tgbotapi.UpdatesChannel, error) {
+func (receiver *TelegramSource) init() (tgbotapi.UpdatesChannel, error) {
 	u := tgbotapi.NewUpdate(0)
 	u.AllowedUpdates = append(
 		u.AllowedUpdates,
@@ -44,15 +52,7 @@ func (receiver *TelegramSource) Init() (tgbotapi.UpdatesChannel, error) {
 	)
 	u.Timeout = 60
 
-	commands := tgbotapi.NewSetMyCommands(
-		tgbotapi.BotCommand{
-			Command:     COMMAND_REGISTER,
-			Description: COMMAND_REGISTER,
-		}, tgbotapi.BotCommand{
-			Command:     COMMAND_UNREGISTER,
-			Description: COMMAND_UNREGISTER,
-		},
-	)
+	commands := tgbotapi.NewSetMyCommands(BotCommandRegister)
 	_, err := receiver.Request(commands)
 	if err != nil {
 		slog.Error(err.Error())
@@ -65,7 +65,7 @@ func (receiver *TelegramSource) Init() (tgbotapi.UpdatesChannel, error) {
 }
 
 func (receiver *TelegramSource) Process() {
-	updates, err := receiver.Init()
+	updates, err := receiver.init()
 	if err != nil {
 		slog.Error(err.Error())
 		return
@@ -73,23 +73,42 @@ func (receiver *TelegramSource) Process() {
 
 	for update := range updates {
 
-		var message *tgbotapi.Message
-		switch {
-		case update.Message != nil:
-			message = update.Message
-		case update.EditedMessage != nil:
-			message = update.EditedMessage
+		message := receiver.getMessage(&update)
+		err := receiver.checkAccess(message)
+		if err != nil {
+			slog.Warn(err.Error())
+			return
 		}
 
 		if !update.Message.IsCommand() {
 			receiver.handleMessage(message)
 		} else {
 			switch message.Command() {
-			case COMMAND_REGISTER:
+			case BotCommandRegister.Command:
 				receiver.handleRegistration(message.CommandArguments())
 			}
 		}
 	}
+}
+
+func (receiver *TelegramSource) checkAccess(message *tgbotapi.Message) error {
+	isOk := receiver.db.HasConnectionSource(receiver.sourceType.String(), strconv.FormatInt(message.From.ID, 10))
+	if isOk {
+		return nil
+	} else {
+		return errors.Errorf(domain.ErrorNotRegistered)
+	}
+}
+
+func (receiver *TelegramSource) getMessage(update *tgbotapi.Update) *tgbotapi.Message {
+	var message *tgbotapi.Message
+	switch {
+	case update.Message != nil:
+		message = update.Message
+	case update.EditedMessage != nil:
+		message = update.EditedMessage
+	}
+	return message
 }
 
 func (receiver *TelegramSource) handleMessage(message *tgbotapi.Message) {
@@ -104,6 +123,6 @@ func (receiver *TelegramSource) handleMessage(message *tgbotapi.Message) {
 	receiver.fwdChan <- msg
 }
 
-func (receiver *TelegramSource) handleRegistration(arg string) {
-	slog.Info("Example", "token", arg)
+func (receiver *TelegramSource) handleRegistration(token string) {
+	slog.Info("Example", "token", token)
 }

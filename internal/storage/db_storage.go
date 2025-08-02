@@ -33,9 +33,13 @@ func NewDbStorage(url string) (*DbStorage, error) {
 
 func (receiver *DbStorage) BeginTx() (*Tx, error) {
 	tx, err := receiver.db.Beginx()
+	if err != nil {
+		slog.Error(err.Error())
+		return nil, err
+	}
 	return &Tx{
 		Tx: tx,
-	}, err
+	}, nil
 }
 
 func (receiver *Tx) CommitTx() error {
@@ -44,6 +48,20 @@ func (receiver *Tx) CommitTx() error {
 
 func (receiver *Tx) RollbackTx() error {
 	return receiver.Rollback()
+}
+
+func (receiver *DbStorage) HasConnectionSource(sourceType string, userId string) bool {
+	query := `select count(*)
+              from wombatsm.source_connections wsc
+              where wsc.source_type = $1
+                and wsc.user_id = $2;`
+	var count int
+	err := receiver.db.Get(&count, query, sourceType, userId)
+	if err != nil {
+		slog.Warn(err.Error())
+		return false
+	}
+	return count == 1
 }
 
 func (receiver *Tx) SaveComment(domain *domain.Comment) error {

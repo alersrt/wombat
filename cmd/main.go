@@ -27,7 +27,7 @@ func main() {
 
 	forwardChannel := make(chan *domain.Message)
 
-	telegramSource, err := app.NewTelegramSource(conf.Telegram.Token, forwardChannel)
+	telegramSource, err := app.NewTelegramSource(conf.Telegram.Token, forwardChannel, dbStorage)
 	terminateIfError(err)
 
 	jiraTarget, err := app.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, dbStorage, forwardChannel)
