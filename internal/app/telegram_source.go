@@ -8,6 +8,11 @@ import (
 	"wombat/internal/domain"
 )
 
+const (
+	COMMAND_REGISTER   = "register"
+	COMMAND_UNREGISTER = "unregister"
+)
+
 type TelegramSource struct {
 	*tgbotapi.BotAPI
 	fwdChan chan *domain.Message
@@ -41,11 +46,11 @@ func (receiver *TelegramSource) Init() (tgbotapi.UpdatesChannel, error) {
 
 	commands := tgbotapi.NewSetMyCommands(
 		tgbotapi.BotCommand{
-			Command:     "register",
-			Description: "RG",
+			Command:     COMMAND_REGISTER,
+			Description: COMMAND_REGISTER,
 		}, tgbotapi.BotCommand{
-			Command:     "unregister",
-			Description: "URG",
+			Command:     COMMAND_UNREGISTER,
+			Description: COMMAND_UNREGISTER,
 		},
 	)
 	_, err := receiver.Request(commands)
@@ -80,7 +85,7 @@ func (receiver *TelegramSource) Process() {
 			receiver.handleMessage(message)
 		} else {
 			switch message.Command() {
-			case "register":
+			case COMMAND_REGISTER:
 				receiver.handleRegistration(message.CommandArguments())
 			}
 		}
