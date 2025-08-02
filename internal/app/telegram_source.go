@@ -30,44 +30,75 @@ func (receiver *TelegramSource) GetSourceType() domain.SourceType {
 	return domain.TELEGRAM
 }
 
-func (receiver *TelegramSource) Process() {
+func (receiver *TelegramSource) Init() (tgbotapi.UpdatesChannel, error) {
 	u := tgbotapi.NewUpdate(0)
 	u.AllowedUpdates = append(
 		u.AllowedUpdates,
-		tgbotapi.UpdateTypeMessageReaction,
 		tgbotapi.UpdateTypeMessage,
 		tgbotapi.UpdateTypeEditedMessage,
 	)
 	u.Timeout = 60
 
+	commands := tgbotapi.NewSetMyCommands(
+		tgbotapi.BotCommand{
+			Command:     "register",
+			Description: "RG",
+		}, tgbotapi.BotCommand{
+			Command:     "unregister",
+			Description: "URG",
+		},
+	)
+	_, err := receiver.Request(commands)
+	if err != nil {
+		slog.Error(err.Error())
+		return nil, err
+	}
+
 	slog.Info(fmt.Sprintf("Authorized on account %s", receiver.Self.UserName))
 
-	for update := range receiver.GetUpdatesChan(u) {
+	return receiver.GetUpdatesChan(u), nil
+}
 
-		processMessage := func(message *tgbotapi.Message) {
-			if message.From.UserName == "" {
-				slog.Warn("Missed username")
-				return
-			}
+func (receiver *TelegramSource) Process() {
+	updates, err := receiver.Init()
+	if err != nil {
+		slog.Error(err.Error())
+		return
+	}
 
-			messageId := strconv.Itoa(message.MessageID)
-			chatId := strconv.FormatInt(message.Chat.ID, 10)
-			msg := &domain.Message{
-				TargetType: domain.JIRA,
-				SourceType: domain.TELEGRAM,
-				Content:    message.Text,
-				UserId:     message.From.UserName,
-				ChatId:     chatId,
-				MessageId:  messageId,
-			}
-			receiver.fwdChan <- msg
+	for update := range updates {
+
+		var message *tgbotapi.Message
+		switch {
+		case update.Message != nil:
+			message = update.Message
+		case update.EditedMessage != nil:
+			message = update.EditedMessage
 		}
 
-		if update.Message != nil {
-			processMessage(update.Message)
-		}
-		if update.EditedMessage != nil {
-			processMessage(update.EditedMessage)
+		if !update.Message.IsCommand() {
+			receiver.handleMessage(message)
+		} else {
+			switch message.Command() {
+			case "register":
+				receiver.handleRegistration(message.CommandArguments())
+			}
 		}
 	}
+}
+
+func (receiver *TelegramSource) handleMessage(message *tgbotapi.Message) {
+	msg := &domain.Message{
+		TargetType: domain.JIRA,
+		SourceType: domain.TELEGRAM,
+		Content:    message.Text,
+		UserId:     strconv.FormatInt(message.From.ID, 10),
+		ChatId:     strconv.FormatInt(message.Chat.ID, 10),
+		MessageId:  strconv.Itoa(message.MessageID),
+	}
+	receiver.fwdChan <- msg
+}
+
+func (receiver *TelegramSource) handleRegistration(arg string) {
+	slog.Info("Example", "token", arg)
 }

@@ -1,5 +1,5 @@
 bot:
-  tag: ${TAG_PATTERN:-(KAN-\d+)}
+  tag: ${TAG_PATTERN:-(TEST-\d+)}
 jira:
   url: ${JIRA_URL}
 telegram:
