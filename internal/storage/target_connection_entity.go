@@ -8,7 +8,7 @@ import (
 
 type TargetConnectionEntity struct {
 	Gid        uuid.UUID `db:"gid"`
-	AccountGid string    `db:"account_gid"`
+	AccountGid uuid.UUID `db:"account_gid"`
 	TargetType string    `db:"target_type"`
 	Token      string    `db:"token"`
 	CreateTs   time.Time `db:"create_ts"`

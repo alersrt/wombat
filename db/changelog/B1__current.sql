@@ -37,7 +37,7 @@ create table if not exists wombatsm.source_connections
 create table if not exists wombatsm.target_connections
 (
     gid         uuid primary key                  default gen_random_uuid(),
-    account_gid varchar                  not null,
+    account_gid uuid                     not null,
     target_type varchar(64)              not null,
     token       varchar                  not null,
     create_ts   timestamp with time zone not null default current_timestamp,
