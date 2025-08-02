@@ -7,15 +7,15 @@ import (
 type SourceType uint
 
 const (
-	TELEGRAM SourceType = iota
+	Telegram SourceType = iota
 )
 
 var (
 	sourceTypeToString = map[SourceType]string{
-		TELEGRAM: "TELEGRAM",
+		Telegram: "TELEGRAM",
 	}
 	sourceTypeFromString = map[string]SourceType{
-		"TELEGRAM": TELEGRAM,
+		"TELEGRAM": Telegram,
 	}
 )
 

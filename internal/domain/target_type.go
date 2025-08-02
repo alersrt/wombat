@@ -7,15 +7,15 @@ import (
 type TargetType uint
 
 const (
-	JIRA TargetType = iota
+	Jira TargetType = iota
 )
 
 var (
 	targetTypeToString = map[TargetType]string{
-		JIRA: "JIRA",
+		Jira: "JIRA",
 	}
 	targetTypeFromString = map[string]TargetType{
-		"JIRA": JIRA,
+		"JIRA": Jira,
 	}
 )
 

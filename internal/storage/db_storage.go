@@ -1,10 +1,10 @@
 package storage
 
 import (
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"log/slog"
-	"wombat/internal/domain"
 )
 
 type DbStorage struct {
@@ -64,46 +64,38 @@ func (receiver *DbStorage) HasConnectionSource(sourceType string, userId string)
 	return count == 1
 }
 
-func (receiver *Tx) SaveComment(domain *domain.Comment) error {
-	query := `insert into wombatsm.comments(
-                              target_type,
-                              source_type,
-                              comment_id,
-                              user_id,
-                              chat_id,
-                              message_id,
-                              tag)
-               values (:target_type, :source_type, :user_id, :chat_id, :message_id, :comment_id, :tag)
-               on conflict (target_type, comment_id)
-               do update
-               set source_type = :source_type,
-                   user_id = :user_id,
-                   chat_id = :chat_id,
-                   message_id = :message_id,
-                   tag = :tag,
-               	   update_ts = current_timestamp`
-	row := receiver.QueryRowx(query, (*CommentEntity).FromDomain(nil, domain))
-	return row.Err()
+func (receiver *Tx) CreateAccount() (*uuid.UUID, error) {
+	gid := uuid.New()
+	query := `insert into wombatsm.accounts(gid) values($1)`
+	_, err := receiver.Exec(query, &gid)
+	if err != nil {
+		slog.Warn(err.Error())
+		return nil, err
+	} else {
+		return &gid, nil
+	}
 }
 
-func (receiver *Tx) GetCommentsByMetadata(sourceType domain.SourceType, chatId string, messageId string) ([]*domain.Comment, error) {
-	query := `select *
-               from wombatsm.comments
-               where chat_id = $1
-                 and message_id = $2
-                 and source_type = $3`
-
-	entities := []CommentEntity{}
-	err := receiver.Select(entities, query, chatId, messageId, sourceType.String())
-
+func (receiver *Tx) CreateSourceConnection(accountGid *uuid.UUID, sourceType string, userId string) error {
+	query := `insert into wombatsm.source_connections(account_gid, source_type, user_id)
+              values($1, $2, $3)`
+	_, err := receiver.Exec(query, accountGid, sourceType, userId)
 	if err != nil {
-		return nil, err
+		slog.Warn(err.Error())
+		return err
+	} else {
+		return nil
 	}
+}
 
-	var domains []*domain.Comment
-	for _, entity := range entities {
-		domains = append(domains, entity.ToDomain())
+func (receiver *Tx) CreateTargetConnection(accountGid *uuid.UUID, targetType string, token string) error {
+	query := `insert into wombatsm.target_connections(account_gid, target_type, token)
+              values($1, $2, $3)`
+	_, err := receiver.Exec(query, accountGid, targetType, token)
+	if err != nil {
+		slog.Warn(err.Error())
+		return err
+	} else {
+		return nil
 	}
-
-	return domains, nil
 }

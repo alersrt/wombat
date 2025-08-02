@@ -19,7 +19,9 @@ create table if not exists wombatsm.comments
 
 create table if not exists wombatsm.accounts
 (
-    gid uuid primary key default gen_random_uuid()
+    gid       uuid primary key                  default gen_random_uuid(),
+    create_ts timestamp with time zone not null default current_timestamp,
+    update_ts timestamp with time zone not null default current_timestamp
 );
 
 create table if not exists wombatsm.source_connections
