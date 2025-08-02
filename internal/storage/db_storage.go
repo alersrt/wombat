@@ -5,6 +5,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"log/slog"
+	"wombat/internal/domain"
 )
 
 type DbStorage struct {
@@ -98,4 +99,20 @@ func (receiver *Tx) CreateTargetConnection(accountGid *uuid.UUID, targetType str
 	} else {
 		return nil
 	}
+}
+
+func (receiver *Tx) GetTargetConnection(message *domain.Message) (*domain.TargetConnection, error) {
+	query := `select wtc.*
+              from wombatsm.accounts wa
+                left join wombatsm.target_connections wtc on wa.gid = wtc.account_gid
+                left join wombatsm.source_connections wsc on wa.gid = wsc.account_gid
+              where wsc.source_type = $1
+                and wsc.user_id = $2`
+	targetConnection := &TargetConnectionEntity{}
+	err := receiver.Get(targetConnection, query, message.SourceType.String(), message.UserId)
+	if err != nil {
+		slog.Warn(err.Error())
+		return nil, err
+	}
+	return targetConnection.ToDomain(), nil
 }

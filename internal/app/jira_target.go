@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"github.com/andygrunwald/go-jira"
 	"log/slog"
 	"regexp"
@@ -46,10 +47,11 @@ func (receiver *JiraClient) Add(issue string, text string) (string, error) {
 }
 
 type JiraTarget struct {
-	url       string
-	db        *storage.DbStorage
-	tagsRegex *regexp.Regexp
-	srcChan   chan *domain.Message
+	targetType domain.TargetType
+	url        string
+	db         *storage.DbStorage
+	tagsRegex  *regexp.Regexp
+	srcChan    chan *domain.Message
 }
 
 func NewJiraTarget(
@@ -67,58 +69,64 @@ func NewJiraTarget(
 }
 
 func (receiver *JiraTarget) GetTargetType() domain.TargetType {
-	return domain.Jira
+	return receiver.targetType
 }
 
 func (receiver *JiraTarget) Process() {
-	//for update := range receiver.srcChan {
-	//if !receiver.tagsRegex.MatchString(update.Content) {
-	//	slog.Info(fmt.Sprintf("Tag not found: %v", update.Content))
-	//	return
-	//}
-	//
-	//tx, err := receiver.db.BeginTx()
-	//processError(err)
-	//
-	//client, err := NewJiraClient(receiver.url, "")
-	//processError(err)
-	//
-	//tags := receiver.tagsRegex.FindAllString(update.Content, -1)
-	//savedComments, err := tx.GetCommentsByMetadata(update.SourceType, update.ChatId, update.MessageId)
-	//processError(err)
+	for update := range receiver.srcChan {
+		if !receiver.tagsRegex.MatchString(update.Content) {
+			slog.Info(fmt.Sprintf("Tag not found: %v", update.Content))
+			return
+		}
 
-	//if len(savedComments) == 0 {
-	//	for _, tag := range tags {
-	//		commentId, err := client.Add(tag, update.Content)
-	//		processError(err)
-	//		tx.SaveComment(&domain.Comment{
-	//			Message:   update,
-	//			Tag:       tag,
-	//			CommentId: commentId,
-	//		})
-	//	}
-	//} else {
-	//	taggedComments := map[string]*domain.Comment{}
-	//	for _, comment := range savedComments {
-	//		taggedComments[comment.Tag] = comment
-	//	}
-	//	for _, tag := range tags {
-	//		comment := taggedComments[tag]
-	//		err := client.Update(tag, comment.CommentId, update.Content)
-	//		processError(err)
-	//		tx.SaveComment(&domain.Comment{
-	//			Message:   update,
-	//			Tag:       tag,
-	//			CommentId: comment.CommentId,
-	//		})
-	//	}
-	//}
-	//}
+		tx, err := receiver.db.BeginTx()
+		processError(err, tx)
+
+		targetConnection, err := tx.GetTargetConnection(update)
+		processError(err, tx)
+
+		client, err := NewJiraClient(receiver.url, targetConnection.Token)
+		processError(err, tx)
+
+		tags := receiver.tagsRegex.FindAllString(update.Content, -1)
+		savedComments, err := tx.GetCommentsByMetadata(update.SourceType, update.ChatId, update.MessageId)
+		processError(err)
+
+		//if len(savedComments) == 0 {
+		//	for _, tag := range tags {
+		//		commentId, err := client.Add(tag, update.Content)
+		//		processError(err)
+		//		tx.SaveComment(&domain.Comment{
+		//			Message:   update,
+		//			Tag:       tag,
+		//			CommentId: commentId,
+		//		})
+		//	}
+		//} else {
+		//	taggedComments := map[string]*domain.Comment{}
+		//	for _, comment := range savedComments {
+		//		taggedComments[comment.Tag] = comment
+		//	}
+		//	for _, tag := range tags {
+		//		comment := taggedComments[tag]
+		//		err := client.Update(tag, comment.CommentId, update.Content)
+		//		processError(err)
+		//		tx.SaveComment(&domain.Comment{
+		//			Message:   update,
+		//			Tag:       tag,
+		//			CommentId: comment.CommentId,
+		//		})
+		//	}
+		//}
+	}
 }
 
-func processError(err error) {
+func processError(err error, tx *storage.Tx) {
 	if err != nil {
 		slog.Warn(err.Error())
+		if tx != nil {
+			tx.RollbackTx()
+		}
 		return
 	}
 }
