@@ -96,11 +96,12 @@ func (receiver *JiraTarget) Process() {
 			for _, tag := range tags {
 				commentId, err := client.Add(tag, update.Content)
 				processError(err, tx)
-				tx.SaveCommentMetadata(&domain.Comment{
+				_, err = tx.SaveCommentMetadata(&domain.Comment{
 					Message:   update,
 					Tag:       tag,
 					CommentId: commentId,
 				})
+				processError(err, tx)
 			}
 		} else {
 			taggedComments := map[string]*domain.Comment{}
@@ -111,13 +112,15 @@ func (receiver *JiraTarget) Process() {
 				comment := taggedComments[tag]
 				err := client.Update(tag, comment.CommentId, update.Content)
 				processError(err, tx)
-				tx.SaveCommentMetadata(&domain.Comment{
+				_, err = tx.SaveCommentMetadata(&domain.Comment{
 					Message:   update,
 					Tag:       tag,
 					CommentId: comment.CommentId,
 				})
+				processError(err, tx)
 			}
 		}
+		tx.CommitTx()
 	}
 }
 
