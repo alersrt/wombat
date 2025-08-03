@@ -36,7 +36,7 @@ func (receiver *CommentEntity) ToDomain() *domain.Comment {
 	}
 }
 
-func (receiver *CommentEntity) FromDomain(domain *domain.Comment) *CommentEntity {
+func (receiver *CommentEntity) FromDomain(domain *domain.Comment) Entity[domain.Comment] {
 	return &CommentEntity{
 		Gid:        domain.Gid,
 		TargetType: domain.TargetType.String(),

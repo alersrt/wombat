@@ -26,7 +26,7 @@ func (receiver *TargetConnectionEntity) ToDomain() *domain.TargetConnection {
 	}
 }
 
-func (receiver *TargetConnectionEntity) FromDomain(domain *domain.TargetConnection) *TargetConnectionEntity {
+func (receiver *TargetConnectionEntity) FromDomain(domain *domain.TargetConnection) Entity[domain.TargetConnection] {
 	return &TargetConnectionEntity{
 		Gid:        domain.Gid,
 		AccountGid: domain.AccountGid,

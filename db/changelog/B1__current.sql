@@ -41,7 +41,8 @@ create table if not exists wombatsm.comments
     comment_id  varchar                  not null,
     user_id     varchar                  not null,
     chat_id     varchar                  not null,
-    message_id  varchar                  not null,    tag         varchar                  not null,
+    message_id  varchar                  not null,
+    tag         varchar                  not null,
     create_ts   timestamp with time zone not null default current_timestamp,
     update_ts   timestamp with time zone not null default current_timestamp,
     constraint comments_nk unique (target_type, comment_id)

@@ -17,6 +17,14 @@ type Entity[D any] interface {
 	FromDomain(*D) Entity[D]
 }
 
+func ToDomain[D any](entities []Entity[D]) []*D {
+	var domains []*D
+	for _, entity := range entities {
+		domains = append(domains, entity.ToDomain())
+	}
+	return domains
+}
+
 type Tx struct {
 	*sqlx.Tx
 }
@@ -101,18 +109,55 @@ func (receiver *Tx) CreateTargetConnection(accountGid *uuid.UUID, targetType str
 	}
 }
 
-func (receiver *Tx) GetTargetConnection(message *domain.Message) (*domain.TargetConnection, error) {
+func (receiver *Tx) GetTargetConnection(sourceType string, targetType string, userId string) (*domain.TargetConnection, error) {
 	query := `select wtc.*
               from wombatsm.accounts wa
                 left join wombatsm.target_connections wtc on wa.gid = wtc.account_gid
                 left join wombatsm.source_connections wsc on wa.gid = wsc.account_gid
               where wsc.source_type = $1
-                and wsc.user_id = $2`
+                and wtc.target_type = $2
+                and wsc.user_id = $3`
 	targetConnection := &TargetConnectionEntity{}
-	err := receiver.Get(targetConnection, query, message.SourceType.String(), message.UserId)
+	err := receiver.Get(targetConnection, query, sourceType, targetType, userId)
 	if err != nil {
 		slog.Warn(err.Error())
 		return nil, err
 	}
 	return targetConnection.ToDomain(), nil
+}
+
+func (receiver *Tx) GetCommentMetadata(sourceType string, chatId string, userId string) ([]*domain.Comment, error) {
+	query := `select *
+              from wombatsm.comments
+              where source_type = $1
+                and chat_id = $2
+                and message_id = $3`
+	rows, err := receiver.Queryx(query, sourceType, chatId, userId)
+	if err != nil {
+		slog.Warn(err.Error())
+		return nil, err
+	}
+	var comments []Entity[domain.Comment]
+	err = rows.Scan(comments)
+	if err != nil {
+		return nil, err
+	}
+	return ToDomain(comments), nil
+}
+
+func (receiver *Tx) SaveCommentMetadata(domain *domain.Comment) (*domain.Comment, error) {
+	query := `insert into wombatsm.comments(target_type, source_type, comment_id, user_id, chat_id, message_id, tag)
+              values (:target_type, :source_type, :comment_id, :user_id, :chat_id, :message_id, :tag)
+              returning *`
+	row := receiver.QueryRowx(query, (*CommentEntity).FromDomain(nil, domain))
+	if row != nil && row.Err() != nil {
+		slog.Warn(row.Err().Error())
+		return nil, row.Err()
+	}
+	entity := &CommentEntity{}
+	err := row.Scan(entity)
+	if err != nil {
+		return nil, err
+	}
+	return entity.ToDomain(), nil
 }
