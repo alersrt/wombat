@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"os"
 	"wombat/internal"
-	"wombat/internal/domain"
 	"wombat/pkg/daemon"
 )
 
@@ -24,7 +23,7 @@ func main() {
 	dbStorage, err := internal.NewDbStorage(conf.PostgreSQL.Url)
 	terminateIfError(err)
 
-	forwardChannel := make(chan *domain.Message)
+	forwardChannel := make(chan *internal.Message)
 
 	telegramSource, err := internal.NewTelegramSource(conf.Telegram.Token, forwardChannel, dbStorage)
 	terminateIfError(err)
