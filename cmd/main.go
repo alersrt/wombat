@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"wombat/internal"
-	"wombat/pkg/daemon"
+	"wombat/pkg"
 )
 
 func main() {
@@ -31,7 +31,7 @@ func main() {
 	jiraTarget, err := internal.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, dbStorage, forwardChannel)
 	terminateIfError(err)
 
-	dmn := daemon.Create(conf)
+	dmn := pkg.Create(conf)
 	go dmn.
 		AddTask(jiraTarget.Process).
 		AddTask(telegramSource.Process).
