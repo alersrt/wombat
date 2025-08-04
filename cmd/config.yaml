@@ -1,7 +1,7 @@
 bot:
   tag: ${TAG_PATTERN:-(TEST-\d+)}
 jira:
-  url: ${JIRA_URL}
+  url: ${JIRA_URL:-localhost}
 telegram:
   token: ${TELEGRAM_TOKEN}
 database:

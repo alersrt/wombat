@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"log/slog"
 	"os"
 	"wombat/internal"
 	"wombat/pkg"
@@ -14,46 +13,30 @@ func main() {
 	defer mainCancelCauseFunc(nil)
 
 	conf := new(internal.Config)
-	args, err := parseArgs(os.Args)
-	terminateIfError(err)
+	args := parseArgs(os.Args)
 
-	err = conf.Init(args)
-	terminateIfError(err)
+	conf.Init(args)
 
 	dbStorage := internal.NewDbStorage(conf.PostgreSQL.Url)
-	terminateIfError(err)
-
 	forwardChannel := make(chan *internal.Message)
-
-	telegramSource, err := internal.NewTelegramSource(conf.Telegram.Token, forwardChannel, dbStorage)
-	terminateIfError(err)
-
-	jiraTarget, err := internal.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, dbStorage, forwardChannel)
-	terminateIfError(err)
+	telegramSource := internal.NewTelegramSource(conf.Telegram.Token, forwardChannel, dbStorage)
+	jiraTarget := internal.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, dbStorage, forwardChannel)
 
 	dmn := pkg.Create(conf)
 	go dmn.
 		AddTask(jiraTarget.Do).
 		AddTask(telegramSource.Do).
 		Start(mainCtx)
-
 	select {}
 }
 
-func terminateIfError(err error) {
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
-}
-
-func parseArgs(args []string) ([]string, error) {
+func parseArgs(args []string) []string {
 	flags := flag.NewFlagSet(args[0], flag.ExitOnError)
 	configPath := flags.String("config", "./cmd/config.yaml", "path to config")
 
 	if err := flags.Parse(args[1:]); err != nil {
-		return nil, err
+		panic(err)
 	}
 
-	return []string{*configPath}, nil
+	return []string{*configPath}
 }

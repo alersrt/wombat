@@ -2,7 +2,6 @@ package pkg
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -12,7 +11,7 @@ import (
 type Task func(ctx context.Context)
 
 type Config interface {
-	Init(args []string) error
+	Init(args []string)
 	IsInitiated() bool
 }
 
@@ -36,10 +35,7 @@ func (d *Daemon) handleSignals(ctx context.Context) {
 	case s := <-signalChan:
 		switch s {
 		case syscall.SIGHUP:
-			err := d.conf.Init(os.Args)
-			if err != nil {
-				slog.Error(err.Error())
-			}
+			d.conf.Init(os.Args)
 		case os.Interrupt:
 			os.Exit(130)
 		case os.Kill:
@@ -70,20 +66,11 @@ func (d *Daemon) AddTasks(tasks ...Task) *Daemon {
 
 func (d *Daemon) Start(ctx context.Context) {
 	if !d.conf.IsInitiated() {
-		err := d.conf.Init(os.Args)
-		if err != nil {
-			slog.Error(err.Error())
-			os.Exit(1)
-		}
+		d.conf.Init(os.Args)
 	}
 
 	go d.handleSignals(ctx)
 
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("Recovered in f", r)
-		}
-	}()
 	for _, task := range d.tasks {
 		go task(ctx)
 	}

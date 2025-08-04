@@ -35,7 +35,7 @@ type Config struct {
 	*Database   `yaml:"database,omitempty"`
 }
 
-func (c *Config) Init(args []string) error {
+func (c *Config) Init(args []string) {
 	slog.Info("Wombat initialization...")
 
 	configPath := args[0]
@@ -44,21 +44,21 @@ func (c *Config) Init(args []string) error {
 
 	file, err := os.ReadFile(configPath)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	replaced, err := shell.Expand(string(file), nil)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	err = yaml.Unmarshal([]byte(replaced), c)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	c.isInitiated = true
-	return nil
+	return
 }
 
 func (c *Config) IsInitiated() bool {

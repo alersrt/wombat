@@ -59,14 +59,14 @@ func NewJiraTarget(
 	tag string,
 	dbStorage *DbStorage,
 	srcChan chan *Message,
-) (*JiraTarget, error) {
+) *JiraTarget {
 	return &JiraTarget{
 		url:        url,
 		tagsRegex:  regexp.MustCompile(tag),
 		db:         dbStorage,
 		srcChan:    srcChan,
 		targetType: JiraType,
-	}, nil
+	}
 }
 
 func (t *JiraTarget) GetTargetType() TargetType {

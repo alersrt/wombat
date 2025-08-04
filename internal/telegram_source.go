@@ -22,11 +22,10 @@ type TelegramSource struct {
 	db      *DbStorage
 }
 
-func NewTelegramSource(token string, fwdChan chan *Message, db *DbStorage) (*TelegramSource, error) {
+func NewTelegramSource(token string, fwdChan chan *Message, db *DbStorage) *TelegramSource {
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
-		slog.Error(err.Error())
-		return nil, err
+		panic(err)
 	}
 
 	return &TelegramSource{
@@ -34,14 +33,14 @@ func NewTelegramSource(token string, fwdChan chan *Message, db *DbStorage) (*Tel
 		BotAPI:     bot,
 		fwdChan:    fwdChan,
 		db:         db,
-	}, nil
+	}
 }
 
 func (s *TelegramSource) GetSourceType() SourceType {
 	return s.sourceType
 }
 
-func (s *TelegramSource) init() (tgbotapi.UpdatesChannel, error) {
+func (s *TelegramSource) init() tgbotapi.UpdatesChannel {
 	u := tgbotapi.NewUpdate(0)
 	u.AllowedUpdates = append(
 		u.AllowedUpdates,
@@ -53,21 +52,16 @@ func (s *TelegramSource) init() (tgbotapi.UpdatesChannel, error) {
 	commands := tgbotapi.NewSetMyCommands(BotCommandRegister)
 	_, err := s.Request(commands)
 	if err != nil {
-		slog.Error(err.Error())
-		return nil, err
+		panic(err)
 	}
 
 	slog.Info(fmt.Sprintf("Authorized on account %s", s.Self.UserName))
 
-	return s.GetUpdatesChan(u), nil
+	return s.GetUpdatesChan(u)
 }
 
 func (s *TelegramSource) Do(ctx context.Context) {
-	updates, err := s.init()
-	if err != nil {
-		slog.Error(err.Error())
-		return
-	}
+	updates := s.init()
 
 	for update := range updates {
 		message := s.getMessage(&update)
@@ -138,6 +132,7 @@ func (s *TelegramSource) handleRegistration(userId string, token string) {
 			tx.RollbackTx()
 		}
 	}()
+
 	accountGid := tx.CreateAccount()
 	tx.CreateSourceConnection(accountGid, s.sourceType.String(), userId)
 	targetType := JiraType
