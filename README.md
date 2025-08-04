@@ -46,21 +46,19 @@ It's necessary to specify path to custom [config](./cmd/config.yaml): `--config=
 
 ### Default environment variables (can be changed)
 
-| Env                 | Description | Default           |
-|:--------------------|:------------|:------------------|
-| `TAG_PATTERN`       |             | `(TEST-\\d+)`     |
-| `JIRA_URL`          |             |                   |
-| `JIRA_USERNAME`     |             |                   |
-| `JIRA_PASSWORD`     |             |                   |
-| `TELEGRAM_TOKEN`    |             |                   |
-| `POSTGRES_USERNAME` |             | `wombat_rw`       |
-| `POSTGRES_PASSWORD` |             | `wombat_rw`       |
-| `POSTGRES_HOST`     |             | `localhost`       |
-| `POSTGRES_PORT`     |             | `5432`            |
-| `POSTGRES_DATABASE` |             | `wombatdb`        |
-| `POSTGRES_SSLMODE`  |             | `disable`         |
-| `KAFKA_GROUP_ID`    |             | `wombat`          |
-| `KAFKA_BOOTSTRAP`   |             | `localhost:9092`  |
-| `KAFKA_TOPIC`       |             | `wombat.response` |
+| Env                 | Description | Default                   |
+|:--------------------|:------------|:--------------------------|
+| `TAG_PATTERN`       |             | `(TEST-\d+)`              |
+| `JIRA_TOKEN`        |             |                           |
+| `TELEGRAM_TOKEN`    |             |                           |
+| `POSTGRES_USERNAME` |             | `postgres`                |
+| `POSTGRES_PASSWORD` |             | `postgres`                |
+| `POSTGRES_HOST`     |             | `localhost`               |
+| `POSTGRES_PORT`     |             | `5432`                    |
+| `POSTGRES_DATABASE` |             | `postgres`                |
+| `POSTGRES_SSLMODE`  |             | `disable`                 |
+| `KAFKA_GROUP_ID`    |             | `wombat`                  |
+| `KAFKA_BOOTSTRAP`   |             | `localhost:9092`          |
+| `KAFKA_TOPIC`       |             | `wombat.routing.response` |
 
 [extra]: https://github.com/golang-standards/project-layout

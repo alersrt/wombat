@@ -3,11 +3,9 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"log/slog"
 	"os"
-	"wombat/internal/app"
-	"wombat/internal/dao"
+	"wombat/internal"
 	"wombat/pkg/daemon"
 )
 
@@ -15,61 +13,38 @@ func main() {
 	mainCtx, mainCancelCauseFunc := context.WithCancelCause(context.Background())
 	defer mainCancelCauseFunc(nil)
 
-	conf := new(app.Config)
+	conf := new(internal.Config)
 	args, err := parseArgs(os.Args)
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
+	terminateIfError(err)
+
 	err = conf.Init(args)
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
+	terminateIfError(err)
 
-	kafkaConf := &kafka.ConfigMap{
-		"bootstrap.servers": conf.Kafka.Bootstrap,
-		"group.id":          conf.Kafka.GroupId,
-		"auto.offset.reset": "earliest",
-	}
-	kafkaHelper, err := app.NewKafkaHelper(kafkaConf)
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
+	dbStorage, err := internal.NewDbStorage(conf.PostgreSQL.Url)
+	terminateIfError(err)
 
-	aclRepository, err := dao.NewAclRepository(&conf.PostgreSQL.Url)
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
-	commentRepository, err := dao.NewCommentRepository(&conf.PostgreSQL.Url)
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
+	forwardChannel := make(chan *internal.Message)
 
-	telegram, err := app.NewTelegramSource(conf.Telegram.Token)
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
+	telegramSource, err := internal.NewTelegramSource(conf.Telegram.Token, forwardChannel, dbStorage)
+	terminateIfError(err)
 
-	jiraHelper, err := app.NewJiraClient(conf.Jira.Url, conf.Jira.Username, conf.Jira.Password)
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
+	jiraTarget, err := internal.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, dbStorage, forwardChannel)
+	terminateIfError(err)
 
 	dmn := daemon.Create(conf)
+	go dmn.
+		AddTask(jiraTarget.Process).
+		AddTask(telegramSource.Process).
+		Start(mainCtx)
 
-	runner, err := app.NewApplication(dmn, kafkaHelper, jiraHelper, aclRepository, commentRepository, telegram)
+	select {}
+}
+
+func terminateIfError(err error) {
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
 	}
-
-	runner.Run(mainCtx)
 }
 
 func parseArgs(args []string) ([]string, error) {

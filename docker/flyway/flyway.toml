@@ -1,8 +1,0 @@
-[environments.postgresql]
-url = "jdbc:postgresql://postgres:5432/wombatdb"
-user = "wombat_rw"
-password = "wombat_rw"
-sqlMigrationSuffixes = [".sql"]
-
-[flyway]
-environment = "postgresql"
