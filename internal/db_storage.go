@@ -137,7 +137,11 @@ func (receiver *Tx) GetCommentMetadata(sourceType string, chatId string, userId 
 		return nil, err
 	}
 	var comments []Entity[Comment]
-	err = rows.Scan(comments)
+	if rows.Next() {
+		comment := &CommentEntity{}
+		err = rows.Scan(comment)
+		comments = append(comments, comment)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -148,13 +152,15 @@ func (receiver *Tx) SaveCommentMetadata(domain *Comment) (*Comment, error) {
 	query := `insert into wombatsm.comments(target_type, source_type, comment_id, user_id, chat_id, message_id, tag)
               values (:target_type, :source_type, :comment_id, :user_id, :chat_id, :message_id, :tag)
               returning *`
-	row := receiver.QueryRowx(query, (*CommentEntity).FromDomain(nil, domain))
-	if row != nil && row.Err() != nil {
-		slog.Warn(row.Err().Error())
-		return nil, row.Err()
+	rows, err := receiver.NamedQuery(query, (*CommentEntity).FromDomain(nil, domain))
+	if err != nil {
+		slog.Warn(err.Error())
+		return nil, err
 	}
 	entity := &CommentEntity{}
-	err := row.Scan(entity)
+	if rows.Next() {
+		err = rows.Scan(entity)
+	}
 	if err != nil {
 		return nil, err
 	}
