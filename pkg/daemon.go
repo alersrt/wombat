@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -78,6 +79,11 @@ func (d *Daemon) Start(ctx context.Context) {
 
 	go d.handleSignals(ctx)
 
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in f", r)
+		}
+	}()
 	for _, task := range d.tasks {
 		go task(ctx)
 	}

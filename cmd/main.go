@@ -20,7 +20,7 @@ func main() {
 	err = conf.Init(args)
 	terminateIfError(err)
 
-	dbStorage, err := internal.NewDbStorage(conf.PostgreSQL.Url)
+	dbStorage := internal.NewDbStorage(conf.PostgreSQL.Url)
 	terminateIfError(err)
 
 	forwardChannel := make(chan *internal.Message)

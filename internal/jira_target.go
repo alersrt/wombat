@@ -9,40 +9,41 @@ import (
 )
 
 type TargetClient interface {
-	Add(tag string, text string) (string, error)
-	Update(tag string, commentId string, text string) error
+	Add(tag string, text string) string
+	Update(tag string, commentId string, text string)
 }
 
 type JiraClient struct {
 	*jira.Client
 }
 
-func NewJiraClient(url string, token string) (TargetClient, error) {
+func NewJiraClient(url string, token string) TargetClient {
 	tp := jira.PATAuthTransport{
 		Token: token,
 	}
 	client, err := jira.NewClient(tp.Client(), url)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return &JiraClient{
-		client,
-	}, nil
+	return &JiraClient{client}
 }
 
-func (c *JiraClient) Update(issue string, commentId string, text string) error {
+func (c *JiraClient) Update(issue string, commentId string, text string) {
 	_, _, err := c.Issue.UpdateComment(issue, &jira.Comment{ID: commentId, Body: text})
-	return err
+	if err != nil {
+		panic(err)
+	}
+	return
 }
 
-func (c *JiraClient) Add(issue string, text string) (string, error) {
+func (c *JiraClient) Add(issue string, text string) string {
 	comment, _, err := c.Issue.AddComment(issue, &jira.Comment{
 		Body: text,
 	})
 	if err != nil {
-		return "", err
+		panic(err)
 	}
-	return comment.ID, nil
+	return comment.ID
 }
 
 type JiraTarget struct {
@@ -74,62 +75,52 @@ func (t *JiraTarget) GetTargetType() TargetType {
 
 func (t *JiraTarget) Do(ctx context.Context) {
 	for update := range t.srcChan {
-		if !t.tagsRegex.MatchString(update.Content) {
-			slog.Info(fmt.Sprintf("Tag not found: %v", update.Content))
-			return
-		}
-
-		tx, err := t.db.BeginTx()
-		processError(err, tx)
-
-		targetConnection, err := tx.GetTargetConnection(update.SourceType.String(), update.TargetType.String(), update.UserId)
-		processError(err, tx)
-
-		client, err := NewJiraClient(t.url, targetConnection.Token)
-		processError(err, tx)
-
-		tags := t.tagsRegex.FindAllString(update.Content, -1)
-		savedComments, err := tx.GetCommentMetadata(update.SourceType.String(), update.ChatId, update.MessageId)
-		processError(err, tx)
-
-		if len(savedComments) == 0 {
-			for _, tag := range tags {
-				commentId, err := client.Add(tag, update.Content)
-				processError(err, tx)
-				_, err = tx.SaveCommentMetadata(&Comment{
-					Message:   update,
-					Tag:       tag,
-					CommentId: commentId,
-				})
-				processError(err, tx)
-			}
-		} else {
-			taggedComments := map[string]*Comment{}
-			for _, comment := range savedComments {
-				taggedComments[comment.Tag] = comment
-			}
-			for _, tag := range tags {
-				comment := taggedComments[tag]
-				err := client.Update(tag, comment.CommentId, update.Content)
-				processError(err, tx)
-				_, err = tx.SaveCommentMetadata(&Comment{
-					Message:   update,
-					Tag:       tag,
-					CommentId: comment.CommentId,
-				})
-				processError(err, tx)
-			}
-		}
-		tx.CommitTx()
+		t.handle(update)
 	}
 }
 
-func processError(err error, tx *Tx) {
-	if err != nil {
-		slog.Warn(err.Error())
-		if tx != nil {
-			tx.RollbackTx()
-		}
+func (t *JiraTarget) handle(msg *Message) {
+	if !t.tagsRegex.MatchString(msg.Content) {
+		slog.Info(fmt.Sprintf("Tag not found: %v", msg.Content))
 		return
 	}
+
+	tx := t.db.BeginTx()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.RollbackTx()
+		}
+	}()
+
+	targetConnection := tx.GetTargetConnection(msg.SourceType.String(), msg.TargetType.String(), msg.UserId)
+	client := NewJiraClient(t.url, targetConnection.Token)
+
+	tags := t.tagsRegex.FindAllString(msg.Content, -1)
+	savedComments := tx.GetCommentMetadata(msg.SourceType.String(), msg.ChatId, msg.MessageId)
+
+	if len(savedComments) == 0 {
+		for _, tag := range tags {
+			commentId := client.Add(tag, msg.Content)
+			tx.SaveCommentMetadata(&Comment{
+				Message:   msg,
+				Tag:       tag,
+				CommentId: commentId,
+			})
+		}
+	} else {
+		taggedComments := map[string]*Comment{}
+		for _, comment := range savedComments {
+			taggedComments[comment.Tag] = comment
+		}
+		for _, tag := range tags {
+			comment := taggedComments[tag]
+			client.Update(tag, comment.CommentId, msg.Content)
+			tx.SaveCommentMetadata(&Comment{
+				Message:   msg,
+				Tag:       tag,
+				CommentId: comment.CommentId,
+			})
+		}
+	}
+	tx.CommitTx()
 }

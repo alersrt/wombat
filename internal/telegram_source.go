@@ -129,29 +129,20 @@ func (s *TelegramSource) askToRegister(message *tgbotapi.Message) {
 	}
 }
 
-func (s *TelegramSource) handleRegistration(userId string, token string) error {
+func (s *TelegramSource) handleRegistration(userId string, token string) {
 	slog.Info("REG:START", "source", s.sourceType.String(), "userId", userId)
 
-	tx, err := s.db.BeginTx()
-	if err != nil {
-		return err
-	}
-
-	accountGid, err := tx.CreateAccount()
-	if err != nil {
-		return tx.RollbackTx()
-	}
-	err = tx.CreateSourceConnection(accountGid, s.sourceType.String(), userId)
-	if err != nil {
-		return tx.RollbackTx()
-	}
+	tx := s.db.BeginTx()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.RollbackTx()
+		}
+	}()
+	accountGid := tx.CreateAccount()
+	tx.CreateSourceConnection(accountGid, s.sourceType.String(), userId)
 	targetType := JiraType
-	err = tx.CreateTargetConnection(accountGid, targetType.String(), token)
-
-	if err != nil {
-		return tx.RollbackTx()
-	}
+	tx.CreateTargetConnection(accountGid, targetType.String(), token)
 
 	slog.Info("REG:FINISH", "source", s.sourceType.String(), "userId", userId)
-	return tx.CommitTx()
+	tx.CommitTx()
 }
