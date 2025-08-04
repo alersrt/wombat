@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"fmt"
 	"github.com/andygrunwald/go-jira"
 	"log/slog"
@@ -29,13 +30,13 @@ func NewJiraClient(url string, token string) (TargetClient, error) {
 	}, nil
 }
 
-func (receiver *JiraClient) Update(issue string, commentId string, text string) error {
-	_, _, err := receiver.Issue.UpdateComment(issue, &jira.Comment{ID: commentId, Body: text})
+func (c *JiraClient) Update(issue string, commentId string, text string) error {
+	_, _, err := c.Issue.UpdateComment(issue, &jira.Comment{ID: commentId, Body: text})
 	return err
 }
 
-func (receiver *JiraClient) Add(issue string, text string) (string, error) {
-	comment, _, err := receiver.Issue.AddComment(issue, &jira.Comment{
+func (c *JiraClient) Add(issue string, text string) (string, error) {
+	comment, _, err := c.Issue.AddComment(issue, &jira.Comment{
 		Body: text,
 	})
 	if err != nil {
@@ -67,27 +68,27 @@ func NewJiraTarget(
 	}, nil
 }
 
-func (receiver *JiraTarget) GetTargetType() TargetType {
-	return receiver.targetType
+func (t *JiraTarget) GetTargetType() TargetType {
+	return t.targetType
 }
 
-func (receiver *JiraTarget) Process() {
-	for update := range receiver.srcChan {
-		if !receiver.tagsRegex.MatchString(update.Content) {
+func (t *JiraTarget) Do(ctx context.Context) {
+	for update := range t.srcChan {
+		if !t.tagsRegex.MatchString(update.Content) {
 			slog.Info(fmt.Sprintf("Tag not found: %v", update.Content))
 			return
 		}
 
-		tx, err := receiver.db.BeginTx()
+		tx, err := t.db.BeginTx()
 		processError(err, tx)
 
 		targetConnection, err := tx.GetTargetConnection(update.SourceType.String(), update.TargetType.String(), update.UserId)
 		processError(err, tx)
 
-		client, err := NewJiraClient(receiver.url, targetConnection.Token)
+		client, err := NewJiraClient(t.url, targetConnection.Token)
 		processError(err, tx)
 
-		tags := receiver.tagsRegex.FindAllString(update.Content, -1)
+		tags := t.tagsRegex.FindAllString(update.Content, -1)
 		savedComments, err := tx.GetCommentMetadata(update.SourceType.String(), update.ChatId, update.MessageId)
 		processError(err, tx)
 

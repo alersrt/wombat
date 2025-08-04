@@ -33,8 +33,8 @@ func main() {
 
 	dmn := pkg.Create(conf)
 	go dmn.
-		AddTask(jiraTarget.Process).
-		AddTask(telegramSource.Process).
+		AddTask(jiraTarget.Do).
+		AddTask(telegramSource.Do).
 		Start(mainCtx)
 
 	select {}

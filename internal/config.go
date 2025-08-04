@@ -35,7 +35,7 @@ type Config struct {
 	*Database   `yaml:"database,omitempty"`
 }
 
-func (receiver *Config) Init(args []string) error {
+func (c *Config) Init(args []string) error {
 	slog.Info("Wombat initialization...")
 
 	configPath := args[0]
@@ -52,15 +52,15 @@ func (receiver *Config) Init(args []string) error {
 		return err
 	}
 
-	err = yaml.Unmarshal([]byte(replaced), receiver)
+	err = yaml.Unmarshal([]byte(replaced), c)
 	if err != nil {
 		return err
 	}
 
-	receiver.isInitiated = true
+	c.isInitiated = true
 	return nil
 }
 
-func (receiver *Config) IsInitiated() bool {
-	return receiver.isInitiated
+func (c *Config) IsInitiated() bool {
+	return c.isInitiated
 }

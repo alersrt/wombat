@@ -8,7 +8,7 @@ import (
 	"syscall"
 )
 
-type Task func()
+type Task func(ctx context.Context)
 
 type Config interface {
 	Init(args []string) error
@@ -25,7 +25,7 @@ func Create(conf Config) *Daemon {
 	return dmn
 }
 
-func (receiver *Daemon) handleSignals(ctx context.Context) {
+func (d *Daemon) handleSignals(ctx context.Context) {
 	signalChan := make(chan os.Signal, 1)
 
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGHUP)
@@ -35,7 +35,7 @@ func (receiver *Daemon) handleSignals(ctx context.Context) {
 	case s := <-signalChan:
 		switch s {
 		case syscall.SIGHUP:
-			err := receiver.conf.Init(os.Args)
+			err := d.conf.Init(os.Args)
 			if err != nil {
 				slog.Error(err.Error())
 			}
@@ -57,32 +57,32 @@ func (receiver *Daemon) handleSignals(ctx context.Context) {
 	}
 }
 
-func (receiver *Daemon) AddTask(task Task) *Daemon {
-	receiver.tasks = append(receiver.tasks, task)
-	return receiver
+func (d *Daemon) AddTask(task Task) *Daemon {
+	d.tasks = append(d.tasks, task)
+	return d
 }
 
-func (receiver *Daemon) AddTasks(tasks ...Task) *Daemon {
-	receiver.tasks = append(receiver.tasks, tasks...)
-	return receiver
+func (d *Daemon) AddTasks(tasks ...Task) *Daemon {
+	d.tasks = append(d.tasks, tasks...)
+	return d
 }
 
-func (receiver *Daemon) Start(ctx context.Context) {
-	if !receiver.conf.IsInitiated() {
-		err := receiver.conf.Init(os.Args)
+func (d *Daemon) Start(ctx context.Context) {
+	if !d.conf.IsInitiated() {
+		err := d.conf.Init(os.Args)
 		if err != nil {
 			slog.Error(err.Error())
 			os.Exit(1)
 		}
 	}
 
-	go receiver.handleSignals(ctx)
+	go d.handleSignals(ctx)
 
-	for _, task := range receiver.tasks {
-		go task()
+	for _, task := range d.tasks {
+		go task(ctx)
 	}
 }
 
-func (receiver *Daemon) GetConfig() Config {
-	return receiver.conf
+func (d *Daemon) GetConfig() Config {
+	return d.conf
 }

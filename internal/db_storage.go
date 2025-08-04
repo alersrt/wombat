@@ -39,8 +39,8 @@ func NewDbStorage(url string) (*DbStorage, error) {
 	}, nil
 }
 
-func (receiver *DbStorage) BeginTx() (*Tx, error) {
-	tx, err := receiver.db.Beginx()
+func (db *DbStorage) BeginTx() (*Tx, error) {
+	tx, err := db.db.Beginx()
 	if err != nil {
 		slog.Error(err.Error())
 		return nil, err
@@ -50,21 +50,21 @@ func (receiver *DbStorage) BeginTx() (*Tx, error) {
 	}, nil
 }
 
-func (receiver *Tx) CommitTx() error {
-	return receiver.Commit()
+func (tx *Tx) CommitTx() error {
+	return tx.Commit()
 }
 
-func (receiver *Tx) RollbackTx() error {
-	return receiver.Rollback()
+func (tx *Tx) RollbackTx() error {
+	return tx.Rollback()
 }
 
-func (receiver *DbStorage) HasConnectionSource(sourceType string, userId string) bool {
+func (db *DbStorage) HasConnectionSource(sourceType string, userId string) bool {
 	query := `select count(*)
               from wombatsm.source_connections wsc
               where wsc.source_type = $1
                 and wsc.user_id = $2;`
 	var count int
-	err := receiver.db.Get(&count, query, sourceType, userId)
+	err := db.db.Get(&count, query, sourceType, userId)
 	if err != nil {
 		slog.Warn(err.Error())
 		return false
@@ -72,10 +72,10 @@ func (receiver *DbStorage) HasConnectionSource(sourceType string, userId string)
 	return count == 1
 }
 
-func (receiver *Tx) CreateAccount() (*uuid.UUID, error) {
+func (tx *Tx) CreateAccount() (*uuid.UUID, error) {
 	gid := uuid.New()
 	query := `insert into wombatsm.accounts(gid) values($1)`
-	_, err := receiver.Exec(query, &gid)
+	_, err := tx.Exec(query, &gid)
 	if err != nil {
 		slog.Warn(err.Error())
 		return nil, err
@@ -84,10 +84,10 @@ func (receiver *Tx) CreateAccount() (*uuid.UUID, error) {
 	}
 }
 
-func (receiver *Tx) CreateSourceConnection(accountGid *uuid.UUID, sourceType string, userId string) error {
+func (tx *Tx) CreateSourceConnection(accountGid *uuid.UUID, sourceType string, userId string) error {
 	query := `insert into wombatsm.source_connections(account_gid, source_type, user_id)
               values($1, $2, $3)`
-	_, err := receiver.Exec(query, accountGid, sourceType, userId)
+	_, err := tx.Exec(query, accountGid, sourceType, userId)
 	if err != nil {
 		slog.Warn(err.Error())
 		return err
@@ -96,10 +96,10 @@ func (receiver *Tx) CreateSourceConnection(accountGid *uuid.UUID, sourceType str
 	}
 }
 
-func (receiver *Tx) CreateTargetConnection(accountGid *uuid.UUID, targetType string, token string) error {
+func (tx *Tx) CreateTargetConnection(accountGid *uuid.UUID, targetType string, token string) error {
 	query := `insert into wombatsm.target_connections(account_gid, target_type, token)
               values($1, $2, $3)`
-	_, err := receiver.Exec(query, accountGid, targetType, token)
+	_, err := tx.Exec(query, accountGid, targetType, token)
 	if err != nil {
 		slog.Warn(err.Error())
 		return err
@@ -108,7 +108,7 @@ func (receiver *Tx) CreateTargetConnection(accountGid *uuid.UUID, targetType str
 	}
 }
 
-func (receiver *Tx) GetTargetConnection(sourceType string, targetType string, userId string) (*TargetConnection, error) {
+func (tx *Tx) GetTargetConnection(sourceType string, targetType string, userId string) (*TargetConnection, error) {
 	query := `select wtc.*
               from wombatsm.accounts wa
                 left join wombatsm.target_connections wtc on wa.gid = wtc.account_gid
@@ -117,7 +117,7 @@ func (receiver *Tx) GetTargetConnection(sourceType string, targetType string, us
                 and wtc.target_type = $2
                 and wsc.user_id = $3`
 	targetConnection := &TargetConnectionEntity{}
-	err := receiver.Get(targetConnection, query, sourceType, targetType, userId)
+	err := tx.Get(targetConnection, query, sourceType, targetType, userId)
 	if err != nil {
 		slog.Warn(err.Error())
 		return nil, err
@@ -125,13 +125,13 @@ func (receiver *Tx) GetTargetConnection(sourceType string, targetType string, us
 	return targetConnection.ToDomain(), nil
 }
 
-func (receiver *Tx) GetCommentMetadata(sourceType string, chatId string, userId string) ([]*Comment, error) {
+func (tx *Tx) GetCommentMetadata(sourceType string, chatId string, userId string) ([]*Comment, error) {
 	query := `select *
               from wombatsm.comments
               where source_type = $1
                 and chat_id = $2
                 and message_id = $3`
-	rows, err := receiver.Queryx(query, sourceType, chatId, userId)
+	rows, err := tx.Queryx(query, sourceType, chatId, userId)
 	if err != nil {
 		slog.Warn(err.Error())
 		return nil, err
@@ -148,11 +148,11 @@ func (receiver *Tx) GetCommentMetadata(sourceType string, chatId string, userId 
 	return ToDomain(comments), nil
 }
 
-func (receiver *Tx) SaveCommentMetadata(domain *Comment) (*Comment, error) {
+func (tx *Tx) SaveCommentMetadata(domain *Comment) (*Comment, error) {
 	query := `insert into wombatsm.comments(target_type, source_type, comment_id, user_id, chat_id, message_id, tag)
               values (:target_type, :source_type, :comment_id, :user_id, :chat_id, :message_id, :tag)
               returning *`
-	rows, err := receiver.NamedQuery(query, (*CommentEntity).FromDomain(nil, domain))
+	rows, err := tx.NamedQuery(query, (*CommentEntity).FromDomain(nil, domain))
 	if err != nil {
 		slog.Warn(err.Error())
 		return nil, err

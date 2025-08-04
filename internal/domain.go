@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/google/uuid"
 	"time"
@@ -10,7 +11,7 @@ type SourceType uint
 
 type Source interface {
 	GetSourceType() SourceType
-	Process()
+	Do(ctx context.Context)
 }
 
 const (
@@ -26,31 +27,31 @@ var (
 	}
 )
 
-func (receiver *SourceType) String() string {
-	return sourceTypeToString[*receiver]
+func (t *SourceType) String() string {
+	return sourceTypeToString[*t]
 }
 
 func SourceTypeFromString(s string) SourceType {
 	return sourceTypeFromString[s]
 }
 
-func (receiver *SourceType) MarshalJSON() ([]byte, error) {
-	return json.Marshal(sourceTypeToString[*receiver])
+func (t *SourceType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(sourceTypeToString[*t])
 }
 
-func (receiver *SourceType) UnmarshalJSON(b []byte) error {
+func (t *SourceType) UnmarshalJSON(b []byte) error {
 	var s string
 	err := json.Unmarshal(b, &s)
 	if err != nil {
 		return err
 	}
-	*receiver = sourceTypeFromString[s]
+	*t = sourceTypeFromString[s]
 	return nil
 }
 
 type Target interface {
 	GetTargetType() TargetType
-	Process()
+	Do(ctx context.Context)
 }
 type TargetType uint
 
@@ -67,25 +68,25 @@ var (
 	}
 )
 
-func (receiver *TargetType) String() string {
-	return targetTypeToString[*receiver]
+func (t *TargetType) String() string {
+	return targetTypeToString[*t]
 }
 
 func TargetTypeFromString(s string) TargetType {
 	return targetTypeFromString[s]
 }
 
-func (receiver *TargetType) MarshalJSON() ([]byte, error) {
-	return json.Marshal(targetTypeToString[*receiver])
+func (t *TargetType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(targetTypeToString[*t])
 }
 
-func (receiver *TargetType) UnmarshalJSON(b []byte) error {
+func (t *TargetType) UnmarshalJSON(b []byte) error {
 	var s string
 	err := json.Unmarshal(b, &s)
 	if err != nil {
 		return err
 	}
-	*receiver = targetTypeFromString[s]
+	*t = targetTypeFromString[s]
 	return nil
 }
 
