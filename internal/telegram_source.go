@@ -1,12 +1,10 @@
-package app
+package internal
 
 import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log/slog"
 	"strconv"
-	"wombat/internal/domain"
-	"wombat/internal/storage"
 )
 
 var (
@@ -17,13 +15,13 @@ var (
 )
 
 type TelegramSource struct {
-	sourceType domain.SourceType
+	sourceType SourceType
 	*tgbotapi.BotAPI
-	fwdChan chan *domain.Message
-	db      *storage.DbStorage
+	fwdChan chan *Message
+	db      *DbStorage
 }
 
-func NewTelegramSource(token string, fwdChan chan *domain.Message, db *storage.DbStorage) (*TelegramSource, error) {
+func NewTelegramSource(token string, fwdChan chan *Message, db *DbStorage) (*TelegramSource, error) {
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		slog.Error(err.Error())
@@ -31,14 +29,14 @@ func NewTelegramSource(token string, fwdChan chan *domain.Message, db *storage.D
 	}
 
 	return &TelegramSource{
-		sourceType: domain.Telegram,
+		sourceType: TelegramType,
 		BotAPI:     bot,
 		fwdChan:    fwdChan,
 		db:         db,
 	}, nil
 }
 
-func (receiver *TelegramSource) GetSourceType() domain.SourceType {
+func (receiver *TelegramSource) GetSourceType() SourceType {
 	return receiver.sourceType
 }
 
@@ -75,9 +73,9 @@ func (receiver *TelegramSource) Process() {
 
 		if !update.Message.IsCommand() {
 			switch receiver.checkAccess(message) {
-			case domain.Registered:
+			case Registered:
 				receiver.handleMessage(message)
-			case domain.NotRegistered:
+			case NotRegistered:
 				receiver.askToRegister(message)
 			}
 		} else {
@@ -89,12 +87,12 @@ func (receiver *TelegramSource) Process() {
 	}
 }
 
-func (receiver *TelegramSource) checkAccess(message *tgbotapi.Message) domain.AccessState {
+func (receiver *TelegramSource) checkAccess(message *tgbotapi.Message) AccessState {
 	isOk := receiver.db.HasConnectionSource(receiver.sourceType.String(), strconv.FormatInt(message.From.ID, 10))
 	if isOk {
-		return domain.Registered
+		return Registered
 	} else {
-		return domain.NotRegistered
+		return NotRegistered
 	}
 }
 
@@ -110,9 +108,9 @@ func (receiver *TelegramSource) getMessage(update *tgbotapi.Update) *tgbotapi.Me
 }
 
 func (receiver *TelegramSource) handleMessage(message *tgbotapi.Message) {
-	msg := &domain.Message{
-		TargetType: domain.Jira,
-		SourceType: domain.Telegram,
+	msg := &Message{
+		TargetType: JiraType,
+		SourceType: TelegramType,
 		Content:    message.Text,
 		UserId:     strconv.FormatInt(message.From.ID, 10),
 		ChatId:     strconv.FormatInt(message.Chat.ID, 10),
@@ -146,7 +144,7 @@ func (receiver *TelegramSource) handleRegistration(userId string, token string) 
 	if err != nil {
 		return tx.RollbackTx()
 	}
-	targetType := domain.Jira
+	targetType := JiraType
 	err = tx.CreateTargetConnection(accountGid, targetType.String(), token)
 
 	if err != nil {

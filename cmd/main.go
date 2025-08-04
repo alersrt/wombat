@@ -5,9 +5,8 @@ import (
 	"flag"
 	"log/slog"
 	"os"
-	"wombat/internal/app"
+	"wombat/internal"
 	"wombat/internal/domain"
-	"wombat/internal/storage"
 	"wombat/pkg/daemon"
 )
 
@@ -15,22 +14,22 @@ func main() {
 	mainCtx, mainCancelCauseFunc := context.WithCancelCause(context.Background())
 	defer mainCancelCauseFunc(nil)
 
-	conf := new(app.Config)
+	conf := new(internal.Config)
 	args, err := parseArgs(os.Args)
 	terminateIfError(err)
 
 	err = conf.Init(args)
 	terminateIfError(err)
 
-	dbStorage, err := storage.NewDbStorage(conf.PostgreSQL.Url)
+	dbStorage, err := internal.NewDbStorage(conf.PostgreSQL.Url)
 	terminateIfError(err)
 
 	forwardChannel := make(chan *domain.Message)
 
-	telegramSource, err := app.NewTelegramSource(conf.Telegram.Token, forwardChannel, dbStorage)
+	telegramSource, err := internal.NewTelegramSource(conf.Telegram.Token, forwardChannel, dbStorage)
 	terminateIfError(err)
 
-	jiraTarget, err := app.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, dbStorage, forwardChannel)
+	jiraTarget, err := internal.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, dbStorage, forwardChannel)
 	terminateIfError(err)
 
 	dmn := daemon.Create(conf)

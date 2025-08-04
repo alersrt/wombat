@@ -1,12 +1,10 @@
-package app
+package internal
 
 import (
 	"fmt"
 	"github.com/andygrunwald/go-jira"
 	"log/slog"
 	"regexp"
-	"wombat/internal/domain"
-	"wombat/internal/storage"
 )
 
 type TargetClient interface {
@@ -47,28 +45,29 @@ func (receiver *JiraClient) Add(issue string, text string) (string, error) {
 }
 
 type JiraTarget struct {
-	targetType domain.TargetType
+	targetType TargetType
 	url        string
-	db         *storage.DbStorage
+	db         *DbStorage
 	tagsRegex  *regexp.Regexp
-	srcChan    chan *domain.Message
+	srcChan    chan *Message
 }
 
 func NewJiraTarget(
 	url string,
 	tag string,
-	dbStorage *storage.DbStorage,
-	srcChan chan *domain.Message,
+	dbStorage *DbStorage,
+	srcChan chan *Message,
 ) (*JiraTarget, error) {
 	return &JiraTarget{
-		url:       url,
-		tagsRegex: regexp.MustCompile(tag),
-		db:        dbStorage,
-		srcChan:   srcChan,
+		url:        url,
+		tagsRegex:  regexp.MustCompile(tag),
+		db:         dbStorage,
+		srcChan:    srcChan,
+		targetType: JiraType,
 	}, nil
 }
 
-func (receiver *JiraTarget) GetTargetType() domain.TargetType {
+func (receiver *JiraTarget) GetTargetType() TargetType {
 	return receiver.targetType
 }
 
@@ -96,7 +95,7 @@ func (receiver *JiraTarget) Process() {
 			for _, tag := range tags {
 				commentId, err := client.Add(tag, update.Content)
 				processError(err, tx)
-				_, err = tx.SaveCommentMetadata(&domain.Comment{
+				_, err = tx.SaveCommentMetadata(&Comment{
 					Message:   update,
 					Tag:       tag,
 					CommentId: commentId,
@@ -104,7 +103,7 @@ func (receiver *JiraTarget) Process() {
 				processError(err, tx)
 			}
 		} else {
-			taggedComments := map[string]*domain.Comment{}
+			taggedComments := map[string]*Comment{}
 			for _, comment := range savedComments {
 				taggedComments[comment.Tag] = comment
 			}
@@ -112,7 +111,7 @@ func (receiver *JiraTarget) Process() {
 				comment := taggedComments[tag]
 				err := client.Update(tag, comment.CommentId, update.Content)
 				processError(err, tx)
-				_, err = tx.SaveCommentMetadata(&domain.Comment{
+				_, err = tx.SaveCommentMetadata(&Comment{
 					Message:   update,
 					Tag:       tag,
 					CommentId: comment.CommentId,
@@ -124,7 +123,7 @@ func (receiver *JiraTarget) Process() {
 	}
 }
 
-func processError(err error, tx *storage.Tx) {
+func processError(err error, tx *Tx) {
 	if err != nil {
 		slog.Warn(err.Error())
 		if tx != nil {
