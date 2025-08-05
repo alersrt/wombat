@@ -24,10 +24,10 @@ type TelegramSource struct {
 }
 
 func NewTelegramSource(token string, fwdChan chan *Message, db *DbStorage) (ts *TelegramSource, err error) {
-	defer pkg.Catch(&err)
+	defer pkg.CatchWithReturn(&err)
 
 	bot, err := tgbotapi.NewBotAPI(token)
-	pkg.Try(err)
+	pkg.TryPanic(err)
 
 	return &TelegramSource{
 		sourceType: TelegramType,
@@ -52,7 +52,7 @@ func (s *TelegramSource) init() tgbotapi.UpdatesChannel {
 
 	commands := tgbotapi.NewSetMyCommands(BotCommandRegister)
 	_, err := s.Request(commands)
-	pkg.Try(err)
+	pkg.TryPanic(err)
 
 	slog.Info(fmt.Sprintf("Authorized on account %s", s.Self.UserName))
 
@@ -61,7 +61,7 @@ func (s *TelegramSource) init() tgbotapi.UpdatesChannel {
 
 func (s *TelegramSource) Do(ctx context.Context) (err error) {
 	updates := s.init()
-	defer pkg.Catch(&err)
+	defer pkg.CatchWithReturn(&err)
 
 	for update := range updates {
 		message := s.getMessage(&update)
@@ -77,7 +77,7 @@ func (s *TelegramSource) Do(ctx context.Context) (err error) {
 			switch message.Command() {
 			case BotCommandRegister.Command:
 				err := s.handleRegistration(strconv.FormatInt(message.From.ID, 10), message.CommandArguments())
-				pkg.Try(err)
+				pkg.TryPanic(err)
 			}
 		}
 	}
@@ -119,14 +119,14 @@ func (s *TelegramSource) handleMessage(message *tgbotapi.Message) {
 func (s *TelegramSource) askToRegister(message *tgbotapi.Message) {
 	askMsg := tgbotapi.NewMessage(message.Chat.ID, "/register <Private Access Token>")
 	_, err := s.Send(askMsg)
-	pkg.Try(err)
+	pkg.TryPanic(err)
 }
 
 func (s *TelegramSource) handleRegistration(userId string, token string) (err error) {
 	slog.Info("REG:START", "source", s.sourceType.String(), "userId", userId)
 
 	tx := s.db.BeginTx()
-	defer pkg.CatchWithPost(&err, tx.RollbackTx)
+	defer pkg.CatchWithReturnAndPost(&err, tx.RollbackTx)
 
 	accountGid := tx.CreateAccount()
 	tx.CreateSourceConnection(accountGid, s.sourceType.String(), userId)

@@ -10,8 +10,8 @@ import (
 )
 
 type TargetClient interface {
-	Add(tag string, text string) (string, error)
-	Update(tag string, commentId string, text string) error
+	Add(tag string, text string) string
+	Update(tag string, commentId string, text string)
 }
 
 type JiraClient struct {
@@ -19,29 +19,26 @@ type JiraClient struct {
 }
 
 func NewJiraClient(url string, token string) (tc TargetClient, err error) {
-	defer pkg.Catch(&err)
+	defer pkg.CatchWithReturn(&err)
 	tp := jira.PATAuthTransport{Token: token}
 	client, ex := jira.NewClient(tp.Client(), url)
-	pkg.Try(ex)
+	pkg.TryPanic(ex)
 	if client != nil {
 		tc = &JiraClient{client}
 	}
 	return
 }
 
-func (c *JiraClient) Update(issue string, commentId string, text string) (err error) {
-	_, _, err = c.Issue.UpdateComment(issue, &jira.Comment{ID: commentId, Body: text})
+func (c *JiraClient) Update(issue string, commentId string, text string) {
+	_, _, err := c.Issue.UpdateComment(issue, &jira.Comment{ID: commentId, Body: text})
+	pkg.TryPanic(err)
 	return
 }
 
-func (c *JiraClient) Add(issue string, text string) (cId string, err error) {
-	defer pkg.Catch(&err)
+func (c *JiraClient) Add(issue string, text string) string {
 	comment, _, ex := c.Issue.AddComment(issue, &jira.Comment{Body: text})
-	pkg.Try(ex)
-	if comment != nil {
-		cId = comment.ID
-	}
-	return
+	pkg.TryPanic(ex)
+	return comment.ID
 }
 
 type JiraTarget struct {
@@ -72,10 +69,9 @@ func (t *JiraTarget) GetTargetType() TargetType {
 }
 
 func (t *JiraTarget) Do(ctx context.Context) (err error) {
-	defer pkg.Catch(&err)
 	for update := range t.srcChan {
 		ex := t.handle(update)
-		pkg.Try(ex)
+		pkg.TryPanic(ex)
 	}
 	return
 }
@@ -87,19 +83,18 @@ func (t *JiraTarget) handle(msg *Message) (err error) {
 	}
 
 	tx := t.db.BeginTx()
-	defer pkg.CatchWithPost(&err, tx.RollbackTx)
+	defer pkg.CatchWithReturnAndPost(&err, tx.RollbackTx)
 
 	targetConnection := tx.GetTargetConnection(msg.SourceType.String(), msg.TargetType.String(), msg.UserId)
 	client, ex := NewJiraClient(t.url, targetConnection.Token)
-	pkg.Try(ex)
+	pkg.TryPanic(ex)
 
 	tags := t.tagsRegex.FindAllString(msg.Content, -1)
 	savedComments := tx.GetCommentMetadata(msg.SourceType.String(), msg.ChatId, msg.MessageId)
 
 	if len(savedComments) == 0 {
 		for _, tag := range tags {
-			commentId, ex := client.Add(tag, msg.Content)
-			pkg.Try(ex)
+			commentId := client.Add(tag, msg.Content)
 			tx.SaveCommentMetadata(&Comment{Message: msg, Tag: tag, CommentId: commentId})
 		}
 	} else {
@@ -109,8 +104,7 @@ func (t *JiraTarget) handle(msg *Message) (err error) {
 		}
 		for _, tag := range tags {
 			comment := taggedComments[tag]
-			ex := client.Update(tag, comment.CommentId, msg.Content)
-			pkg.Try(ex)
+			client.Update(tag, comment.CommentId, msg.Content)
 			tx.SaveCommentMetadata(&Comment{Message: msg, Tag: tag, CommentId: comment.CommentId})
 		}
 	}

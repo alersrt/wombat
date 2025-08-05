@@ -16,13 +16,13 @@ func main() {
 	args := parseArgs(os.Args)
 
 	err := conf.Init(args)
-	pkg.Try(err)
+	pkg.TryPanic(err)
 
 	db, err := internal.NewDbStorage(conf.PostgreSQL.Url)
-	pkg.Try(err)
+	pkg.TryPanic(err)
 	forwardChannel := make(chan *internal.Message)
 	telegramSource, err := internal.NewTelegramSource(conf.Telegram.Token, forwardChannel, db)
-	pkg.Try(err)
+	pkg.TryPanic(err)
 	jiraTarget := internal.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, db, forwardChannel)
 
 	dmn := pkg.Create(conf)
@@ -31,7 +31,7 @@ func main() {
 			AddTask(jiraTarget.Do).
 			AddTask(telegramSource.Do).
 			Start(mainCtx)
-		pkg.Try(err)
+		pkg.TryPanic(err)
 	}()
 	select {}
 }
@@ -41,7 +41,7 @@ func parseArgs(args []string) []string {
 	configPath := flags.String("config", "./cmd/config.yaml", "path to config")
 
 	err := flags.Parse(args[1:])
-	pkg.Try(err)
+	pkg.TryPanic(err)
 
 	return []string{*configPath}
 }

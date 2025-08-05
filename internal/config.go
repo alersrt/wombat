@@ -41,16 +41,16 @@ func (c *Config) Init(args []string) (err error) {
 	configPath := args[0]
 
 	defer slog.Info("Config file: " + configPath)
-	defer pkg.Catch(&err)
+	defer pkg.CatchWithReturn(&err)
 
 	file, err := os.ReadFile(configPath)
-	pkg.Try(err)
+	pkg.TryPanic(err)
 
 	replaced, err := shell.Expand(string(file), nil)
-	pkg.Try(err)
+	pkg.TryPanic(err)
 
 	err = yaml.Unmarshal([]byte(replaced), c)
-	pkg.Try(err)
+	pkg.TryPanic(err)
 
 	c.isInitiated = true
 	return

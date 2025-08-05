@@ -36,7 +36,7 @@ func (d *Daemon) handleSignals(ctx context.Context) {
 		switch s {
 		case syscall.SIGHUP:
 			err := d.conf.Init(os.Args)
-			Try(err)
+			TryPanic(err)
 		case os.Interrupt:
 			os.Exit(130)
 		case os.Kill:
@@ -66,20 +66,20 @@ func (d *Daemon) AddTasks(tasks ...Task) *Daemon {
 }
 
 func (d *Daemon) Start(ctx context.Context) (err error) {
-	defer Catch(&err)
+	defer CatchWithReturn(&err)
 
 	if !d.conf.IsInitiated() {
 		err := d.conf.Init(os.Args)
-		Try(err)
+		TryPanic(err)
 	}
 
 	go d.handleSignals(ctx)
 
 	for _, task := range d.tasks {
 		go func() {
-			defer CatchWithoutReturn()
+			defer Catch()
 			err := task(ctx)
-			Try(err)
+			TryPanic(err)
 		}()
 	}
 
