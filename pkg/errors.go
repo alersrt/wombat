@@ -4,36 +4,68 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"time"
 )
 
 func Catch() {
-	CatchWithReturn(nil)
+	if r := recover(); r != nil {
+		switch v := r.(type) {
+		case LocatedError:
+			fmt.Printf("%v %s:%d %v\n", v.createdTs, v.filename, v.line, v.err)
+		case error:
+			fmt.Printf("%v %v\n", time.Now(), v)
+		case string:
+			fmt.Printf("%v %v\n", time.Now(), v)
+		default:
+			fmt.Printf("%v %v\n", time.Now(), v)
+		}
+	}
 }
 
 func CatchWithReturn(err *error) {
-	CatchWithReturnAndPost(err, nil)
+	if r := recover(); r != nil {
+		switch v := r.(type) {
+		case LocatedError:
+			fmt.Printf("%v %s:%d %v\n", v.createdTs, v.filename, v.line, v.err)
+			if err != nil {
+				*err = v.err
+			}
+		case error:
+			fmt.Printf("%v %v\n", time.Now(), v)
+			if err != nil {
+				*err = v
+			}
+		case string:
+			fmt.Printf("%v %v\n", time.Now(), v)
+			if err != nil {
+				*err = errors.New(v)
+			}
+		default:
+			fmt.Printf("%v %v\n", time.Now(), v)
+		}
+	}
 }
 
 func CatchWithReturnAndPost(err *error, post func()) {
 	if r := recover(); r != nil {
 		switch v := r.(type) {
 		case LocatedError:
-			fmt.Printf("%s:%d %v", v.filename, v.line, v.err)
+			fmt.Printf("%v %s:%d %v\n", v.createdTs, v.filename, v.line, v.err)
 			if err != nil {
 				*err = v.err
 			}
 		case error:
-			fmt.Printf("%v", v)
+			fmt.Printf("%v %v\n", time.Now(), v)
 			if err != nil {
 				*err = v
 			}
 		case string:
-			fmt.Printf("%v", v)
+			fmt.Printf("%v %v\n", time.Now(), v)
 			if err != nil {
 				*err = errors.New(v)
 			}
 		default:
-			fmt.Printf("%v", v)
+			fmt.Printf("%v %v\n", time.Now(), v)
 		}
 
 		if post != nil {
@@ -43,14 +75,19 @@ func CatchWithReturnAndPost(err *error, post func()) {
 }
 
 type LocatedError struct {
-	filename string
-	line     int
-	err      error
+	createdTs time.Time
+	filename  string
+	line      int
+	err       error
+}
+
+func (l *LocatedError) Error() string {
+	return l.err.Error()
 }
 
 func TryPanic(err error) {
 	if err != nil {
 		_, filename, line, _ := runtime.Caller(1)
-		panic(LocatedError{filename, line, err})
+		panic(LocatedError{time.Now(), filename, line, err})
 	}
 }
