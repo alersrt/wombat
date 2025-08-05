@@ -97,11 +97,7 @@ func (t *JiraTarget) handle(msg *Message) (err error) {
 		for _, tag := range tags {
 			commentId, err := client.Add(tag, msg.Content)
 			pkg.Try(err)
-			tx.SaveCommentMetadata(&Comment{
-				Message:   msg,
-				Tag:       tag,
-				CommentId: commentId,
-			})
+			tx.SaveCommentMetadata(&Comment{Message: msg, Tag: tag, CommentId: commentId})
 		}
 	} else {
 		taggedComments := map[string]*Comment{}
@@ -112,11 +108,7 @@ func (t *JiraTarget) handle(msg *Message) (err error) {
 			comment := taggedComments[tag]
 			err := client.Update(tag, comment.CommentId, msg.Content)
 			pkg.Try(err)
-			tx.SaveCommentMetadata(&Comment{
-				Message:   msg,
-				Tag:       tag,
-				CommentId: comment.CommentId,
-			})
+			tx.SaveCommentMetadata(&Comment{Message: msg, Tag: tag, CommentId: comment.CommentId})
 		}
 	}
 	tx.CommitTx()
