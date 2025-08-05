@@ -15,29 +15,10 @@ The main idea:
 3. Parses message to match issues' numbers pattern.
 4. Creates comment in related Jira task or edits existed one.
 
-```mermaid
-flowchart LR
-    user([User])
-    kafka([Kafka])
-    tapi([Telegram API])
-    router[Router]
-    config[Config]
-    cc[Confluence Connector]
-    jc[Jira Connector]
-    
-    
-    user --> tapi
-    tapi --> router
-    config --> router
-    router --> kafka
-    kafka --> cc
-    kafka --> jc
-```
-
 Auth
 ----
 
-Right now it supports only really simple auth: small table with list of usernames and flags of allowing.
+Right now it supports only really simple auth: bind to telegram's `user_id`.
 
 Usage
 ------
@@ -46,19 +27,17 @@ It's necessary to specify path to custom [config](./cmd/config.yaml): `--config=
 
 ### Default environment variables (can be changed)
 
-| Env                 | Description | Default                   |
-|:--------------------|:------------|:--------------------------|
-| `TAG_PATTERN`       |             | `(TEST-\d+)`              |
-| `JIRA_TOKEN`        |             |                           |
-| `TELEGRAM_TOKEN`    |             |                           |
-| `POSTGRES_USERNAME` |             | `postgres`                |
-| `POSTGRES_PASSWORD` |             | `postgres`                |
-| `POSTGRES_HOST`     |             | `localhost`               |
-| `POSTGRES_PORT`     |             | `5432`                    |
-| `POSTGRES_DATABASE` |             | `postgres`                |
-| `POSTGRES_SSLMODE`  |             | `disable`                 |
-| `KAFKA_GROUP_ID`    |             | `wombat`                  |
-| `KAFKA_BOOTSTRAP`   |             | `localhost:9092`          |
-| `KAFKA_TOPIC`       |             | `wombat.routing.response` |
+| Env                        | Description | Default      |
+|:---------------------------|:------------|:-------------|
+| `WOMBAT_TAG_PATTERN`       |             | `(TEST-\d+)` |
+| `WOMBAT_JIRA_URL`          |             |              |
+| `WOMBAT_TELEGRAM_TOKEN`    |             |              |
+| `WOMBAT_CIPHER_KEY`        |             | `0==H`       |
+| `WOMBAT_POSTGRES_USERNAME` |             | `postgres`   |
+| `WOMBAT_POSTGRES_PASSWORD` |             | `postgres`   |
+| `WOMBAT_POSTGRES_HOST`     |             | `localhost`  |
+| `WOMBAT_POSTGRES_PORT`     |             | `5432`       |
+| `WOMBAT_POSTGRES_DATABASE` |             | `postgres`   |
+| `WOMBAT_POSTGRES_SSLMODE`  |             | `disable`    |
 
 [extra]: https://github.com/golang-standards/project-layout

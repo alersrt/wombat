@@ -12,6 +12,10 @@ type Bot struct {
 	Tag string `yaml:"tag,omitempty"`
 }
 
+type Cipher struct {
+	Key string `yaml:"key"`
+}
+
 type Jira struct {
 	Url string `yaml:"url,omitempty"`
 }
@@ -31,6 +35,7 @@ type Database struct {
 type Config struct {
 	isInitiated bool
 	*Bot        `yaml:"bot,omitempty"`
+	*Cipher     `yaml:"cipher,omitempty"`
 	*Jira       `yaml:"jira,omitempty"`
 	*Telegram   `yaml:"telegram,omitempty"`
 	*Database   `yaml:"database,omitempty"`

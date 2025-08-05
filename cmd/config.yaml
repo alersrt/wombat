@@ -1,10 +1,12 @@
 bot:
-  tag: ${TAG_PATTERN:-(TEST-\d+)}
+  tag: ${WOMBAT_TAG_PATTERN:-(TEST-\d+)}
+cipher:
+  key: ${WOMBAT_CIPHER_KEY:-0==H}
 jira:
-  url: ${JIRA_URL:-localhost}
+  url: ${WOMBAT_JIRA_URL:-localhost}
 telegram:
-  token: ${TELEGRAM_TOKEN}
+  token: ${WOMBAT_TELEGRAM_TOKEN}
 database:
   postgresql:
-    url: postgres://${POSTGRES_USERNAME:-postgres}:${POSTGRES_PASSWORD:-postgres}@${POSTGRES_HOST:-localhost}:${POSTGRES_PORT:-5432}/${POSTGRES_DATABASE:-postgres}?sslmode=${POSTGRES_SSLMODE:-disable}
+    url: postgres://${WOMBAT_POSTGRES_USERNAME:-postgres}:${WOMBAT_POSTGRES_PASSWORD:-postgres}@${WOMBAT_POSTGRES_HOST:-localhost}:${WOMBAT_POSTGRES_PORT:-5432}/${WOMBAT_POSTGRES_DATABASE:-postgres}?sslmode=${WOMBAT_POSTGRES_SSLMODE:-disable}
 
