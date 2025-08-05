@@ -26,8 +26,6 @@ func Create(conf Config) *Daemon {
 }
 
 func (d *Daemon) handleSignals(ctx context.Context) {
-	defer CatchWithoutReturn()
-
 	signalChan := make(chan os.Signal, 1)
 
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGHUP)
