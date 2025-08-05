@@ -28,10 +28,11 @@ type Tx struct {
 	*sqlx.Tx
 }
 
-func NewDbStorage(url string) *DbStorage {
-	db, err := sqlx.Connect("postgres", url)
+func NewDbStorage(url string) (db *DbStorage, err error) {
+	defer pkg.Catch(err)
+	dbConn, err := sqlx.Connect("postgres", url)
 	pkg.Try(err)
-	return &DbStorage{db: db}
+	return &DbStorage{db: dbConn}, nil
 }
 
 func (db *DbStorage) BeginTx() *Tx {

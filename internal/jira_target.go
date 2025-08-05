@@ -71,7 +71,8 @@ func (t *JiraTarget) GetTargetType() TargetType {
 func (t *JiraTarget) Do(ctx context.Context) (err error) {
 	defer pkg.Catch(err)
 	for update := range t.srcChan {
-		t.handle(update)
+		err := t.handle(update)
+		pkg.Try(err)
 	}
 	return
 }

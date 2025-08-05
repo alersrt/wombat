@@ -18,11 +18,12 @@ func main() {
 	err := conf.Init(args)
 	pkg.Try(err)
 
-	dbStorage := internal.NewDbStorage(conf.PostgreSQL.Url)
-	forwardChannel := make(chan *internal.Message)
-	telegramSource, err := internal.NewTelegramSource(conf.Telegram.Token, forwardChannel, dbStorage)
+	db, err := internal.NewDbStorage(conf.PostgreSQL.Url)
 	pkg.Try(err)
-	jiraTarget := internal.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, dbStorage, forwardChannel)
+	forwardChannel := make(chan *internal.Message)
+	telegramSource, err := internal.NewTelegramSource(conf.Telegram.Token, forwardChannel, db)
+	pkg.Try(err)
+	jiraTarget := internal.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, db, forwardChannel)
 
 	dmn := pkg.Create(conf)
 	go func() {

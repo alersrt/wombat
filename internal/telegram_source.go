@@ -133,8 +133,7 @@ func (s *TelegramSource) handleRegistration(userId string, token string) (err er
 	targetType := JiraType
 	tx.CreateTargetConnection(accountGid, targetType.String(), token)
 
-	slog.Info("REG:FINISH", "source", s.sourceType.String(), "userId", userId)
 	tx.CommitTx()
-
+	slog.Info("REG:FINISH", "source", s.sourceType.String(), "userId", userId)
 	return
 }
