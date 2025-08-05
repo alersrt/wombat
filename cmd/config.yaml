@@ -1,7 +1,7 @@
 bot:
   tag: ${WOMBAT_TAG_PATTERN:-(TEST-\d+)}
 cipher:
-  key: ${WOMBAT_CIPHER_KEY:-0==H}
+  key: ${WOMBAT_CIPHER_KEY:-00000100010000100000100010001001}
 jira:
   url: ${WOMBAT_JIRA_URL:-localhost}
 telegram:

@@ -27,17 +27,17 @@ It's necessary to specify path to custom [config](./cmd/config.yaml): `--config=
 
 ### Default environment variables (can be changed)
 
-| Env                        | Description | Default      |
-|:---------------------------|:------------|:-------------|
-| `WOMBAT_TAG_PATTERN`       |             | `(TEST-\d+)` |
-| `WOMBAT_JIRA_URL`          |             |              |
-| `WOMBAT_TELEGRAM_TOKEN`    |             |              |
-| `WOMBAT_CIPHER_KEY`        |             | `0==H`       |
-| `WOMBAT_POSTGRES_USERNAME` |             | `postgres`   |
-| `WOMBAT_POSTGRES_PASSWORD` |             | `postgres`   |
-| `WOMBAT_POSTGRES_HOST`     |             | `localhost`  |
-| `WOMBAT_POSTGRES_PORT`     |             | `5432`       |
-| `WOMBAT_POSTGRES_DATABASE` |             | `postgres`   |
-| `WOMBAT_POSTGRES_SSLMODE`  |             | `disable`    |
+| Env                        | Description | Default                            |
+|:---------------------------|:------------|:-----------------------------------|
+| `WOMBAT_TAG_PATTERN`       |             | `(TEST-\d+)`                       |
+| `WOMBAT_JIRA_URL`          |             |                                    |
+| `WOMBAT_TELEGRAM_TOKEN`    |             |                                    |
+| `WOMBAT_CIPHER_KEY`        |             | `00000100010000100000100010001001` |
+| `WOMBAT_POSTGRES_USERNAME` |             | `postgres`                         |
+| `WOMBAT_POSTGRES_PASSWORD` |             | `postgres`                         |
+| `WOMBAT_POSTGRES_HOST`     |             | `localhost`                        |
+| `WOMBAT_POSTGRES_PORT`     |             | `5432`                             |
+| `WOMBAT_POSTGRES_DATABASE` |             | `postgres`                         |
+| `WOMBAT_POSTGRES_SSLMODE`  |             | `disable`                          |
 
 [extra]: https://github.com/golang-standards/project-layout
