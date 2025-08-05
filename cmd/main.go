@@ -39,9 +39,8 @@ func parseArgs(args []string) []string {
 	flags := flag.NewFlagSet(args[0], flag.ExitOnError)
 	configPath := flags.String("config", "./cmd/config.yaml", "path to config")
 
-	if err := flags.Parse(args[1:]); err != nil {
-		panic(err)
-	}
+	err := flags.Parse(args[1:])
+	pkg.Try(err)
 
 	return []string{*configPath}
 }
