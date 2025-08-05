@@ -31,24 +31,24 @@ type Tx struct {
 func NewDbStorage(url string) (db *DbStorage, err error) {
 	defer pkg.CatchWithReturn(&err)
 	dbConn, err := sqlx.Connect("postgres", url)
-	pkg.TryPanic(err)
+	pkg.Throw(err)
 	return &DbStorage{db: dbConn}, nil
 }
 
 func (db *DbStorage) BeginTx() *Tx {
 	tx, err := db.db.Beginx()
-	pkg.TryPanic(err)
+	pkg.Throw(err)
 	return &Tx{Tx: tx}
 }
 
 func (tx *Tx) CommitTx() {
 	err := tx.Commit()
-	pkg.TryPanic(err)
+	pkg.Throw(err)
 }
 
 func (tx *Tx) RollbackTx() {
 	err := tx.Rollback()
-	pkg.TryPanic(err)
+	pkg.Throw(err)
 }
 
 func (db *DbStorage) HasConnectionSource(sourceType string, userId string) bool {
@@ -58,7 +58,7 @@ func (db *DbStorage) HasConnectionSource(sourceType string, userId string) bool 
                 and wsc.user_id = $2;`
 	var count int
 	err := db.db.Get(&count, query, sourceType, userId)
-	pkg.TryPanic(err)
+	pkg.Throw(err)
 	return count == 1
 }
 
@@ -66,7 +66,7 @@ func (tx *Tx) CreateAccount() *uuid.UUID {
 	gid := uuid.New()
 	query := `insert into wombatsm.accounts(gid) values($1)`
 	_, err := tx.Exec(query, &gid)
-	pkg.TryPanic(err)
+	pkg.Throw(err)
 	return &gid
 }
 
@@ -74,7 +74,7 @@ func (tx *Tx) CreateSourceConnection(accountGid *uuid.UUID, sourceType string, u
 	query := `insert into wombatsm.source_connections(account_gid, source_type, user_id)
               values($1, $2, $3)`
 	_, err := tx.Exec(query, accountGid, sourceType, userId)
-	pkg.TryPanic(err)
+	pkg.Throw(err)
 	return
 }
 
@@ -82,7 +82,7 @@ func (tx *Tx) CreateTargetConnection(accountGid *uuid.UUID, targetType string, t
 	query := `insert into wombatsm.target_connections(account_gid, target_type, token)
               values($1, $2, $3)`
 	_, err := tx.Exec(query, accountGid, targetType, token)
-	pkg.TryPanic(err)
+	pkg.Throw(err)
 	return
 }
 
@@ -96,7 +96,7 @@ func (tx *Tx) GetTargetConnection(sourceType string, targetType string, userId s
                 and wsc.user_id = $3`
 	targetConnection := &TargetConnectionEntity{}
 	err := tx.Get(targetConnection, query, sourceType, targetType, userId)
-	pkg.TryPanic(err)
+	pkg.Throw(err)
 	return targetConnection.ToDomain()
 }
 
@@ -107,14 +107,14 @@ func (tx *Tx) GetCommentMetadata(sourceType string, chatId string, userId string
                 and chat_id = $2
                 and message_id = $3`
 	rows, err := tx.Queryx(query, sourceType, chatId, userId)
-	pkg.TryPanic(err)
+	pkg.Throw(err)
 	var comments []Entity[Comment]
 	if rows.Next() {
 		comment := &CommentEntity{}
 		err = rows.Scan(comment)
 		comments = append(comments, comment)
 	}
-	pkg.TryPanic(err)
+	pkg.Throw(err)
 	return ToDomain(comments)
 }
 
@@ -123,11 +123,11 @@ func (tx *Tx) SaveCommentMetadata(domain *Comment) *Comment {
               values (:target_type, :source_type, :comment_id, :user_id, :chat_id, :message_id, :tag)
               returning *`
 	rows, err := tx.NamedQuery(query, (*CommentEntity).FromDomain(nil, domain))
-	pkg.TryPanic(err)
+	pkg.Throw(err)
 	entity := &CommentEntity{}
 	if rows.Next() {
 		err = rows.Scan(entity)
 	}
-	pkg.TryPanic(err)
+	pkg.Throw(err)
 	return entity.ToDomain()
 }

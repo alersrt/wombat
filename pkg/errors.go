@@ -31,11 +31,14 @@ func CatchWithReturn(err *error) {
 				*err = errors.New(v)
 			}
 		default:
+			if err != nil {
+				*err = errors.New("internal")
+			}
 		}
 	}
 }
 
-func CatchWithReturnAndPost(err *error, post func()) {
+func CatchWithReturnAndCall(err *error, call func()) {
 	if r := recover(); r != nil {
 		switch v := r.(type) {
 		case error:
@@ -47,15 +50,18 @@ func CatchWithReturnAndPost(err *error, post func()) {
 				*err = errors.New(v)
 			}
 		default:
+			if err != nil {
+				*err = errors.New("internal")
+			}
 		}
 
-		if post != nil {
-			post()
+		if call != nil {
+			call()
 		}
 	}
 }
 
-func TryPanic(err error) {
+func Throw(err error) {
 	if err != nil {
 		panic(err)
 	}

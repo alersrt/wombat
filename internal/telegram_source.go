@@ -27,7 +27,7 @@ func NewTelegramSource(token string, fwdChan chan *Message, db *DbStorage) (ts *
 	defer pkg.CatchWithReturn(&err)
 
 	bot, err := tgbotapi.NewBotAPI(token)
-	pkg.TryPanic(err)
+	pkg.Throw(err)
 
 	return &TelegramSource{
 		sourceType: TelegramType,
@@ -52,7 +52,7 @@ func (s *TelegramSource) init() tgbotapi.UpdatesChannel {
 
 	commands := tgbotapi.NewSetMyCommands(BotCommandRegister)
 	_, err := s.Request(commands)
-	pkg.TryPanic(err)
+	pkg.Throw(err)
 
 	slog.Info(fmt.Sprintf("Authorized on account %s", s.Self.UserName))
 
@@ -77,7 +77,7 @@ func (s *TelegramSource) Do(ctx context.Context) (err error) {
 			switch message.Command() {
 			case BotCommandRegister.Command:
 				err := s.handleRegistration(strconv.FormatInt(message.From.ID, 10), message.CommandArguments())
-				pkg.TryPanic(err)
+				pkg.Throw(err)
 			}
 		}
 	}
@@ -119,14 +119,14 @@ func (s *TelegramSource) handleMessage(message *tgbotapi.Message) {
 func (s *TelegramSource) askToRegister(message *tgbotapi.Message) {
 	askMsg := tgbotapi.NewMessage(message.Chat.ID, "/register <Private Access Token>")
 	_, err := s.Send(askMsg)
-	pkg.TryPanic(err)
+	pkg.Throw(err)
 }
 
 func (s *TelegramSource) handleRegistration(userId string, token string) (err error) {
 	slog.Info("REG:START", "source", s.sourceType.String(), "userId", userId)
 
 	tx := s.db.BeginTx()
-	defer pkg.CatchWithReturnAndPost(&err, tx.RollbackTx)
+	defer pkg.CatchWithReturnAndCall(&err, tx.RollbackTx)
 
 	accountGid := tx.CreateAccount()
 	tx.CreateSourceConnection(accountGid, s.sourceType.String(), userId)

@@ -44,13 +44,13 @@ func (c *Config) Init(args []string) (err error) {
 	defer pkg.CatchWithReturn(&err)
 
 	file, err := os.ReadFile(configPath)
-	pkg.TryPanic(err)
+	pkg.Throw(err)
 
 	replaced, err := shell.Expand(string(file), nil)
-	pkg.TryPanic(err)
+	pkg.Throw(err)
 
 	err = yaml.Unmarshal([]byte(replaced), c)
-	pkg.TryPanic(err)
+	pkg.Throw(err)
 
 	c.isInitiated = true
 	return

@@ -22,7 +22,7 @@ func NewJiraClient(url string, token string) (tc TargetClient, err error) {
 	defer pkg.CatchWithReturn(&err)
 	tp := jira.PATAuthTransport{Token: token}
 	client, ex := jira.NewClient(tp.Client(), url)
-	pkg.TryPanic(ex)
+	pkg.Throw(ex)
 	if client != nil {
 		tc = &JiraClient{client}
 	}
@@ -31,13 +31,13 @@ func NewJiraClient(url string, token string) (tc TargetClient, err error) {
 
 func (c *JiraClient) Update(issue string, commentId string, text string) {
 	_, _, err := c.Issue.UpdateComment(issue, &jira.Comment{ID: commentId, Body: text})
-	pkg.TryPanic(err)
+	pkg.Throw(err)
 	return
 }
 
 func (c *JiraClient) Add(issue string, text string) string {
 	comment, _, ex := c.Issue.AddComment(issue, &jira.Comment{Body: text})
-	pkg.TryPanic(ex)
+	pkg.Throw(ex)
 	return comment.ID
 }
 
@@ -71,7 +71,7 @@ func (t *JiraTarget) GetTargetType() TargetType {
 func (t *JiraTarget) Do(ctx context.Context) (err error) {
 	for update := range t.srcChan {
 		ex := t.handle(update)
-		pkg.TryPanic(ex)
+		pkg.Throw(ex)
 	}
 	return
 }
@@ -83,11 +83,11 @@ func (t *JiraTarget) handle(msg *Message) (err error) {
 	}
 
 	tx := t.db.BeginTx()
-	defer pkg.CatchWithReturnAndPost(&err, tx.RollbackTx)
+	defer pkg.CatchWithReturnAndCall(&err, tx.RollbackTx)
 
 	targetConnection := tx.GetTargetConnection(msg.SourceType.String(), msg.TargetType.String(), msg.UserId)
 	client, ex := NewJiraClient(t.url, targetConnection.Token)
-	pkg.TryPanic(ex)
+	pkg.Throw(ex)
 
 	tags := t.tagsRegex.FindAllString(msg.Content, -1)
 	savedComments := tx.GetCommentMetadata(msg.SourceType.String(), msg.ChatId, msg.MessageId)
