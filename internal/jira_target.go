@@ -33,9 +33,7 @@ func (c *JiraClient) Update(issue string, commentId string, text string) (err er
 
 func (c *JiraClient) Add(issue string, text string) (cId string, err error) {
 	defer pkg.Catch(err)
-	comment, _, err := c.Issue.AddComment(issue, &jira.Comment{
-		Body: text,
-	})
+	comment, _, err := c.Issue.AddComment(issue, &jira.Comment{Body: text})
 	pkg.Try(err)
 
 	return comment.ID, nil
