@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"mvdan.cc/sh/v3/shell"
 	"os"
+	"wombat/pkg"
 )
 
 type Bot struct {
@@ -35,27 +36,21 @@ type Config struct {
 	*Database   `yaml:"database,omitempty"`
 }
 
-func (c *Config) Init(args []string) {
+func (c *Config) Init(args []string) (err error) {
 	slog.Info("Wombat initialization...")
-
 	configPath := args[0]
 
 	defer slog.Info("Config file: " + configPath)
+	defer pkg.Catch(err)
 
 	file, err := os.ReadFile(configPath)
-	if err != nil {
-		panic(err)
-	}
+	pkg.Try(err)
 
 	replaced, err := shell.Expand(string(file), nil)
-	if err != nil {
-		panic(err)
-	}
+	pkg.Try(err)
 
 	err = yaml.Unmarshal([]byte(replaced), c)
-	if err != nil {
-		panic(err)
-	}
+	pkg.Try(err)
 
 	c.isInitiated = true
 	return

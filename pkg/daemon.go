@@ -8,10 +8,10 @@ import (
 	"syscall"
 )
 
-type Task func(ctx context.Context)
+type Task func(ctx context.Context) error
 
 type Config interface {
-	Init(args []string)
+	Init(args []string) error
 	IsInitiated() bool
 }
 
@@ -26,6 +26,8 @@ func Create(conf Config) *Daemon {
 }
 
 func (d *Daemon) handleSignals(ctx context.Context) {
+	defer CatchWithoutReturn()
+
 	signalChan := make(chan os.Signal, 1)
 
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGHUP)
@@ -35,7 +37,8 @@ func (d *Daemon) handleSignals(ctx context.Context) {
 	case s := <-signalChan:
 		switch s {
 		case syscall.SIGHUP:
-			d.conf.Init(os.Args)
+			err := d.conf.Init(os.Args)
+			Try(err)
 		case os.Interrupt:
 			os.Exit(130)
 		case os.Kill:
@@ -64,16 +67,25 @@ func (d *Daemon) AddTasks(tasks ...Task) *Daemon {
 	return d
 }
 
-func (d *Daemon) Start(ctx context.Context) {
+func (d *Daemon) Start(ctx context.Context) (err error) {
+	defer Catch(err)
+
 	if !d.conf.IsInitiated() {
-		d.conf.Init(os.Args)
+		err := d.conf.Init(os.Args)
+		Try(err)
 	}
 
 	go d.handleSignals(ctx)
 
 	for _, task := range d.tasks {
-		go task(ctx)
+		go func() {
+			defer CatchWithoutReturn()
+			err := task(ctx)
+			Try(err)
+		}()
 	}
+
+	return
 }
 
 func (d *Daemon) GetConfig() Config {

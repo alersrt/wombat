@@ -6,6 +6,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log/slog"
 	"strconv"
+	"wombat/pkg"
 )
 
 var (
@@ -22,18 +23,18 @@ type TelegramSource struct {
 	db      *DbStorage
 }
 
-func NewTelegramSource(token string, fwdChan chan *Message, db *DbStorage) *TelegramSource {
+func NewTelegramSource(token string, fwdChan chan *Message, db *DbStorage) (ts *TelegramSource, err error) {
+	defer pkg.Catch(err)
+
 	bot, err := tgbotapi.NewBotAPI(token)
-	if err != nil {
-		panic(err)
-	}
+	pkg.Try(err)
 
 	return &TelegramSource{
 		sourceType: TelegramType,
 		BotAPI:     bot,
 		fwdChan:    fwdChan,
 		db:         db,
-	}
+	}, nil
 }
 
 func (s *TelegramSource) GetSourceType() SourceType {
@@ -51,17 +52,16 @@ func (s *TelegramSource) init() tgbotapi.UpdatesChannel {
 
 	commands := tgbotapi.NewSetMyCommands(BotCommandRegister)
 	_, err := s.Request(commands)
-	if err != nil {
-		panic(err)
-	}
+	pkg.Try(err)
 
 	slog.Info(fmt.Sprintf("Authorized on account %s", s.Self.UserName))
 
 	return s.GetUpdatesChan(u)
 }
 
-func (s *TelegramSource) Do(ctx context.Context) {
+func (s *TelegramSource) Do(ctx context.Context) (err error) {
 	updates := s.init()
+	defer pkg.Catch(err)
 
 	for update := range updates {
 		message := s.getMessage(&update)
@@ -76,10 +76,12 @@ func (s *TelegramSource) Do(ctx context.Context) {
 		} else {
 			switch message.Command() {
 			case BotCommandRegister.Command:
-				s.handleRegistration(strconv.FormatInt(message.From.ID, 10), message.CommandArguments())
+				err := s.handleRegistration(strconv.FormatInt(message.From.ID, 10), message.CommandArguments())
+				pkg.Try(err)
 			}
 		}
 	}
+	return
 }
 
 func (s *TelegramSource) checkAccess(message *tgbotapi.Message) AccessState {
@@ -117,21 +119,14 @@ func (s *TelegramSource) handleMessage(message *tgbotapi.Message) {
 func (s *TelegramSource) askToRegister(message *tgbotapi.Message) {
 	askMsg := tgbotapi.NewMessage(message.Chat.ID, "/register <Private Access Token>")
 	_, err := s.Send(askMsg)
-	if err != nil {
-		slog.Warn(err.Error())
-		return
-	}
+	pkg.Try(err)
 }
 
-func (s *TelegramSource) handleRegistration(userId string, token string) {
+func (s *TelegramSource) handleRegistration(userId string, token string) (err error) {
 	slog.Info("REG:START", "source", s.sourceType.String(), "userId", userId)
 
 	tx := s.db.BeginTx()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.RollbackTx()
-		}
-	}()
+	defer pkg.CatchWithPost(err, tx.RollbackTx)
 
 	accountGid := tx.CreateAccount()
 	tx.CreateSourceConnection(accountGid, s.sourceType.String(), userId)
@@ -140,4 +135,6 @@ func (s *TelegramSource) handleRegistration(userId string, token string) {
 
 	slog.Info("REG:FINISH", "source", s.sourceType.String(), "userId", userId)
 	tx.CommitTx()
+
+	return
 }

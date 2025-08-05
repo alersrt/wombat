@@ -11,7 +11,7 @@ type SourceType uint
 
 type Source interface {
 	GetSourceType() SourceType
-	Do(ctx context.Context)
+	Do(ctx context.Context) error
 }
 
 const (
@@ -51,7 +51,7 @@ func (t *SourceType) UnmarshalJSON(b []byte) error {
 
 type Target interface {
 	GetTargetType() TargetType
-	Do(ctx context.Context)
+	Do(ctx context.Context) error
 }
 type TargetType uint
 

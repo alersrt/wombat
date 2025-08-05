@@ -6,44 +6,39 @@ import (
 	"github.com/andygrunwald/go-jira"
 	"log/slog"
 	"regexp"
+	"wombat/pkg"
 )
 
 type TargetClient interface {
-	Add(tag string, text string) string
-	Update(tag string, commentId string, text string)
+	Add(tag string, text string) (string, error)
+	Update(tag string, commentId string, text string) error
 }
 
 type JiraClient struct {
 	*jira.Client
 }
 
-func NewJiraClient(url string, token string) TargetClient {
-	tp := jira.PATAuthTransport{
-		Token: token,
-	}
+func NewJiraClient(url string, token string) (tc TargetClient, err error) {
+	defer pkg.Catch(err)
+	tp := jira.PATAuthTransport{Token: token}
 	client, err := jira.NewClient(tp.Client(), url)
-	if err != nil {
-		panic(err)
-	}
-	return &JiraClient{client}
+	pkg.Try(err)
+	return &JiraClient{client}, nil
 }
 
-func (c *JiraClient) Update(issue string, commentId string, text string) {
-	_, _, err := c.Issue.UpdateComment(issue, &jira.Comment{ID: commentId, Body: text})
-	if err != nil {
-		panic(err)
-	}
+func (c *JiraClient) Update(issue string, commentId string, text string) (err error) {
+	_, _, err = c.Issue.UpdateComment(issue, &jira.Comment{ID: commentId, Body: text})
 	return
 }
 
-func (c *JiraClient) Add(issue string, text string) string {
+func (c *JiraClient) Add(issue string, text string) (cId string, err error) {
+	defer pkg.Catch(err)
 	comment, _, err := c.Issue.AddComment(issue, &jira.Comment{
 		Body: text,
 	})
-	if err != nil {
-		panic(err)
-	}
-	return comment.ID
+	pkg.Try(err)
+
+	return comment.ID, nil
 }
 
 type JiraTarget struct {
@@ -73,34 +68,34 @@ func (t *JiraTarget) GetTargetType() TargetType {
 	return t.targetType
 }
 
-func (t *JiraTarget) Do(ctx context.Context) {
+func (t *JiraTarget) Do(ctx context.Context) (err error) {
+	defer pkg.Catch(err)
 	for update := range t.srcChan {
 		t.handle(update)
 	}
+	return
 }
 
-func (t *JiraTarget) handle(msg *Message) {
+func (t *JiraTarget) handle(msg *Message) (err error) {
 	if !t.tagsRegex.MatchString(msg.Content) {
 		slog.Info(fmt.Sprintf("Tag not found: %v", msg.Content))
 		return
 	}
 
 	tx := t.db.BeginTx()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.RollbackTx()
-		}
-	}()
+	defer pkg.CatchWithPost(err, tx.RollbackTx)
 
 	targetConnection := tx.GetTargetConnection(msg.SourceType.String(), msg.TargetType.String(), msg.UserId)
-	client := NewJiraClient(t.url, targetConnection.Token)
+	client, err := NewJiraClient(t.url, targetConnection.Token)
+	pkg.Try(err)
 
 	tags := t.tagsRegex.FindAllString(msg.Content, -1)
 	savedComments := tx.GetCommentMetadata(msg.SourceType.String(), msg.ChatId, msg.MessageId)
 
 	if len(savedComments) == 0 {
 		for _, tag := range tags {
-			commentId := client.Add(tag, msg.Content)
+			commentId, err := client.Add(tag, msg.Content)
+			pkg.Try(err)
 			tx.SaveCommentMetadata(&Comment{
 				Message:   msg,
 				Tag:       tag,
@@ -114,7 +109,8 @@ func (t *JiraTarget) handle(msg *Message) {
 		}
 		for _, tag := range tags {
 			comment := taggedComments[tag]
-			client.Update(tag, comment.CommentId, msg.Content)
+			err := client.Update(tag, comment.CommentId, msg.Content)
+			pkg.Try(err)
 			tx.SaveCommentMetadata(&Comment{
 				Message:   msg,
 				Tag:       tag,
@@ -123,4 +119,5 @@ func (t *JiraTarget) handle(msg *Message) {
 		}
 	}
 	tx.CommitTx()
+	return
 }
