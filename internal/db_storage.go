@@ -29,7 +29,7 @@ type Tx struct {
 }
 
 func NewDbStorage(url string) (db *DbStorage, err error) {
-	defer pkg.Catch(err)
+	defer pkg.Catch(&err)
 	dbConn, err := sqlx.Connect("postgres", url)
 	pkg.Try(err)
 	return &DbStorage{db: dbConn}, nil

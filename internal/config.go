@@ -41,7 +41,7 @@ func (c *Config) Init(args []string) (err error) {
 	configPath := args[0]
 
 	defer slog.Info("Config file: " + configPath)
-	defer pkg.Catch(err)
+	defer pkg.Catch(&err)
 
 	file, err := os.ReadFile(configPath)
 	pkg.Try(err)

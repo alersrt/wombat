@@ -2,12 +2,12 @@ package pkg
 
 import "fmt"
 
-func Catch(err error) {
+func Catch(err *error) {
 	if r := recover(); r != nil {
 		var ok bool
-		err, ok = r.(error)
+		*err, ok = r.(error)
 		if !ok {
-			err = fmt.Errorf("pkg: %v", r)
+			*err = fmt.Errorf("pkg: %v", r)
 		}
 	}
 }
@@ -18,14 +18,13 @@ func CatchWithoutReturn() {
 	}
 }
 
-func CatchWithPost(err error, post func()) {
+func CatchWithPost(err *error, post func()) {
 	if r := recover(); r != nil {
 		var ok bool
-		err, ok = r.(error)
+		*err, ok = r.(error)
 		if !ok {
-			err = fmt.Errorf("pkg: %v", r)
+			*err = fmt.Errorf("pkg: %v", r)
 		}
-
 		post()
 	}
 }

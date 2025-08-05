@@ -66,7 +66,7 @@ func (d *Daemon) AddTasks(tasks ...Task) *Daemon {
 }
 
 func (d *Daemon) Start(ctx context.Context) (err error) {
-	defer Catch(err)
+	defer Catch(&err)
 
 	if !d.conf.IsInitiated() {
 		err := d.conf.Init(os.Args)

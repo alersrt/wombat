@@ -24,7 +24,7 @@ type TelegramSource struct {
 }
 
 func NewTelegramSource(token string, fwdChan chan *Message, db *DbStorage) (ts *TelegramSource, err error) {
-	defer pkg.Catch(err)
+	defer pkg.Catch(&err)
 
 	bot, err := tgbotapi.NewBotAPI(token)
 	pkg.Try(err)
@@ -61,7 +61,7 @@ func (s *TelegramSource) init() tgbotapi.UpdatesChannel {
 
 func (s *TelegramSource) Do(ctx context.Context) (err error) {
 	updates := s.init()
-	defer pkg.Catch(err)
+	defer pkg.Catch(&err)
 
 	for update := range updates {
 		message := s.getMessage(&update)
@@ -126,7 +126,7 @@ func (s *TelegramSource) handleRegistration(userId string, token string) (err er
 	slog.Info("REG:START", "source", s.sourceType.String(), "userId", userId)
 
 	tx := s.db.BeginTx()
-	defer pkg.CatchWithPost(err, tx.RollbackTx)
+	defer pkg.CatchWithPost(&err, tx.RollbackTx)
 
 	accountGid := tx.CreateAccount()
 	tx.CreateSourceConnection(accountGid, s.sourceType.String(), userId)
