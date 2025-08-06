@@ -89,7 +89,7 @@ func (t *JiraTarget) handle(msg *Message) (err error) {
 	defer pkg.CatchWithReturnAndCall(&err, tx.RollbackTx)
 
 	targetConnection := tx.GetTargetConnection(msg.SourceType.String(), msg.TargetType.String(), msg.UserId)
-	client, ex := NewJiraClient(t.url, t.cipher.AesGcmDecrypt(targetConnection.Token, nil))
+	client, ex := NewJiraClient(t.url, t.cipher.AesGcmDecrypt(targetConnection.Token, targetConnection.Nonce))
 	pkg.Throw(ex)
 
 	tags := t.tagsRegex.FindAllString(msg.Content, -1)
