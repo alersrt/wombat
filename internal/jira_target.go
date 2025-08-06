@@ -42,6 +42,7 @@ func (c *JiraClient) Add(issue string, text string) string {
 }
 
 type JiraTarget struct {
+	cipher     *AesGcmCipher
 	targetType TargetType
 	url        string
 	db         *DbStorage
@@ -52,15 +53,17 @@ type JiraTarget struct {
 func NewJiraTarget(
 	url string,
 	tag string,
-	dbStorage *DbStorage,
 	srcChan chan *Message,
+	dbStorage *DbStorage,
+	cipher *AesGcmCipher,
 ) *JiraTarget {
 	return &JiraTarget{
+		targetType: JiraType,
+		cipher:     cipher,
 		url:        url,
 		tagsRegex:  regexp.MustCompile(tag),
 		db:         dbStorage,
 		srcChan:    srcChan,
-		targetType: JiraType,
 	}
 }
 
@@ -86,7 +89,7 @@ func (t *JiraTarget) handle(msg *Message) (err error) {
 	defer pkg.CatchWithReturnAndCall(&err, tx.RollbackTx)
 
 	targetConnection := tx.GetTargetConnection(msg.SourceType.String(), msg.TargetType.String(), msg.UserId)
-	client, ex := NewJiraClient(t.url, targetConnection.Token)
+	client, ex := NewJiraClient(t.url, t.cipher.AesGcmDecrypt(targetConnection.Token, nil))
 	pkg.Throw(ex)
 
 	tags := t.tagsRegex.FindAllString(msg.Content, -1)

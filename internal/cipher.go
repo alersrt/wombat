@@ -8,8 +8,16 @@ import (
 	"wombat/pkg"
 )
 
-func AesGcmEncrypt(key []byte, plaintext string) (ciphertext, nonce []byte) {
-	block, err := aes.NewCipher(key)
+type AesGcmCipher struct {
+	key []byte
+}
+
+func NewAesGcmCipher(key []byte) *AesGcmCipher {
+	return &AesGcmCipher{key}
+}
+
+func (a *AesGcmCipher) AesGcmEncrypt(plaintext string) (ciphertext []byte, nonce []byte) {
+	block, err := aes.NewCipher(a.key)
 	pkg.Throw(err)
 	nonce = make([]byte, 12)
 	_, err = io.ReadFull(rand.Reader, nonce)
@@ -21,8 +29,8 @@ func AesGcmEncrypt(key []byte, plaintext string) (ciphertext, nonce []byte) {
 	return
 }
 
-func AesGcmDecrypt(key, ciphertext, nonce []byte) (plaintext string) {
-	block, err := aes.NewCipher(key)
+func (a *AesGcmCipher) AesGcmDecrypt(ciphertext, nonce []byte) (plaintext string) {
+	block, err := aes.NewCipher(a.key)
 	pkg.Throw(err)
 	aesGcm, err := cipher.NewGCM(block)
 	pkg.Throw(err)

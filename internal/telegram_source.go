@@ -19,11 +19,12 @@ var (
 type TelegramSource struct {
 	sourceType SourceType
 	*tgbotapi.BotAPI
+	cipher  *AesGcmCipher
 	fwdChan chan *Message
 	db      *DbStorage
 }
 
-func NewTelegramSource(token string, fwdChan chan *Message, db *DbStorage) (ts *TelegramSource, err error) {
+func NewTelegramSource(token string, fwdChan chan *Message, db *DbStorage, cipher *AesGcmCipher) (ts *TelegramSource, err error) {
 	defer pkg.CatchWithReturn(&err)
 
 	bot, err := tgbotapi.NewBotAPI(token)
@@ -34,6 +35,7 @@ func NewTelegramSource(token string, fwdChan chan *Message, db *DbStorage) (ts *
 		BotAPI:     bot,
 		fwdChan:    fwdChan,
 		db:         db,
+		cipher:     cipher,
 	}, nil
 }
 
@@ -131,7 +133,8 @@ func (s *TelegramSource) handleRegistration(userId string, token string) (err er
 	accountGid := tx.CreateAccount()
 	tx.CreateSourceConnection(accountGid, s.sourceType.String(), userId)
 	targetType := JiraType
-	tx.CreateTargetConnection(accountGid, targetType.String(), token)
+	encToc, _ := s.cipher.AesGcmEncrypt(token)
+	tx.CreateTargetConnection(accountGid, targetType.String(), encToc)
 
 	tx.CommitTx()
 	slog.Info("REG:FINISH", "source", s.sourceType.String(), "userId", userId)
