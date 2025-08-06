@@ -133,8 +133,7 @@ func (s *TelegramSource) handleRegistration(userId string, token string) (err er
 	accountGid := tx.CreateAccount()
 	tx.CreateSourceConnection(accountGid, s.sourceType.String(), userId)
 	targetType := JiraType
-	encToc, _ := s.cipher.AesGcmEncrypt(token)
-	tx.CreateTargetConnection(accountGid, targetType.String(), encToc)
+	tx.CreateTargetConnection(accountGid, targetType.String(), s.cipher.AesGcmEncrypt(token))
 
 	tx.CommitTx()
 	slog.Info("REG:FINISH", "source", s.sourceType.String(), "userId", userId)
