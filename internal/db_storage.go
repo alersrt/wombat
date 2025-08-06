@@ -78,10 +78,10 @@ func (tx *Tx) CreateSourceConnection(accountGid *uuid.UUID, sourceType string, u
 	return
 }
 
-func (tx *Tx) CreateTargetConnection(accountGid *uuid.UUID, targetType string, token []byte, nonce []byte) {
-	query := `insert into wombatsm.target_connections(account_gid, target_type, token, nonce)
+func (tx *Tx) CreateTargetConnection(accountGid *uuid.UUID, targetType string, token []byte) {
+	query := `insert into wombatsm.target_connections(account_gid, target_type, token)
               values($1, $2, $3, $4)`
-	_, err := tx.Exec(query, accountGid, targetType, token, nonce)
+	_, err := tx.Exec(query, accountGid, targetType, token)
 	pkg.Throw(err)
 	return
 }

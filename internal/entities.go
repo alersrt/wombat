@@ -41,7 +41,6 @@ type TargetConnectionEntity struct {
 	AccountGid uuid.UUID `db:"account_gid"`
 	TargetType string    `db:"target_type"`
 	Token      []byte    `db:"token"`
-	Nonce      []byte    `db:"nonce"`
 	CreateTs   time.Time `db:"create_ts"`
 	UpdateTs   time.Time `db:"update_ts"`
 }
@@ -52,7 +51,6 @@ func (e *TargetConnectionEntity) ToDomain() *TargetConnection {
 		AccountGid: e.AccountGid,
 		TargetType: TargetTypeFromString(e.TargetType),
 		Token:      e.Token,
-		Nonce:      e.Nonce,
 		CreateTs:   e.CreateTs,
 		UpdateTs:   e.UpdateTs,
 	}

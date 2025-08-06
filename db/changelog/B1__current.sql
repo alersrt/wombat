@@ -27,7 +27,6 @@ create table if not exists wombatsm.target_connections
     account_gid uuid                     not null,
     target_type varchar(64)              not null,
     token       bytea                    not null,
-    nonce       bytea                    not null,
     create_ts   timestamp with time zone not null default current_timestamp,
     update_ts   timestamp with time zone not null default current_timestamp,
     constraint target_connections_account_gid_fk foreign key (account_gid) references wombatsm.accounts (gid),

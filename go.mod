@@ -5,7 +5,6 @@ go 1.23.0
 toolchain go1.24.5
 
 require (
-	github.com/agl/gcmsiv v0.0.0-20190418185415-e8dcd2f151dc
 	github.com/andygrunwald/go-jira v1.16.0
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/google/uuid v1.6.0

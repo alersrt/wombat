@@ -129,7 +129,6 @@ type TargetConnection struct {
 	AccountGid uuid.UUID  `json:"account_gid"`
 	TargetType TargetType `json:"target_type"`
 	Token      []byte     `json:"token"`
-	Nonce      []byte     `json:"nonce"`
 	CreateTs   time.Time  `json:"create_ts"`
 	UpdateTs   time.Time  `json:"update_ts"`
 }
