@@ -73,19 +73,19 @@ func (t *JiraTarget) GetTargetType() TargetType {
 
 func (t *JiraTarget) Do(ctx context.Context) (err error) {
 	for update := range t.srcChan {
-		ex := t.handle(update)
+		ex := t.handle(ctx, update)
 		pkg.Throw(ex)
 	}
 	return
 }
 
-func (t *JiraTarget) handle(msg *Message) (err error) {
+func (t *JiraTarget) handle(ctx context.Context, msg *Message) (err error) {
 	if !t.tagsRegex.MatchString(msg.Content) {
 		slog.Info(fmt.Sprintf("Tag not found: %v", msg.Content))
 		return
 	}
 
-	tx := t.db.BeginTx()
+	tx := t.db.BeginTx(ctx)
 	defer pkg.CatchWithReturnAndCall(&err, tx.RollbackTx)
 
 	targetConnection := tx.GetTargetConnection(msg.SourceType.String(), msg.TargetType.String(), msg.UserId)

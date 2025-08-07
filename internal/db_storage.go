@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -35,8 +36,8 @@ func NewDbStorage(url string) (db *DbStorage, err error) {
 	return &DbStorage{db: dbConn}, nil
 }
 
-func (db *DbStorage) BeginTx() *Tx {
-	tx, err := db.db.Beginx()
+func (db *DbStorage) BeginTx(ctx context.Context) *Tx {
+	tx, err := db.db.BeginTxx(ctx, nil)
 	pkg.Throw(err)
 	return &Tx{Tx: tx}
 }
