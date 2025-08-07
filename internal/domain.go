@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/google/uuid"
 	"time"
@@ -10,7 +11,7 @@ type SourceType uint
 
 type Source interface {
 	GetSourceType() SourceType
-	Process()
+	Do(ctx context.Context) error
 }
 
 const (
@@ -26,31 +27,31 @@ var (
 	}
 )
 
-func (receiver *SourceType) String() string {
-	return sourceTypeToString[*receiver]
+func (t *SourceType) String() string {
+	return sourceTypeToString[*t]
 }
 
 func SourceTypeFromString(s string) SourceType {
 	return sourceTypeFromString[s]
 }
 
-func (receiver *SourceType) MarshalJSON() ([]byte, error) {
-	return json.Marshal(sourceTypeToString[*receiver])
+func (t *SourceType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(sourceTypeToString[*t])
 }
 
-func (receiver *SourceType) UnmarshalJSON(b []byte) error {
+func (t *SourceType) UnmarshalJSON(b []byte) error {
 	var s string
 	err := json.Unmarshal(b, &s)
 	if err != nil {
 		return err
 	}
-	*receiver = sourceTypeFromString[s]
+	*t = sourceTypeFromString[s]
 	return nil
 }
 
 type Target interface {
 	GetTargetType() TargetType
-	Process()
+	Do(ctx context.Context) error
 }
 type TargetType uint
 
@@ -67,25 +68,25 @@ var (
 	}
 )
 
-func (receiver *TargetType) String() string {
-	return targetTypeToString[*receiver]
+func (t *TargetType) String() string {
+	return targetTypeToString[*t]
 }
 
 func TargetTypeFromString(s string) TargetType {
 	return targetTypeFromString[s]
 }
 
-func (receiver *TargetType) MarshalJSON() ([]byte, error) {
-	return json.Marshal(targetTypeToString[*receiver])
+func (t *TargetType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(targetTypeToString[*t])
 }
 
-func (receiver *TargetType) UnmarshalJSON(b []byte) error {
+func (t *TargetType) UnmarshalJSON(b []byte) error {
 	var s string
 	err := json.Unmarshal(b, &s)
 	if err != nil {
 		return err
 	}
-	*receiver = targetTypeFromString[s]
+	*t = targetTypeFromString[s]
 	return nil
 }
 
@@ -96,7 +97,7 @@ const (
 	Registered
 )
 
-type Message struct {
+type Request struct {
 	SourceType SourceType `json:"source_type"`
 	TargetType TargetType `json:"target_type"`
 	Content    string     `json:"content"`
@@ -105,9 +106,18 @@ type Message struct {
 	MessageId  string     `json:"message_id"`
 }
 
+type Response struct {
+	Ok         bool       `json:"ok"`
+	SourceType SourceType `json:"source_type"`
+	TargetType TargetType `json:"target_type"`
+	UserId     string     `json:"user_id"`
+	ChatId     string     `json:"chat_id"`
+	MessageId  string     `json:"message_id"`
+}
+
 type Comment struct {
 	Gid uuid.UUID `json:"gid"`
-	*Message
+	*Request
 	Tag       string    `json:"tag"`
 	CommentId string    `json:"comment_id"`
 	CreateTs  time.Time `json:"create_ts"`
@@ -127,7 +137,7 @@ type TargetConnection struct {
 	Gid        uuid.UUID  `json:"gid"`
 	AccountGid uuid.UUID  `json:"account_gid"`
 	TargetType TargetType `json:"target_type"`
-	Token      string     `json:"token"`
+	Token      []byte     `json:"token"`
 	CreateTs   time.Time  `json:"create_ts"`
 	UpdateTs   time.Time  `json:"update_ts"`
 }

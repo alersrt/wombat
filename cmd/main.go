@@ -3,10 +3,9 @@ package main
 import (
 	"context"
 	"flag"
-	"log/slog"
 	"os"
 	"wombat/internal"
-	"wombat/pkg/daemon"
+	"wombat/pkg"
 )
 
 func main() {
@@ -14,46 +13,37 @@ func main() {
 	defer mainCancelCauseFunc(nil)
 
 	conf := new(internal.Config)
-	args, err := parseArgs(os.Args)
-	terminateIfError(err)
+	args := parseArgs(os.Args)
 
-	err = conf.Init(args)
-	terminateIfError(err)
+	err := conf.Init(args)
+	pkg.Throw(err)
 
-	dbStorage, err := internal.NewDbStorage(conf.PostgreSQL.Url)
-	terminateIfError(err)
+	cipher := internal.NewAesGcmCipher([]byte(conf.Cipher.Key))
+	router := internal.NewRouter()
 
-	forwardChannel := make(chan *internal.Message)
+	db, err := internal.NewDbStorage(conf.PostgreSQL.Url)
+	pkg.Throw(err)
+	telegramSource, err := internal.NewTelegramSource(conf.Telegram.Token, router, db, cipher)
+	pkg.Throw(err)
+	jiraTarget := internal.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, router, db, cipher)
 
-	telegramSource, err := internal.NewTelegramSource(conf.Telegram.Token, forwardChannel, dbStorage)
-	terminateIfError(err)
-
-	jiraTarget, err := internal.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, dbStorage, forwardChannel)
-	terminateIfError(err)
-
-	dmn := daemon.Create(conf)
-	go dmn.
-		AddTask(jiraTarget.Process).
-		AddTask(telegramSource.Process).
-		Start(mainCtx)
-
+	dmn := pkg.Create(conf)
+	go func() {
+		err := dmn.
+			AddTask(jiraTarget.Do).
+			AddTask(telegramSource.Do).
+			Start(mainCtx)
+		pkg.Throw(err)
+	}()
 	select {}
 }
 
-func terminateIfError(err error) {
-	if err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
-}
-
-func parseArgs(args []string) ([]string, error) {
+func parseArgs(args []string) []string {
 	flags := flag.NewFlagSet(args[0], flag.ExitOnError)
 	configPath := flags.String("config", "./cmd/config.yaml", "path to config")
 
-	if err := flags.Parse(args[1:]); err != nil {
-		return nil, err
-	}
+	err := flags.Parse(args[1:])
+	pkg.Throw(err)
 
-	return []string{*configPath}, nil
+	return []string{*configPath}
 }

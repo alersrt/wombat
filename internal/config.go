@@ -5,10 +5,15 @@ import (
 	"log/slog"
 	"mvdan.cc/sh/v3/shell"
 	"os"
+	"wombat/pkg"
 )
 
 type Bot struct {
 	Tag string `yaml:"tag,omitempty"`
+}
+
+type Cipher struct {
+	Key string `yaml:"key"`
 }
 
 type Jira struct {
@@ -30,37 +35,32 @@ type Database struct {
 type Config struct {
 	isInitiated bool
 	*Bot        `yaml:"bot,omitempty"`
+	*Cipher     `yaml:"cipher,omitempty"`
 	*Jira       `yaml:"jira,omitempty"`
 	*Telegram   `yaml:"telegram,omitempty"`
 	*Database   `yaml:"database,omitempty"`
 }
 
-func (receiver *Config) Init(args []string) error {
+func (c *Config) Init(args []string) (err error) {
 	slog.Info("Wombat initialization...")
-
 	configPath := args[0]
 
 	defer slog.Info("Config file: " + configPath)
+	defer pkg.CatchWithReturn(&err)
 
 	file, err := os.ReadFile(configPath)
-	if err != nil {
-		return err
-	}
+	pkg.Throw(err)
 
 	replaced, err := shell.Expand(string(file), nil)
-	if err != nil {
-		return err
-	}
+	pkg.Throw(err)
 
-	err = yaml.Unmarshal([]byte(replaced), receiver)
-	if err != nil {
-		return err
-	}
+	err = yaml.Unmarshal([]byte(replaced), c)
+	pkg.Throw(err)
 
-	receiver.isInitiated = true
-	return nil
+	c.isInitiated = true
+	return
 }
 
-func (receiver *Config) IsInitiated() bool {
-	return receiver.isInitiated
+func (c *Config) IsInitiated() bool {
+	return c.isInitiated
 }

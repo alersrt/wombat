@@ -14,18 +14,18 @@ type SourceConnectionEntity struct {
 	UpdateTs   time.Time `db:"update_ts"`
 }
 
-func (receiver *SourceConnectionEntity) ToDomain() *SourceConnection {
+func (e *SourceConnectionEntity) ToDomain() *SourceConnection {
 	return &SourceConnection{
-		Gid:        receiver.Gid,
-		AccountGid: receiver.AccountGid,
-		SourceType: SourceTypeFromString(receiver.SourceType),
-		UserId:     receiver.UserId,
-		CreateTs:   receiver.CreateTs,
-		UpdateTs:   receiver.UpdateTs,
+		Gid:        e.Gid,
+		AccountGid: e.AccountGid,
+		SourceType: SourceTypeFromString(e.SourceType),
+		UserId:     e.UserId,
+		CreateTs:   e.CreateTs,
+		UpdateTs:   e.UpdateTs,
 	}
 }
 
-func (receiver *SourceConnectionEntity) FromDomain(domain *SourceConnection) Entity[SourceConnection] {
+func (e *SourceConnectionEntity) FromDomain(domain *SourceConnection) Entity[SourceConnection] {
 	return &SourceConnectionEntity{
 		Gid:        domain.Gid,
 		AccountGid: domain.AccountGid,
@@ -40,23 +40,23 @@ type TargetConnectionEntity struct {
 	Gid        uuid.UUID `db:"gid"`
 	AccountGid uuid.UUID `db:"account_gid"`
 	TargetType string    `db:"target_type"`
-	Token      string    `db:"token"`
+	Token      []byte    `db:"token"`
 	CreateTs   time.Time `db:"create_ts"`
 	UpdateTs   time.Time `db:"update_ts"`
 }
 
-func (receiver *TargetConnectionEntity) ToDomain() *TargetConnection {
+func (e *TargetConnectionEntity) ToDomain() *TargetConnection {
 	return &TargetConnection{
-		Gid:        receiver.Gid,
-		AccountGid: receiver.AccountGid,
-		TargetType: TargetTypeFromString(receiver.TargetType),
-		Token:      receiver.Token,
-		CreateTs:   receiver.CreateTs,
-		UpdateTs:   receiver.UpdateTs,
+		Gid:        e.Gid,
+		AccountGid: e.AccountGid,
+		TargetType: TargetTypeFromString(e.TargetType),
+		Token:      e.Token,
+		CreateTs:   e.CreateTs,
+		UpdateTs:   e.UpdateTs,
 	}
 }
 
-func (receiver *TargetConnectionEntity) FromDomain(domain *TargetConnection) Entity[TargetConnection] {
+func (e *TargetConnectionEntity) FromDomain(domain *TargetConnection) Entity[TargetConnection] {
 	return &TargetConnectionEntity{
 		Gid:        domain.Gid,
 		AccountGid: domain.AccountGid,
@@ -80,24 +80,24 @@ type CommentEntity struct {
 	UpdateTs   time.Time `db:"update_ts"`
 }
 
-func (receiver *CommentEntity) ToDomain() *Comment {
+func (e *CommentEntity) ToDomain() *Comment {
 	return &Comment{
-		Gid: receiver.Gid,
-		Message: &Message{
-			SourceType: SourceTypeFromString(receiver.SourceType),
-			UserId:     receiver.UserId,
-			ChatId:     receiver.ChatId,
-			MessageId:  receiver.MessageId,
-			TargetType: TargetTypeFromString(receiver.TargetType),
+		Gid: e.Gid,
+		Request: &Request{
+			SourceType: SourceTypeFromString(e.SourceType),
+			UserId:     e.UserId,
+			ChatId:     e.ChatId,
+			MessageId:  e.MessageId,
+			TargetType: TargetTypeFromString(e.TargetType),
 		},
-		CommentId: receiver.CommentId,
-		Tag:       receiver.Tag,
-		CreateTs:  receiver.CreateTs,
-		UpdateTs:  receiver.UpdateTs,
+		CommentId: e.CommentId,
+		Tag:       e.Tag,
+		CreateTs:  e.CreateTs,
+		UpdateTs:  e.UpdateTs,
 	}
 }
 
-func (receiver *CommentEntity) FromDomain(domain *Comment) Entity[Comment] {
+func (e *CommentEntity) FromDomain(domain *Comment) Entity[Comment] {
 	return &CommentEntity{
 		Gid:        domain.Gid,
 		TargetType: domain.TargetType.String(),

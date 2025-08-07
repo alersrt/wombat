@@ -1,10 +1,11 @@
 package internal
 
 import (
+	"context"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"log/slog"
+	"wombat/pkg"
 )
 
 type DbStorage struct {
@@ -28,87 +29,65 @@ type Tx struct {
 	*sqlx.Tx
 }
 
-func NewDbStorage(url string) (*DbStorage, error) {
-	db, err := sqlx.Connect("postgres", url)
-	if err != nil {
-		slog.Error(err.Error())
-		return nil, err
-	}
-	return &DbStorage{
-		db: db,
-	}, nil
+func NewDbStorage(url string) (db *DbStorage, err error) {
+	defer pkg.CatchWithReturn(&err)
+	dbConn, err := sqlx.Connect("postgres", url)
+	pkg.Throw(err)
+	return &DbStorage{db: dbConn}, nil
 }
 
-func (receiver *DbStorage) BeginTx() (*Tx, error) {
-	tx, err := receiver.db.Beginx()
-	if err != nil {
-		slog.Error(err.Error())
-		return nil, err
-	}
-	return &Tx{
-		Tx: tx,
-	}, nil
+func (db *DbStorage) BeginTx(ctx context.Context) *Tx {
+	tx, err := db.db.BeginTxx(ctx, nil)
+	pkg.Throw(err)
+	return &Tx{Tx: tx}
 }
 
-func (receiver *Tx) CommitTx() error {
-	return receiver.Commit()
+func (tx *Tx) CommitTx() {
+	err := tx.Commit()
+	pkg.Throw(err)
 }
 
-func (receiver *Tx) RollbackTx() error {
-	return receiver.Rollback()
+func (tx *Tx) RollbackTx() {
+	err := tx.Rollback()
+	pkg.Throw(err)
 }
 
-func (receiver *DbStorage) HasConnectionSource(sourceType string, userId string) bool {
+func (db *DbStorage) HasConnectionSource(sourceType string, userId string) bool {
 	query := `select count(*)
               from wombatsm.source_connections wsc
               where wsc.source_type = $1
                 and wsc.user_id = $2;`
 	var count int
-	err := receiver.db.Get(&count, query, sourceType, userId)
-	if err != nil {
-		slog.Warn(err.Error())
-		return false
-	}
+	err := db.db.Get(&count, query, sourceType, userId)
+	pkg.Throw(err)
 	return count == 1
 }
 
-func (receiver *Tx) CreateAccount() (*uuid.UUID, error) {
+func (tx *Tx) CreateAccount() *uuid.UUID {
 	gid := uuid.New()
 	query := `insert into wombatsm.accounts(gid) values($1)`
-	_, err := receiver.Exec(query, &gid)
-	if err != nil {
-		slog.Warn(err.Error())
-		return nil, err
-	} else {
-		return &gid, nil
-	}
+	_, err := tx.Exec(query, &gid)
+	pkg.Throw(err)
+	return &gid
 }
 
-func (receiver *Tx) CreateSourceConnection(accountGid *uuid.UUID, sourceType string, userId string) error {
+func (tx *Tx) CreateSourceConnection(accountGid *uuid.UUID, sourceType string, userId string) {
 	query := `insert into wombatsm.source_connections(account_gid, source_type, user_id)
               values($1, $2, $3)`
-	_, err := receiver.Exec(query, accountGid, sourceType, userId)
-	if err != nil {
-		slog.Warn(err.Error())
-		return err
-	} else {
-		return nil
-	}
+	_, err := tx.Exec(query, accountGid, sourceType, userId)
+	pkg.Throw(err)
+	return
 }
 
-func (receiver *Tx) CreateTargetConnection(accountGid *uuid.UUID, targetType string, token string) error {
+func (tx *Tx) CreateTargetConnection(accountGid *uuid.UUID, targetType string, token []byte) {
 	query := `insert into wombatsm.target_connections(account_gid, target_type, token)
               values($1, $2, $3)`
-	_, err := receiver.Exec(query, accountGid, targetType, token)
-	if err != nil {
-		slog.Warn(err.Error())
-		return err
-	} else {
-		return nil
-	}
+	_, err := tx.Exec(query, accountGid, targetType, token)
+	pkg.Throw(err)
+	return
 }
 
-func (receiver *Tx) GetTargetConnection(sourceType string, targetType string, userId string) (*TargetConnection, error) {
+func (tx *Tx) GetTargetConnection(sourceType string, targetType string, userId string) *TargetConnection {
 	query := `select wtc.*
               from wombatsm.accounts wa
                 left join wombatsm.target_connections wtc on wa.gid = wtc.account_gid
@@ -117,52 +96,39 @@ func (receiver *Tx) GetTargetConnection(sourceType string, targetType string, us
                 and wtc.target_type = $2
                 and wsc.user_id = $3`
 	targetConnection := &TargetConnectionEntity{}
-	err := receiver.Get(targetConnection, query, sourceType, targetType, userId)
-	if err != nil {
-		slog.Warn(err.Error())
-		return nil, err
-	}
-	return targetConnection.ToDomain(), nil
+	err := tx.Get(targetConnection, query, sourceType, targetType, userId)
+	pkg.Throw(err)
+	return targetConnection.ToDomain()
 }
 
-func (receiver *Tx) GetCommentMetadata(sourceType string, chatId string, userId string) ([]*Comment, error) {
+func (tx *Tx) GetCommentMetadata(sourceType string, chatId string, userId string) []*Comment {
 	query := `select *
               from wombatsm.comments
               where source_type = $1
                 and chat_id = $2
                 and message_id = $3`
-	rows, err := receiver.Queryx(query, sourceType, chatId, userId)
-	if err != nil {
-		slog.Warn(err.Error())
-		return nil, err
-	}
+	rows, err := tx.Queryx(query, sourceType, chatId, userId)
+	pkg.Throw(err)
 	var comments []Entity[Comment]
 	if rows.Next() {
 		comment := &CommentEntity{}
 		err = rows.Scan(comment)
 		comments = append(comments, comment)
 	}
-	if err != nil {
-		return nil, err
-	}
-	return ToDomain(comments), nil
+	pkg.Throw(err)
+	return ToDomain(comments)
 }
 
-func (receiver *Tx) SaveCommentMetadata(domain *Comment) (*Comment, error) {
+func (tx *Tx) SaveCommentMetadata(domain *Comment) *Comment {
 	query := `insert into wombatsm.comments(target_type, source_type, comment_id, user_id, chat_id, message_id, tag)
               values (:target_type, :source_type, :comment_id, :user_id, :chat_id, :message_id, :tag)
               returning *`
-	rows, err := receiver.NamedQuery(query, (*CommentEntity).FromDomain(nil, domain))
-	if err != nil {
-		slog.Warn(err.Error())
-		return nil, err
-	}
+	rows, err := tx.NamedQuery(query, (*CommentEntity).FromDomain(nil, domain))
+	pkg.Throw(err)
 	entity := &CommentEntity{}
 	if rows.Next() {
 		err = rows.Scan(entity)
 	}
-	if err != nil {
-		return nil, err
-	}
-	return entity.ToDomain(), nil
+	pkg.Throw(err)
+	return entity.ToDomain()
 }

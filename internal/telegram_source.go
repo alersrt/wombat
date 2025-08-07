@@ -1,14 +1,16 @@
 package internal
 
 import (
+	"context"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log/slog"
 	"strconv"
+	"wombat/pkg"
 )
 
 var (
-	BotCommandRegister = tgbotapi.BotCommand{
+	botCommandRegister = tgbotapi.BotCommand{
 		Command:     "register",
 		Description: "RG",
 	}
@@ -17,78 +19,79 @@ var (
 type TelegramSource struct {
 	sourceType SourceType
 	*tgbotapi.BotAPI
-	fwdChan chan *Message
+	cipher  *AesGcmCipher
+	router  *Router
 	db      *DbStorage
+	updChan tgbotapi.UpdatesChannel
 }
 
-func NewTelegramSource(token string, fwdChan chan *Message, db *DbStorage) (*TelegramSource, error) {
+func NewTelegramSource(token string, router *Router, db *DbStorage, cipher *AesGcmCipher) (ts *TelegramSource, err error) {
+	defer pkg.CatchWithReturn(&err)
+
 	bot, err := tgbotapi.NewBotAPI(token)
-	if err != nil {
-		slog.Error(err.Error())
-		return nil, err
-	}
+	pkg.Throw(err)
+
+	updCfg := tgbotapi.NewUpdate(0)
+	updCfg.AllowedUpdates = append(
+		updCfg.AllowedUpdates,
+		tgbotapi.UpdateTypeMessage,
+		tgbotapi.UpdateTypeEditedMessage,
+	)
+	updCfg.Timeout = 60
+
+	_, err = bot.Request(tgbotapi.NewSetMyCommands(botCommandRegister))
+	pkg.Throw(err)
+
+	slog.Info(fmt.Sprintf("Authorized on account %s", bot.Self.UserName))
 
 	return &TelegramSource{
 		sourceType: TelegramType,
 		BotAPI:     bot,
-		fwdChan:    fwdChan,
+		router:     router,
 		db:         db,
+		cipher:     cipher,
+		updChan:    bot.GetUpdatesChan(updCfg),
 	}, nil
 }
 
-func (receiver *TelegramSource) GetSourceType() SourceType {
-	return receiver.sourceType
+func (s *TelegramSource) GetSourceType() SourceType {
+	return s.sourceType
 }
 
-func (receiver *TelegramSource) init() (tgbotapi.UpdatesChannel, error) {
-	u := tgbotapi.NewUpdate(0)
-	u.AllowedUpdates = append(
-		u.AllowedUpdates,
-		tgbotapi.UpdateTypeMessage,
-		tgbotapi.UpdateTypeEditedMessage,
-	)
-	u.Timeout = 60
+func (s *TelegramSource) Do(ctx context.Context) (err error) {
+	defer pkg.CatchWithReturn(&err)
 
-	commands := tgbotapi.NewSetMyCommands(BotCommandRegister)
-	_, err := receiver.Request(commands)
-	if err != nil {
-		slog.Error(err.Error())
-		return nil, err
-	}
+	go func() {
+		for update := range s.updChan {
+			msg := s.getMessage(&update)
 
-	slog.Info(fmt.Sprintf("Authorized on account %s", receiver.Self.UserName))
-
-	return receiver.GetUpdatesChan(u), nil
-}
-
-func (receiver *TelegramSource) Process() {
-	updates, err := receiver.init()
-	if err != nil {
-		slog.Error(err.Error())
-		return
-	}
-
-	for update := range updates {
-		message := receiver.getMessage(&update)
-
-		if !update.Message.IsCommand() {
-			switch receiver.checkAccess(message) {
-			case Registered:
-				receiver.handleMessage(message)
-			case NotRegistered:
-				receiver.askToRegister(message)
-			}
-		} else {
-			switch message.Command() {
-			case BotCommandRegister.Command:
-				receiver.handleRegistration(strconv.FormatInt(message.From.ID, 10), message.CommandArguments())
+			if !update.Message.IsCommand() {
+				switch s.checkAccess(msg) {
+				case Registered:
+					s.handleRequest(msg)
+				case NotRegistered:
+					s.askToRegister(msg)
+				}
+			} else {
+				switch msg.Command() {
+				case botCommandRegister.Command:
+					err := s.handleRegistration(ctx, strconv.FormatInt(msg.From.ID, 10), msg.CommandArguments())
+					pkg.Throw(err)
+				}
 			}
 		}
-	}
+	}()
+	go func() {
+		for res := range s.router.GetRes() {
+			s.handleResponse(res)
+		}
+	}()
+
+	select {}
 }
 
-func (receiver *TelegramSource) checkAccess(message *tgbotapi.Message) AccessState {
-	isOk := receiver.db.HasConnectionSource(receiver.sourceType.String(), strconv.FormatInt(message.From.ID, 10))
+func (s *TelegramSource) checkAccess(message *tgbotapi.Message) AccessState {
+	isOk := s.db.HasConnectionSource(s.sourceType.String(), strconv.FormatInt(message.From.ID, 10))
 	if isOk {
 		return Registered
 	} else {
@@ -96,7 +99,7 @@ func (receiver *TelegramSource) checkAccess(message *tgbotapi.Message) AccessSta
 	}
 }
 
-func (receiver *TelegramSource) getMessage(update *tgbotapi.Update) *tgbotapi.Message {
+func (s *TelegramSource) getMessage(update *tgbotapi.Update) *tgbotapi.Message {
 	var message *tgbotapi.Message
 	switch {
 	case update.Message != nil:
@@ -107,8 +110,8 @@ func (receiver *TelegramSource) getMessage(update *tgbotapi.Update) *tgbotapi.Me
 	return message
 }
 
-func (receiver *TelegramSource) handleMessage(message *tgbotapi.Message) {
-	msg := &Message{
+func (s *TelegramSource) handleRequest(message *tgbotapi.Message) {
+	req := &Request{
 		TargetType: JiraType,
 		SourceType: TelegramType,
 		Content:    message.Text,
@@ -116,41 +119,41 @@ func (receiver *TelegramSource) handleMessage(message *tgbotapi.Message) {
 		ChatId:     strconv.FormatInt(message.Chat.ID, 10),
 		MessageId:  strconv.Itoa(message.MessageID),
 	}
-	receiver.fwdChan <- msg
+	s.router.SendReq(req)
 }
 
-func (receiver *TelegramSource) askToRegister(message *tgbotapi.Message) {
+func (s *TelegramSource) handleResponse(res *Response) {
+	chatId, err := strconv.ParseInt(res.ChatId, 10, 64)
+	pkg.Throw(err)
+	var msg tgbotapi.MessageConfig
+	if res.Ok {
+		msg = tgbotapi.NewMessage(chatId, "✅")
+	} else {
+		msg = tgbotapi.NewMessage(chatId, "❌")
+	}
+	_, err = s.Send(msg)
+	pkg.Throw(err)
+
+}
+
+func (s *TelegramSource) askToRegister(message *tgbotapi.Message) {
 	askMsg := tgbotapi.NewMessage(message.Chat.ID, "/register <Private Access Token>")
-	_, err := receiver.Send(askMsg)
-	if err != nil {
-		slog.Warn(err.Error())
-		return
-	}
+	_, err := s.Send(askMsg)
+	pkg.Throw(err)
 }
 
-func (receiver *TelegramSource) handleRegistration(userId string, token string) error {
-	slog.Info("REG:START", "source", receiver.sourceType.String(), "userId", userId)
+func (s *TelegramSource) handleRegistration(ctx context.Context, userId string, token string) (err error) {
+	slog.Info("REG:START", "source", s.sourceType.String(), "userId", userId)
 
-	tx, err := receiver.db.BeginTx()
-	if err != nil {
-		return err
-	}
+	tx := s.db.BeginTx(ctx)
+	defer pkg.CatchWithReturnAndCall(&err, tx.RollbackTx)
 
-	accountGid, err := tx.CreateAccount()
-	if err != nil {
-		return tx.RollbackTx()
-	}
-	err = tx.CreateSourceConnection(accountGid, receiver.sourceType.String(), userId)
-	if err != nil {
-		return tx.RollbackTx()
-	}
+	accountGid := tx.CreateAccount()
+	tx.CreateSourceConnection(accountGid, s.sourceType.String(), userId)
 	targetType := JiraType
-	err = tx.CreateTargetConnection(accountGid, targetType.String(), token)
+	tx.CreateTargetConnection(accountGid, targetType.String(), s.cipher.Encrypt(token))
 
-	if err != nil {
-		return tx.RollbackTx()
-	}
-
-	slog.Info("REG:FINISH", "source", receiver.sourceType.String(), "userId", userId)
-	return tx.CommitTx()
+	tx.CommitTx()
+	slog.Info("REG:FINISH", "source", s.sourceType.String(), "userId", userId)
+	return
 }
