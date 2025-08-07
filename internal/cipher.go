@@ -25,7 +25,7 @@ func NewAesGcmCipher(key []byte) *AesGcmCipher {
 	}
 }
 
-func (a *AesGcmCipher) AesGcmEncrypt(plaintext string) (ciphertext []byte) {
+func (a *AesGcmCipher) Encrypt(plaintext string) (ciphertext []byte) {
 	nonce := make([]byte, a.gcm.NonceSize())
 	_, err := io.ReadFull(rand.Reader, nonce)
 	pkg.Throw(err)
@@ -33,7 +33,7 @@ func (a *AesGcmCipher) AesGcmEncrypt(plaintext string) (ciphertext []byte) {
 	return
 }
 
-func (a *AesGcmCipher) AesGcmDecrypt(ciphertext []byte) (plaintext string) {
+func (a *AesGcmCipher) Decrypt(ciphertext []byte) (plaintext string) {
 	nonceSize := a.gcm.NonceSize()
 	if len(ciphertext) < nonceSize {
 		pkg.Throw(errors.New("ciphertext and nonce size mismatch"))
