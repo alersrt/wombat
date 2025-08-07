@@ -106,6 +106,15 @@ type Request struct {
 	MessageId  string     `json:"message_id"`
 }
 
+type Response struct {
+	Ok         bool       `json:"ok"`
+	SourceType SourceType `json:"source_type"`
+	TargetType TargetType `json:"target_type"`
+	UserId     string     `json:"user_id"`
+	ChatId     string     `json:"chat_id"`
+	MessageId  string     `json:"message_id"`
+}
+
 type Comment struct {
 	Gid uuid.UUID `json:"gid"`
 	*Request

@@ -47,13 +47,13 @@ type JiraTarget struct {
 	url        string
 	db         *DbStorage
 	tagsRegex  *regexp.Regexp
-	srcChan    chan *Request
+	router     *Router
 }
 
 func NewJiraTarget(
 	url string,
 	tag string,
-	srcChan chan *Request,
+	router *Router,
 	dbStorage *DbStorage,
 	cipher *AesGcmCipher,
 ) *JiraTarget {
@@ -63,7 +63,7 @@ func NewJiraTarget(
 		url:        url,
 		tagsRegex:  regexp.MustCompile(tag),
 		db:         dbStorage,
-		srcChan:    srcChan,
+		router:     router,
 	}
 }
 
@@ -72,9 +72,24 @@ func (t *JiraTarget) GetTargetType() TargetType {
 }
 
 func (t *JiraTarget) Do(ctx context.Context) (err error) {
-	for update := range t.srcChan {
-		ex := t.handle(ctx, update)
-		pkg.Throw(ex)
+	defer pkg.CatchWithReturn(&err)
+	for req := range t.router.GetReq() {
+		ex := t.handle(ctx, req)
+		res := &Response{
+			SourceType: req.SourceType,
+			TargetType: req.TargetType,
+			UserId:     req.UserId,
+			ChatId:     req.ChatId,
+			MessageId:  req.MessageId,
+		}
+		if ex != nil {
+			res.Ok = false
+			t.router.SendRes(res)
+			pkg.Throw(ex)
+		} else {
+			res.Ok = true
+			t.router.SendRes(res)
+		}
 	}
 	return
 }

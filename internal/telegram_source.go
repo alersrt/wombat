@@ -20,22 +20,37 @@ type TelegramSource struct {
 	sourceType SourceType
 	*tgbotapi.BotAPI
 	cipher  *AesGcmCipher
-	fwdChan chan *Request
+	router  *Router
 	db      *DbStorage
+	updChan tgbotapi.UpdatesChannel
 }
 
-func NewTelegramSource(token string, fwdChan chan *Request, db *DbStorage, cipher *AesGcmCipher) (ts *TelegramSource, err error) {
+func NewTelegramSource(token string, router *Router, db *DbStorage, cipher *AesGcmCipher) (ts *TelegramSource, err error) {
 	defer pkg.CatchWithReturn(&err)
 
 	bot, err := tgbotapi.NewBotAPI(token)
 	pkg.Throw(err)
 
+	updCfg := tgbotapi.NewUpdate(0)
+	updCfg.AllowedUpdates = append(
+		updCfg.AllowedUpdates,
+		tgbotapi.UpdateTypeMessage,
+		tgbotapi.UpdateTypeEditedMessage,
+	)
+	updCfg.Timeout = 60
+
+	_, err = bot.Request(tgbotapi.NewSetMyCommands(botCommandRegister))
+	pkg.Throw(err)
+
+	slog.Info(fmt.Sprintf("Authorized on account %s", bot.Self.UserName))
+
 	return &TelegramSource{
 		sourceType: TelegramType,
 		BotAPI:     bot,
-		fwdChan:    fwdChan,
+		router:     router,
 		db:         db,
 		cipher:     cipher,
+		updChan:    bot.GetUpdatesChan(updCfg),
 	}, nil
 }
 
@@ -44,46 +59,35 @@ func (s *TelegramSource) GetSourceType() SourceType {
 }
 
 func (s *TelegramSource) Do(ctx context.Context) (err error) {
-	updates := s.init()
 	defer pkg.CatchWithReturn(&err)
 
-	for update := range updates {
-		msg := s.getMessage(&update)
+	go func() {
+		for update := range s.updChan {
+			msg := s.getMessage(&update)
 
-		if !update.Message.IsCommand() {
-			switch s.checkAccess(msg) {
-			case Registered:
-				s.handleRequest(msg)
-			case NotRegistered:
-				s.askToRegister(msg)
-			}
-		} else {
-			switch msg.Command() {
-			case botCommandRegister.Command:
-				err := s.handleRegistration(ctx, strconv.FormatInt(msg.From.ID, 10), msg.CommandArguments())
-				pkg.Throw(err)
+			if !update.Message.IsCommand() {
+				switch s.checkAccess(msg) {
+				case Registered:
+					s.handleRequest(msg)
+				case NotRegistered:
+					s.askToRegister(msg)
+				}
+			} else {
+				switch msg.Command() {
+				case botCommandRegister.Command:
+					err := s.handleRegistration(ctx, strconv.FormatInt(msg.From.ID, 10), msg.CommandArguments())
+					pkg.Throw(err)
+				}
 			}
 		}
-	}
-	return
-}
+	}()
+	go func() {
+		for res := range s.router.GetRes() {
+			s.handleResponse(res)
+		}
+	}()
 
-func (s *TelegramSource) init() tgbotapi.UpdatesChannel {
-	u := tgbotapi.NewUpdate(0)
-	u.AllowedUpdates = append(
-		u.AllowedUpdates,
-		tgbotapi.UpdateTypeMessage,
-		tgbotapi.UpdateTypeEditedMessage,
-	)
-	u.Timeout = 60
-
-	commands := tgbotapi.NewSetMyCommands(botCommandRegister)
-	_, err := s.Request(commands)
-	pkg.Throw(err)
-
-	slog.Info(fmt.Sprintf("Authorized on account %s", s.Self.UserName))
-
-	return s.GetUpdatesChan(u)
+	select {}
 }
 
 func (s *TelegramSource) checkAccess(message *tgbotapi.Message) AccessState {
@@ -107,7 +111,7 @@ func (s *TelegramSource) getMessage(update *tgbotapi.Update) *tgbotapi.Message {
 }
 
 func (s *TelegramSource) handleRequest(message *tgbotapi.Message) {
-	msg := &Request{
+	req := &Request{
 		TargetType: JiraType,
 		SourceType: TelegramType,
 		Content:    message.Text,
@@ -115,19 +119,21 @@ func (s *TelegramSource) handleRequest(message *tgbotapi.Message) {
 		ChatId:     strconv.FormatInt(message.Chat.ID, 10),
 		MessageId:  strconv.Itoa(message.MessageID),
 	}
-	s.fwdChan <- msg
+	s.router.SendReq(req)
 }
 
-func (s *TelegramSource) handleResponse(message *tgbotapi.Message) {
-	msg := &Request{
-		TargetType: JiraType,
-		SourceType: TelegramType,
-		Content:    message.Text,
-		UserId:     strconv.FormatInt(message.From.ID, 10),
-		ChatId:     strconv.FormatInt(message.Chat.ID, 10),
-		MessageId:  strconv.Itoa(message.MessageID),
+func (s *TelegramSource) handleResponse(res *Response) {
+	chatId, err := strconv.ParseInt(res.ChatId, 10, 64)
+	pkg.Throw(err)
+	var msg tgbotapi.MessageConfig
+	if res.Ok {
+		msg = tgbotapi.NewMessage(chatId, "✅")
+	} else {
+		msg = tgbotapi.NewMessage(chatId, "❌")
 	}
-	s.fwdChan <- msg
+	_, err = s.Send(msg)
+	pkg.Throw(err)
+
 }
 
 func (s *TelegramSource) askToRegister(message *tgbotapi.Message) {
