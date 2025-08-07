@@ -14,7 +14,7 @@ type AesGcmCipher struct {
 	gcm       cipher.AEAD
 }
 
-// NewAesGcmCipher Creates new GCM with standart nonce size (12)
+// NewAesGcmCipher Creates new GCM with standard nonce size (12)
 func NewAesGcmCipher(key []byte) *AesGcmCipher {
 	block, err := aes.NewCipher(key)
 	pkg.Throw(err)
