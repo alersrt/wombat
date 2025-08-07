@@ -10,36 +10,36 @@ import (
 )
 
 type AesGcmCipher struct {
-	key []byte
+	nonceSize int
+	gcm       cipher.AEAD
 }
 
+// NewAesGcmCipher Creates new GCM with standart nonce size (12)
 func NewAesGcmCipher(key []byte) *AesGcmCipher {
-	return &AesGcmCipher{key}
-}
-
-func (a *AesGcmCipher) AesGcmEncrypt(plaintext string) (ciphertext []byte) {
-	block, err := aes.NewCipher(a.key)
+	block, err := aes.NewCipher(key)
 	pkg.Throw(err)
 	gcm, err := cipher.NewGCM(block)
 	pkg.Throw(err)
-	nonce := make([]byte, gcm.NonceSize())
-	_, err = io.ReadFull(rand.Reader, nonce)
+	return &AesGcmCipher{
+		gcm: gcm,
+	}
+}
+
+func (a *AesGcmCipher) AesGcmEncrypt(plaintext string) (ciphertext []byte) {
+	nonce := make([]byte, a.gcm.NonceSize())
+	_, err := io.ReadFull(rand.Reader, nonce)
 	pkg.Throw(err)
-	ciphertext = gcm.Seal(nonce, nonce, []byte(plaintext), nil)
+	ciphertext = a.gcm.Seal(nonce, nonce, []byte(plaintext), nil)
 	return
 }
 
 func (a *AesGcmCipher) AesGcmDecrypt(ciphertext []byte) (plaintext string) {
-	block, err := aes.NewCipher(a.key)
-	pkg.Throw(err)
-	gcm, err := cipher.NewGCM(block)
-	pkg.Throw(err)
-	nonceSize := gcm.NonceSize()
+	nonceSize := a.gcm.NonceSize()
 	if len(ciphertext) < nonceSize {
 		pkg.Throw(errors.New("ciphertext and nonce size mismatch"))
 	}
 	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
-	plaintextBytes, err := gcm.Open(nil, nonce, ciphertext, nil)
+	plaintextBytes, err := a.gcm.Open(nil, nonce, ciphertext, nil)
 	pkg.Throw(err)
 	plaintext = string(plaintextBytes)
 	return
