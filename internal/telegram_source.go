@@ -20,11 +20,11 @@ type TelegramSource struct {
 	sourceType SourceType
 	*tgbotapi.BotAPI
 	cipher  *AesGcmCipher
-	fwdChan chan *Message
+	fwdChan chan *Request
 	db      *DbStorage
 }
 
-func NewTelegramSource(token string, fwdChan chan *Message, db *DbStorage, cipher *AesGcmCipher) (ts *TelegramSource, err error) {
+func NewTelegramSource(token string, fwdChan chan *Request, db *DbStorage, cipher *AesGcmCipher) (ts *TelegramSource, err error) {
 	defer pkg.CatchWithReturn(&err)
 
 	bot, err := tgbotapi.NewBotAPI(token)
@@ -53,7 +53,7 @@ func (s *TelegramSource) Do(ctx context.Context) (err error) {
 		if !update.Message.IsCommand() {
 			switch s.checkAccess(msg) {
 			case Registered:
-				s.handleMessage(msg)
+				s.handleRequest(msg)
 			case NotRegistered:
 				s.askToRegister(msg)
 			}
@@ -106,8 +106,20 @@ func (s *TelegramSource) getMessage(update *tgbotapi.Update) *tgbotapi.Message {
 	return message
 }
 
-func (s *TelegramSource) handleMessage(message *tgbotapi.Message) {
-	msg := &Message{
+func (s *TelegramSource) handleRequest(message *tgbotapi.Message) {
+	msg := &Request{
+		TargetType: JiraType,
+		SourceType: TelegramType,
+		Content:    message.Text,
+		UserId:     strconv.FormatInt(message.From.ID, 10),
+		ChatId:     strconv.FormatInt(message.Chat.ID, 10),
+		MessageId:  strconv.Itoa(message.MessageID),
+	}
+	s.fwdChan <- msg
+}
+
+func (s *TelegramSource) handleResponse(message *tgbotapi.Message) {
+	msg := &Request{
 		TargetType: JiraType,
 		SourceType: TelegramType,
 		Content:    message.Text,

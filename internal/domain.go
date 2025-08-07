@@ -97,7 +97,7 @@ const (
 	Registered
 )
 
-type Message struct {
+type Request struct {
 	SourceType SourceType `json:"source_type"`
 	TargetType TargetType `json:"target_type"`
 	Content    string     `json:"content"`
@@ -108,7 +108,7 @@ type Message struct {
 
 type Comment struct {
 	Gid uuid.UUID `json:"gid"`
-	*Message
+	*Request
 	Tag       string    `json:"tag"`
 	CommentId string    `json:"comment_id"`
 	CreateTs  time.Time `json:"create_ts"`

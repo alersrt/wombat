@@ -47,13 +47,13 @@ type JiraTarget struct {
 	url        string
 	db         *DbStorage
 	tagsRegex  *regexp.Regexp
-	srcChan    chan *Message
+	srcChan    chan *Request
 }
 
 func NewJiraTarget(
 	url string,
 	tag string,
-	srcChan chan *Message,
+	srcChan chan *Request,
 	dbStorage *DbStorage,
 	cipher *AesGcmCipher,
 ) *JiraTarget {
@@ -79,26 +79,26 @@ func (t *JiraTarget) Do(ctx context.Context) (err error) {
 	return
 }
 
-func (t *JiraTarget) handle(ctx context.Context, msg *Message) (err error) {
-	if !t.tagsRegex.MatchString(msg.Content) {
-		slog.Info(fmt.Sprintf("Tag not found: %v", msg.Content))
+func (t *JiraTarget) handle(ctx context.Context, req *Request) (err error) {
+	if !t.tagsRegex.MatchString(req.Content) {
+		slog.Info(fmt.Sprintf("Tag not found: %v", req.Content))
 		return
 	}
 
 	tx := t.db.BeginTx(ctx)
 	defer pkg.CatchWithReturnAndCall(&err, tx.RollbackTx)
 
-	targetConnection := tx.GetTargetConnection(msg.SourceType.String(), msg.TargetType.String(), msg.UserId)
+	targetConnection := tx.GetTargetConnection(req.SourceType.String(), req.TargetType.String(), req.UserId)
 	client, ex := NewJiraClient(t.url, t.cipher.Decrypt(targetConnection.Token))
 	pkg.Throw(ex)
 
-	tags := t.tagsRegex.FindAllString(msg.Content, -1)
-	savedComments := tx.GetCommentMetadata(msg.SourceType.String(), msg.ChatId, msg.MessageId)
+	tags := t.tagsRegex.FindAllString(req.Content, -1)
+	savedComments := tx.GetCommentMetadata(req.SourceType.String(), req.ChatId, req.MessageId)
 
 	if len(savedComments) == 0 {
 		for _, tag := range tags {
-			commentId := client.Add(tag, msg.Content)
-			tx.SaveCommentMetadata(&Comment{Message: msg, Tag: tag, CommentId: commentId})
+			commentId := client.Add(tag, req.Content)
+			tx.SaveCommentMetadata(&Comment{Request: req, Tag: tag, CommentId: commentId})
 		}
 	} else {
 		taggedComments := map[string]*Comment{}
@@ -107,8 +107,8 @@ func (t *JiraTarget) handle(ctx context.Context, msg *Message) (err error) {
 		}
 		for _, tag := range tags {
 			comment := taggedComments[tag]
-			client.Update(tag, comment.CommentId, msg.Content)
-			tx.SaveCommentMetadata(&Comment{Message: msg, Tag: tag, CommentId: comment.CommentId})
+			client.Update(tag, comment.CommentId, req.Content)
+			tx.SaveCommentMetadata(&Comment{Request: req, Tag: tag, CommentId: comment.CommentId})
 		}
 	}
 	tx.CommitTx()

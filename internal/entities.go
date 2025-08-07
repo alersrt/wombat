@@ -83,7 +83,7 @@ type CommentEntity struct {
 func (e *CommentEntity) ToDomain() *Comment {
 	return &Comment{
 		Gid: e.Gid,
-		Message: &Message{
+		Request: &Request{
 			SourceType: SourceTypeFromString(e.SourceType),
 			UserId:     e.UserId,
 			ChatId:     e.ChatId,

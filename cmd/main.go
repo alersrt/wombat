@@ -20,7 +20,7 @@ func main() {
 
 	db, err := internal.NewDbStorage(conf.PostgreSQL.Url)
 	pkg.Throw(err)
-	forwardChannel := make(chan *internal.Message)
+	forwardChannel := make(chan *internal.Request)
 	cipher := internal.NewAesGcmCipher([]byte(conf.Cipher.Key))
 	telegramSource, err := internal.NewTelegramSource(conf.Telegram.Token, forwardChannel, db, cipher)
 	pkg.Throw(err)
