@@ -61,33 +61,29 @@ func (s *TelegramSource) GetSourceType() SourceType {
 func (s *TelegramSource) Do(ctx context.Context) (err error) {
 	defer pkg.CatchWithReturn(&err)
 
-	go func() {
-		for update := range s.updChan {
-			msg := s.getMessage(&update)
-
-			if !update.Message.IsCommand() {
-				switch s.checkAccess(msg) {
-				case Registered:
-					s.handleRequest(msg)
-				case NotRegistered:
-					s.askToRegister(msg)
-				}
-			} else {
-				switch msg.Command() {
-				case botCommandRegister.Command:
-					err := s.handleRegistration(ctx, strconv.FormatInt(msg.From.ID, 10), msg.CommandArguments())
-					pkg.Throw(err)
-				}
+	select {
+	case upd := <-s.updChan:
+		msg := s.getMessage(&upd)
+		if !upd.Message.IsCommand() {
+			switch s.checkAccess(msg) {
+			case Registered:
+				s.handleRequest(msg)
+			case NotRegistered:
+				s.askToRegister(msg)
+			}
+		} else {
+			switch msg.Command() {
+			case botCommandRegister.Command:
+				err := s.handleRegistration(ctx, strconv.FormatInt(msg.From.ID, 10), msg.CommandArguments())
+				pkg.Throw(err)
 			}
 		}
-	}()
-	go func() {
-		for res := range s.router.GetRes() {
-			s.handleResponse(res)
-		}
-	}()
-
-	select {}
+	case res := <-s.router.GetRes():
+		s.handleResponse(res)
+	case <-ctx.Done():
+		pkg.Throw(ctx.Err())
+	}
+	return
 }
 
 func (s *TelegramSource) checkAccess(message *tgbotapi.Message) AccessState {
@@ -133,7 +129,6 @@ func (s *TelegramSource) handleResponse(res *Response) {
 	}
 	_, err = s.Send(msg)
 	pkg.Throw(err)
-
 }
 
 func (s *TelegramSource) askToRegister(message *tgbotapi.Message) {
