@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/andygrunwald/go-jira"
-	"log/slog"
 	"regexp"
 	"wombat/pkg"
 )
@@ -96,8 +95,7 @@ func (t *JiraTarget) Do(ctx context.Context) (err error) {
 
 func (t *JiraTarget) handle(ctx context.Context, req *Request) (err error) {
 	if !t.tagsRegex.MatchString(req.Content) {
-		slog.Info(fmt.Sprintf("Tag not found: %v", req.Content))
-		return
+		return fmt.Errorf("tag not found: %v", req.Content)
 	}
 
 	tx := t.db.BeginTx(ctx)

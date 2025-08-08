@@ -30,8 +30,8 @@ func main() {
 	dmn := pkg.Create(conf)
 	go func() {
 		err := dmn.
-			AddTask(jiraTarget.Do).
-			AddTask(telegramSource.Do).
+			AddTask(jiraTarget).
+			AddTask(telegramSource).
 			Start(mainCtx)
 		pkg.Throw(err)
 	}()
