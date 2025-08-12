@@ -46,13 +46,13 @@ type JiraTarget struct {
 	url        string
 	db         *DbStorage
 	tagsRegex  *regexp.Regexp
-	router     *Router
+	router     *pkg.Router[Request, Response]
 }
 
 func NewJiraTarget(
 	url string,
 	tag string,
-	router *Router,
+	router *pkg.Router[Request, Response],
 	dbStorage *DbStorage,
 	cipher *AesGcmCipher,
 ) *JiraTarget {
@@ -72,25 +72,30 @@ func (t *JiraTarget) GetTargetType() TargetType {
 
 func (t *JiraTarget) Do(ctx context.Context) (err error) {
 	defer pkg.CatchWithReturn(&err)
-	for req := range t.router.GetReq() {
-		ex := t.handle(ctx, req)
-		res := &Response{
-			SourceType: req.SourceType,
-			TargetType: req.TargetType,
-			UserId:     req.UserId,
-			ChatId:     req.ChatId,
-			MessageId:  req.MessageId,
-		}
-		if ex != nil {
-			res.Ok = false
-			t.router.SendRes(res)
-			pkg.Throw(ex)
-		} else {
-			res.Ok = true
-			t.router.SendRes(res)
+	for {
+		select {
+		case req := <-t.router.ReqChan():
+			ex := t.handle(ctx, req.Value())
+			res := &Response{
+				SourceType: req.Value().SourceType,
+				TargetType: req.Value().TargetType,
+				UserId:     req.Value().UserId,
+				ChatId:     req.Value().ChatId,
+				MessageId:  req.Value().MessageId,
+			}
+			if ex != nil {
+				res.Ok = false
+				t.router.SendRes(pkg.NewRes(res))
+				pkg.Throw(ex)
+			} else {
+				res.Ok = true
+				t.router.SendRes(pkg.NewRes(res))
+			}
+		case <-ctx.Done():
+			pkg.Throw(ctx.Err())
+			return
 		}
 	}
-	return
 }
 
 func (t *JiraTarget) handle(ctx context.Context, req *Request) (err error) {

@@ -19,7 +19,7 @@ func main() {
 	pkg.Throw(err)
 
 	cipher := internal.NewAesGcmCipher([]byte(conf.Cipher.Key))
-	router := internal.NewRouter()
+	router := pkg.NewRouter[internal.Request, internal.Response]()
 
 	db, err := internal.NewDbStorage(conf.PostgreSQL.Url)
 	pkg.Throw(err)

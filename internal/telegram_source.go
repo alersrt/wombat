@@ -20,12 +20,12 @@ type TelegramSource struct {
 	sourceType SourceType
 	*tgbotapi.BotAPI
 	cipher  *AesGcmCipher
-	router  *Router
+	router  *pkg.Router[Request, Response]
 	db      *DbStorage
 	updChan tgbotapi.UpdatesChannel
 }
 
-func NewTelegramSource(token string, router *Router, db *DbStorage, cipher *AesGcmCipher) (ts *TelegramSource, err error) {
+func NewTelegramSource(token string, router *pkg.Router[Request, Response], db *DbStorage, cipher *AesGcmCipher) (ts *TelegramSource, err error) {
 	defer pkg.CatchWithReturn(&err)
 
 	bot, err := tgbotapi.NewBotAPI(token)
@@ -60,30 +60,31 @@ func (s *TelegramSource) GetSourceType() SourceType {
 
 func (s *TelegramSource) Do(ctx context.Context) (err error) {
 	defer pkg.CatchWithReturn(&err)
-
-	select {
-	case upd := <-s.updChan:
-		msg := s.getMessage(&upd)
-		if !upd.Message.IsCommand() {
-			switch s.checkAccess(msg) {
-			case Registered:
-				s.handleRequest(msg)
-			case NotRegistered:
-				s.askToRegister(msg)
+	for {
+		select {
+		case upd := <-s.updChan:
+			msg := s.getMessage(&upd)
+			if !upd.Message.IsCommand() {
+				switch s.checkAccess(msg) {
+				case Registered:
+					s.handleRequest(msg)
+				case NotRegistered:
+					s.askToRegister(msg)
+				}
+			} else {
+				switch msg.Command() {
+				case botCommandRegister.Command:
+					err := s.handleRegistration(ctx, strconv.FormatInt(msg.From.ID, 10), msg.CommandArguments())
+					pkg.Throw(err)
+				}
 			}
-		} else {
-			switch msg.Command() {
-			case botCommandRegister.Command:
-				err := s.handleRegistration(ctx, strconv.FormatInt(msg.From.ID, 10), msg.CommandArguments())
-				pkg.Throw(err)
-			}
+		case res := <-s.router.ResChan():
+			s.handleResponse(res.Value())
+		case <-ctx.Done():
+			pkg.Throw(ctx.Err())
+			return
 		}
-	case res := <-s.router.GetRes():
-		s.handleResponse(res)
-	case <-ctx.Done():
-		pkg.Throw(ctx.Err())
 	}
-	return
 }
 
 func (s *TelegramSource) checkAccess(message *tgbotapi.Message) AccessState {
@@ -115,7 +116,7 @@ func (s *TelegramSource) handleRequest(message *tgbotapi.Message) {
 		ChatId:     strconv.FormatInt(message.Chat.ID, 10),
 		MessageId:  strconv.Itoa(message.MessageID),
 	}
-	s.router.SendReq(req)
+	s.router.SendReq(pkg.NewReq(req))
 }
 
 func (s *TelegramSource) handleResponse(res *Response) {
@@ -123,9 +124,9 @@ func (s *TelegramSource) handleResponse(res *Response) {
 	pkg.Throw(err)
 	var msg tgbotapi.MessageConfig
 	if res.Ok {
-		msg = tgbotapi.NewMessage(chatId, "✅")
+		msg = tgbotapi.NewMessage(chatId, "🙂")
 	} else {
-		msg = tgbotapi.NewMessage(chatId, "❌")
+		msg = tgbotapi.NewMessage(chatId, "🙁")
 	}
 	_, err = s.Send(msg)
 	pkg.Throw(err)

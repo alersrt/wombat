@@ -77,9 +77,8 @@ func (d *Daemon) handleSignals(ctx context.Context, cancel context.CancelFunc) {
 		switch s {
 		case syscall.SIGHUP:
 			cancel()
-			err := d.conf.Init(os.Args)
+			err := d.Start(ctx)
 			Throw(err)
-			d.startTasks(ctx)
 		case os.Interrupt:
 			os.Exit(130)
 		case os.Kill:
