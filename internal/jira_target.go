@@ -46,13 +46,13 @@ type JiraTarget struct {
 	url        string
 	db         *DbStorage
 	tagsRegex  *regexp.Regexp
-	router     *pkg.Router[Request, Response]
+	router     *Router
 }
 
 func NewJiraTarget(
 	url string,
 	tag string,
-	router *pkg.Router[Request, Response],
+	router *Router,
 	dbStorage *DbStorage,
 	cipher *AesGcmCipher,
 ) *JiraTarget {

@@ -20,12 +20,12 @@ type TelegramSource struct {
 	sourceType SourceType
 	*tgbotapi.BotAPI
 	cipher  *AesGcmCipher
-	router  *pkg.Router[Request, Response]
+	router  *Router
 	db      *DbStorage
 	updChan tgbotapi.UpdatesChannel
 }
 
-func NewTelegramSource(token string, router *pkg.Router[Request, Response], db *DbStorage, cipher *AesGcmCipher) (ts *TelegramSource, err error) {
+func NewTelegramSource(token string, router *Router, db *DbStorage, cipher *AesGcmCipher) (ts *TelegramSource, err error) {
 	defer pkg.CatchWithReturn(&err)
 
 	bot, err := tgbotapi.NewBotAPI(token)
