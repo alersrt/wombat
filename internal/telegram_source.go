@@ -58,8 +58,8 @@ func (s *TelegramSource) GetSourceType() SourceType {
 	return s.sourceType
 }
 
-func (s *TelegramSource) Do(ctx context.Context) (err error) {
-	defer pkg.CatchWithReturn(&err)
+func (s *TelegramSource) Do(ctx context.Context) {
+	defer pkg.Catch()
 	for {
 		select {
 		case upd := <-s.updChan:
@@ -74,12 +74,12 @@ func (s *TelegramSource) Do(ctx context.Context) (err error) {
 			} else {
 				switch msg.Command() {
 				case botCommandRegister.Command:
-					err := s.handleRegistration(ctx, strconv.FormatInt(msg.From.ID, 10), msg.CommandArguments())
+					err := s.handleRegistration(ctx, msg)
 					pkg.Throw(err)
 				}
 			}
 		case res := <-s.router.ResChan():
-			s.handleResponse(res.Value())
+			s.handleResponse(res)
 		case <-ctx.Done():
 			pkg.Throw(ctx.Err())
 			return
@@ -116,17 +116,17 @@ func (s *TelegramSource) handleRequest(message *tgbotapi.Message) {
 		ChatId:     strconv.FormatInt(message.Chat.ID, 10),
 		MessageId:  strconv.Itoa(message.MessageID),
 	}
-	s.router.SendReq(pkg.NewReq(req))
+	s.router.SendReq(req)
 }
 
 func (s *TelegramSource) handleResponse(res *Response) {
 	chatId, err := strconv.ParseInt(res.ChatId, 10, 64)
 	pkg.Throw(err)
 	var msg tgbotapi.MessageConfig
-	if res.Ok {
-		msg = tgbotapi.NewMessage(chatId, "🙂")
-	} else {
+	if !res.Ok {
 		msg = tgbotapi.NewMessage(chatId, "🙁")
+	} else {
+		msg = tgbotapi.NewMessage(chatId, "🙂")
 	}
 	_, err = s.Send(msg)
 	pkg.Throw(err)
@@ -138,7 +138,12 @@ func (s *TelegramSource) askToRegister(message *tgbotapi.Message) {
 	pkg.Throw(err)
 }
 
-func (s *TelegramSource) handleRegistration(ctx context.Context, userId string, token string) (err error) {
+func (s *TelegramSource) handleRegistration(ctx context.Context, msg *tgbotapi.Message) (err error) {
+	userId := strconv.FormatInt(msg.From.ID, 10)
+	chatId := strconv.FormatInt(msg.Chat.ID, 10)
+	messageId := strconv.Itoa(msg.MessageID)
+	token := msg.CommandArguments()
+
 	slog.Info("REG:START", "source", s.sourceType.String(), "userId", userId)
 
 	tx := s.db.BeginTx(ctx)
@@ -151,5 +156,8 @@ func (s *TelegramSource) handleRegistration(ctx context.Context, userId string, 
 
 	tx.CommitTx()
 	slog.Info("REG:FINISH", "source", s.sourceType.String(), "userId", userId)
+
+	s.router.SendRes(&Response{Ok: true, UserId: userId, ChatId: chatId, MessageId: messageId})
+
 	return
 }

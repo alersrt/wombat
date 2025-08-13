@@ -1,53 +1,29 @@
 package pkg
 
-type Request[T any] struct {
-	value *T
-}
-
-func NewReq[T any](value *T) *Request[T] {
-	return &Request[T]{value}
-}
-
-func (req *Request[T]) Value() *T {
-	return req.value
-}
-
-type Response[T any] struct {
-	value *T
-}
-
-func NewRes[T any](value *T) *Response[T] {
-	return &Response[T]{value}
-}
-
-func (res *Response[T]) Value() *T {
-	return res.value
-}
-
 type Router[REQ, RES any] struct {
-	requests  chan *Request[REQ]
-	responses chan *Response[RES]
+	requests  chan *REQ
+	responses chan *RES
 }
 
 func NewRouter[REQ, RES any]() *Router[REQ, RES] {
 	return &Router[REQ, RES]{
-		requests:  make(chan *Request[REQ]),
-		responses: make(chan *Response[RES]),
+		requests:  make(chan *REQ),
+		responses: make(chan *RES),
 	}
 }
 
-func (r *Router[REQ, RES]) SendReq(req *Request[REQ]) {
+func (r *Router[REQ, RES]) SendReq(req *REQ) {
 	r.requests <- req
 }
 
-func (r *Router[REQ, RES]) SendRes(res *Response[RES]) {
+func (r *Router[REQ, RES]) SendRes(res *RES) {
 	r.responses <- res
 }
 
-func (r *Router[REQ, RES]) ReqChan() chan *Request[REQ] {
+func (r *Router[REQ, RES]) ReqChan() chan *REQ {
 	return r.requests
 }
 
-func (r *Router[REQ, RES]) ResChan() chan *Response[RES] {
+func (r *Router[REQ, RES]) ResChan() chan *RES {
 	return r.responses
 }

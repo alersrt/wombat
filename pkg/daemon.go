@@ -9,7 +9,7 @@ import (
 )
 
 type Task interface {
-	Do(ctx context.Context) error
+	Do(ctx context.Context)
 }
 
 type Config interface {
@@ -59,11 +59,7 @@ func (d *Daemon) GetConfig() Config {
 
 func (d *Daemon) startTasks(ctx context.Context) {
 	for _, t := range d.tasks {
-		go func() {
-			defer Catch()
-			err := t.Do(ctx)
-			Throw(err)
-		}()
+		go t.Do(ctx)
 	}
 }
 

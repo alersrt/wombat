@@ -70,27 +70,19 @@ func (t *JiraTarget) GetTargetType() TargetType {
 	return t.targetType
 }
 
-func (t *JiraTarget) Do(ctx context.Context) (err error) {
-	defer pkg.CatchWithReturn(&err)
+func (t *JiraTarget) Do(ctx context.Context) {
+	defer pkg.Catch()
 	for {
 		select {
 		case req := <-t.router.ReqChan():
-			ex := t.handle(ctx, req.Value())
-			res := &Response{
-				SourceType: req.Value().SourceType,
-				TargetType: req.Value().TargetType,
-				UserId:     req.Value().UserId,
-				ChatId:     req.Value().ChatId,
-				MessageId:  req.Value().MessageId,
-			}
+			ex := t.handle(ctx, req)
+			res := &Response{UserId: req.UserId, ChatId: req.ChatId, MessageId: req.MessageId}
 			if ex != nil {
 				res.Ok = false
-				t.router.SendRes(pkg.NewRes(res))
-				pkg.Throw(ex)
 			} else {
 				res.Ok = true
-				t.router.SendRes(pkg.NewRes(res))
 			}
+			t.router.SendRes(res)
 		case <-ctx.Done():
 			pkg.Throw(ctx.Err())
 			return
