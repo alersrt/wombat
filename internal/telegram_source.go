@@ -64,7 +64,6 @@ func (s *TelegramSource) GetSourceType() SourceType {
 }
 
 func (s *TelegramSource) Do(ctx context.Context) {
-	defer pkg.Catch()
 	for {
 		select {
 		case upd := <-s.updChan:
@@ -87,6 +86,7 @@ func (s *TelegramSource) Do(ctx context.Context) {
 				case botCommandRegister.Command:
 					err := s.handleRegistration(ctx, req)
 					if err != nil {
+						slog.Error(fmt.Sprintf("%+v", err))
 						s.router.SendRes(req.ToResponse(false, err.Error()))
 					} else {
 						s.router.SendRes(req.ToResponse(true, ""))
@@ -147,7 +147,7 @@ func (s *TelegramSource) checkAccess(req *Request) (AccessState, error) {
 	}
 }
 
-func (s *TelegramSource) handleRegistration(ctx context.Context, req *Request) (err error) {
+func (s *TelegramSource) handleRegistration(ctx context.Context, req *Request) error {
 	ctxTx, cancelTx := context.WithCancel(ctx)
 	defer cancelTx()
 
@@ -183,25 +183,25 @@ func (s *TelegramSource) handleRegistration(ctx context.Context, req *Request) (
 	}
 	slog.Info("REG:FINISH", "source", s.sourceType.String(), "userId", req.UserId)
 
-	return
+	return nil
 }
 
 func (s *TelegramSource) askToRegister(req *Request) {
 	chatId, err := strconv.ParseInt(req.ChatId, 10, 64)
 	if err != nil {
-		slog.Error("%+w", errors.WithStack(err))
+		slog.Error(fmt.Sprintf("%+v", err))
 	}
 	askMsg := tgbotapi.NewMessage(chatId, "/register <Private Access Token>")
 	_, err = s.bot.Send(askMsg)
 	if err != nil {
-		slog.Error("%+w", errors.WithStack(err))
+		slog.Error(fmt.Sprintf("%+v", err))
 	}
 }
 
 func (s *TelegramSource) handleResponse(res *Response) {
 	chatId, err := strconv.ParseInt(res.ChatId, 10, 64)
 	if err != nil {
-		slog.Error("%+w", errors.WithStack(err))
+		slog.Error(fmt.Sprintf("%+v", err))
 	}
 	var msg tgbotapi.MessageConfig
 	if !res.Ok {
@@ -211,6 +211,6 @@ func (s *TelegramSource) handleResponse(res *Response) {
 	}
 	_, err = s.bot.Send(msg)
 	if err != nil {
-		slog.Error("%+w", errors.WithStack(err))
+		slog.Error(fmt.Sprintf("%+v", err))
 	}
 }

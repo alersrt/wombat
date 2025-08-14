@@ -2,8 +2,10 @@ package internal
 
 import (
 	"context"
+	"fmt"
 	"github.com/andygrunwald/go-jira"
 	"github.com/pkg/errors"
+	"log/slog"
 	"regexp"
 	"wombat/pkg"
 )
@@ -75,12 +77,12 @@ func (t *JiraTarget) GetTargetType() TargetType {
 }
 
 func (t *JiraTarget) Do(ctx context.Context) {
-	defer pkg.Catch()
 	for {
 		select {
 		case req := <-t.router.ReqChan():
 			err := t.handle(ctx, req)
 			if err != nil {
+				slog.Error(fmt.Sprintf("%+v", err))
 				t.router.SendRes(req.ToResponse(false, err.Error()))
 			} else {
 				t.router.SendRes(req.ToResponse(true, ""))
