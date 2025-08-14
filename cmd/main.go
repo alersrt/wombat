@@ -62,7 +62,7 @@ func main() {
 	defer mainCancelCauseFunc(nil)
 
 	app := new(App)
-	run := func() error {
+	init := func() error {
 		args, err := parseArgs(os.Args)
 		if err != nil {
 			return err
@@ -74,7 +74,7 @@ func main() {
 		return nil
 	}
 
-	err := run()
+	err := init()
 	if err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
 		os.Exit(1)
