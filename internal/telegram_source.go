@@ -70,7 +70,9 @@ func (s *TelegramSource) Do(ctx context.Context) {
 			msg := s.getMsg(&upd)
 			req := s.getReq(msg)
 			if !msg.IsCommand() {
-				if st, err := s.checkAccess(req); err != nil {
+				st, err := s.checkAccess(req)
+				if err != nil {
+					slog.Error(fmt.Sprintf("%+v", err))
 					s.router.SendRes(req.ToResponse(false, err.Error()))
 				} else {
 					switch st {
@@ -80,7 +82,6 @@ func (s *TelegramSource) Do(ctx context.Context) {
 						s.askToRegister(req)
 					}
 				}
-
 			} else {
 				switch msg.Command() {
 				case botCommandRegister.Command:
