@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 	"log/slog"
 	"strconv"
-	"wombat/pkg"
 )
 
 var (
@@ -25,8 +24,6 @@ type TelegramSource struct {
 	db         *DbStorage
 	updChan    tgbotapi.UpdatesChannel
 }
-
-var _ pkg.Task = (*TelegramSource)(nil)
 
 func NewTelegramSource(token string, router *Router, db *DbStorage, cipher *AesGcmCipher) (ts *TelegramSource, err error) {
 	bot, err := tgbotapi.NewBotAPI(token)

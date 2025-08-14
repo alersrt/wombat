@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 	"log/slog"
 	"regexp"
-	"wombat/pkg"
 )
 
 type TargetClient interface {
@@ -52,8 +51,6 @@ type JiraTarget struct {
 	tagsRegex  *regexp.Regexp
 	router     *Router
 }
-
-var _ pkg.Task = (*JiraTarget)(nil)
 
 func NewJiraTarget(
 	url string,

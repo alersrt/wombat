@@ -7,58 +7,85 @@ import (
 	"github.com/pkg/errors"
 	"log/slog"
 	"os"
+	"sync"
 	"wombat/internal"
 	"wombat/pkg"
 )
 
-func main() {
-	mainCtx, mainCancelCauseFunc := context.WithCancelCause(context.Background())
-	defer mainCancelCauseFunc(nil)
+type App struct {
+	mtx    sync.Mutex
+	conf   *pkg.Config
+	source *internal.TelegramSource
+	target *internal.JiraTarget
+}
+
+func (a *App) Init(args []string) error {
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
 
 	conf := new(internal.Config)
-	args, err := parseArgs(os.Args)
+	err := conf.Init(args)
 	if err != nil {
-		slog.Error(fmt.Sprintf("%+v", err))
-		os.Exit(1)
-	}
-
-	err = conf.Init(args)
-	if err != nil {
-		slog.Error(fmt.Sprintf("%+v", err))
-		os.Exit(1)
+		return err
 	}
 
 	cipher, err := internal.NewAesGcmCipher([]byte(conf.Cipher.Key))
 	if err != nil {
-		slog.Error(fmt.Sprintf("%+v", err))
-		os.Exit(1)
+		return err
 	}
 	router := internal.NewRouter()
 
 	db, err := internal.NewDbStorage(conf.PostgreSQL.Url)
 	if err != nil {
-		slog.Error(fmt.Sprintf("%+v", err))
-		os.Exit(1)
+		return err
 	}
 	telegramSource, err := internal.NewTelegramSource(conf.Telegram.Token, router, db, cipher)
+	if err != nil {
+		return err
+	}
+	jiraTarget := internal.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, router, db, cipher)
+
+	a.source = telegramSource
+	a.target = jiraTarget
+
+	return nil
+}
+
+func (a *App) Do(ctx context.Context) {
+	go a.source.Do(ctx)
+	go a.target.Do(ctx)
+	select {}
+}
+
+func main() {
+	mainCtx, mainCancelCauseFunc := context.WithCancelCause(context.Background())
+	defer mainCancelCauseFunc(nil)
+
+	app := new(App)
+	run := func() error {
+		args, err := parseArgs(os.Args)
+		if err != nil {
+			return err
+		}
+		err = app.Init(args)
+		if err != nil {
+			return err
+		}
+		go app.Do(mainCtx)
+		return nil
+	}
+
+	err := run()
 	if err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
 		os.Exit(1)
 	}
-	jiraTarget := internal.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, router, db, cipher)
 
-	dmn := pkg.Create(conf)
-	go func() {
-		code, err := dmn.
-			AddTask(jiraTarget).
-			AddTask(telegramSource).
-			Start(mainCtx)
-		if err != nil {
-			slog.Error(fmt.Sprintf("%+v", err))
-			os.Exit(code)
-		}
-	}()
-	select {}
+	code, err := pkg.HandleSignals(mainCtx, app)
+	if err != nil {
+		slog.Error(fmt.Sprintf("%+v", err))
+	}
+	os.Exit(code)
 }
 
 func parseArgs(args []string) ([]string, error) {

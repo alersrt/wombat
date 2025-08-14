@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"mvdan.cc/sh/v3/shell"
 	"os"
+	"sync"
 	"wombat/pkg"
 )
 
@@ -34,17 +35,20 @@ type Database struct {
 }
 
 type Config struct {
-	isInitiated bool
-	*Bot        `yaml:"bot,omitempty"`
-	*Cipher     `yaml:"cipher,omitempty"`
-	*Jira       `yaml:"jira,omitempty"`
-	*Telegram   `yaml:"telegram,omitempty"`
-	*Database   `yaml:"database,omitempty"`
+	mtx      sync.Mutex
+	Bot      `yaml:"bot,omitempty"`
+	Cipher   `yaml:"cipher,omitempty"`
+	Jira     `yaml:"jira,omitempty"`
+	Telegram `yaml:"telegram,omitempty"`
+	Database `yaml:"database,omitempty"`
 }
 
 var _ pkg.Config = (*Config)(nil)
 
 func (c *Config) Init(args []string) error {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+
 	slog.Info("Wombat initialization...")
 	configPath := args[0]
 
@@ -52,21 +56,16 @@ func (c *Config) Init(args []string) error {
 
 	file, err := os.ReadFile(configPath)
 	if err != nil {
-		return errors.WithStack(err)
+		return errors.New(err.Error())
 	}
 
 	replaced, err := shell.Expand(string(file), nil)
 	if err != nil {
-		return errors.WithStack(err)
+		return errors.New(err.Error())
 	}
 	err = yaml.Unmarshal([]byte(replaced), c)
 	if err != nil {
-		return errors.WithStack(err)
+		return errors.New(err.Error())
 	}
-	c.isInitiated = true
 	return nil
-}
-
-func (c *Config) IsInitiated() bool {
-	return c.isInitiated
 }
