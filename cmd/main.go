@@ -49,13 +49,13 @@ func main() {
 
 	dmn := pkg.Create(conf)
 	go func() {
-		err := dmn.
+		code, err := dmn.
 			AddTask(jiraTarget).
 			AddTask(telegramSource).
 			Start(mainCtx)
 		if err != nil {
 			slog.Error(fmt.Sprintf("%+v", err))
-			os.Exit(1)
+			os.Exit(code)
 		}
 	}()
 	select {}

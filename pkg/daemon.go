@@ -38,20 +38,19 @@ func (d *Daemon) AddTasks(tasks ...Task) *Daemon {
 	return d
 }
 
-func (d *Daemon) Start(ctx context.Context) error {
+func (d *Daemon) Start(ctx context.Context) (int, error) {
 	if !d.conf.IsInitiated() {
 		err := d.conf.Init(os.Args)
 		if err != nil {
-			return errors.New(err.Error())
+			return 1, errors.New(err.Error())
 		}
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
 
-	go d.handleSignals(ctx, cancel)
-
 	d.startTasks(ctx)
-	return nil
+
+	return d.handleSignals(ctx, cancel)
 }
 
 func (d *Daemon) GetConfig() Config {
@@ -64,35 +63,35 @@ func (d *Daemon) startTasks(ctx context.Context) {
 	}
 }
 
-func (d *Daemon) handleSignals(ctx context.Context, cancel context.CancelFunc) {
+func (d *Daemon) handleSignals(ctx context.Context, cancel context.CancelFunc) (int, error) {
 	signalChan := make(chan os.Signal, 1)
 	defer signal.Stop(signalChan)
 
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGHUP)
-	select {
-	case s := <-signalChan:
-		switch s {
-		case syscall.SIGHUP:
-			cancel()
-			err := d.Start(ctx)
-			if err != nil {
-				slog.Error(err.Error())
-				os.Exit(1)
+	for {
+		select {
+		case s := <-signalChan:
+			switch s {
+			case syscall.SIGHUP:
+				cancel()
+				code, err := d.Start(ctx)
+				if err != nil {
+					return code, err
+				}
+			case os.Interrupt:
+				return 130, nil
+			case os.Kill:
+				return 137, nil
+			case syscall.SIGTERM:
+				return 143, nil
 			}
-		case os.Interrupt:
-			os.Exit(130)
-		case os.Kill:
-			os.Exit(137)
-		case syscall.SIGTERM:
-			os.Exit(143)
-		}
-	case <-ctx.Done():
-		if err := ctx.Err(); err != nil {
-			slog.Error(err.Error())
-			os.Exit(1)
-		} else {
-			slog.Info("Done.")
-			os.Exit(0)
+		case <-ctx.Done():
+			if err := ctx.Err(); err != nil {
+				return 1, err
+			} else {
+				slog.Info("Done.")
+				return 0, nil
+			}
 		}
 	}
 }
