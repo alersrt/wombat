@@ -85,7 +85,7 @@ func (t *JiraTarget) Do(ctx context.Context) {
 				t.router.SendRes(req.ToResponse(true, ""))
 			}
 		case <-ctx.Done():
-			break
+			return
 		}
 	}
 }

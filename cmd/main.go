@@ -14,12 +14,16 @@ import (
 
 type App struct {
 	mtx    sync.Mutex
+	wg     sync.WaitGroup
 	conf   *pkg.Config
 	source *internal.TelegramSource
 	target *internal.JiraTarget
 }
 
+var _ pkg.Daemon = (*App)(nil)
+
 func (a *App) Init(args []string) error {
+	slog.Info("init:start")
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 
@@ -48,18 +52,22 @@ func (a *App) Init(args []string) error {
 	a.source = telegramSource
 	a.target = jiraTarget
 
+	slog.Info("init:finish")
 	return nil
 }
 
 func (a *App) Do(ctx context.Context) {
+	a.wg.Add(2)
 	go a.source.Do(ctx)
 	go a.target.Do(ctx)
-	for {
-		select {
-		case <-ctx.Done():
-			break
-		}
-	}
+	a.wg.Wait()
+}
+
+func (a *App) Shutdown() {
+	slog.Info("shutdown:start")
+	a.wg.Done()
+	a.wg.Done()
+	slog.Info("shutdown:finish")
 }
 
 func main() {

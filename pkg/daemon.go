@@ -16,8 +16,13 @@ type Config interface {
 	Init(args []string) error
 }
 
+type Daemon interface {
+	Init(args []string) error
+	Shutdown()
+}
+
 // HandleSignals handles os signals. Returns exit code and error if any.
-func HandleSignals(ctx context.Context, cfg Config) (int, error) {
+func HandleSignals(ctx context.Context, daemon Daemon) (int, error) {
 	signalChan := make(chan os.Signal, 1)
 	defer signal.Stop(signalChan)
 
@@ -27,7 +32,8 @@ func HandleSignals(ctx context.Context, cfg Config) (int, error) {
 		case s := <-signalChan:
 			switch s {
 			case syscall.SIGHUP:
-				if err := cfg.Init(os.Args); err != nil {
+				daemon.Shutdown()
+				if err := daemon.Init(os.Args); err != nil {
 					return 1, err
 				}
 			case os.Interrupt:
