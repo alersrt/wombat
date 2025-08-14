@@ -64,17 +64,21 @@ func (s *TelegramSource) Do(ctx context.Context) {
 	defer pkg.Catch()
 	for {
 		select {
-
 		case upd := <-s.updChan:
 			msg := s.getMsg(&upd)
 			req := s.getReq(msg)
 			if !msg.IsCommand() {
-				switch s.checkAccess(req) {
-				case Registered:
-					s.router.SendReq(req)
-				case NotRegistered:
-					s.askToRegister(req)
+				if st, err := s.checkAccess(req); err != nil {
+					s.router.SendRes(req.ToResponse(false, err.Error()))
+				} else {
+					switch st {
+					case Registered:
+						s.router.SendReq(req)
+					case NotRegistered:
+						s.askToRegister(req)
+					}
 				}
+
 			} else {
 				switch msg.Command() {
 				case botCommandRegister.Command:
@@ -129,12 +133,15 @@ func (s *TelegramSource) getReq(msg *tgbotapi.Message) *Request {
 	}
 }
 
-func (s *TelegramSource) checkAccess(req *Request) AccessState {
-	ok := s.db.HasConnectionSource(s.sourceType.String(), req.UserId)
+func (s *TelegramSource) checkAccess(req *Request) (AccessState, error) {
+	ok, err := s.db.HasConnectionSource(s.sourceType.String(), req.UserId)
+	if err != nil {
+		return 0, err
+	}
 	if ok {
-		return Registered
+		return Registered, nil
 	} else {
-		return NotRegistered
+		return NotRegistered, nil
 	}
 }
 
@@ -147,21 +154,35 @@ func (s *TelegramSource) askToRegister(req *Request) {
 }
 
 func (s *TelegramSource) handleRegistration(ctx context.Context, req *Request) (err error) {
-	defer pkg.CatchWithReturn(&err)
-
 	ctxTx, cancelTx := context.WithCancel(ctx)
 	defer cancelTx()
 
 	slog.Info("REG:START", "source", s.sourceType.String(), "userId", req.UserId)
 
-	tx := s.db.BeginTx(ctxTx)
+	tx, err := s.db.BeginTx(ctxTx)
+	if err != nil {
+		return err
+	}
 
-	accountGid := tx.CreateAccount()
-	tx.CreateSourceConnection(accountGid, s.sourceType.String(), req.UserId)
+	accountGid, err := tx.CreateAccount()
+	if err != nil {
+		return err
+	}
+
+	err = tx.CreateSourceConnection(accountGid, s.sourceType.String(), req.UserId)
+	if err != nil {
+		return err
+	}
 	targetType := JiraType
-	tx.CreateTargetConnection(accountGid, targetType.String(), s.cipher.Encrypt(req.Content))
+	err = tx.CreateTargetConnection(accountGid, targetType.String(), s.cipher.Encrypt(req.Content))
+	if err != nil {
+		return err
+	}
 
-	tx.CommitTx()
+	err = tx.CommitTx()
+	if err != nil {
+		return err
+	}
 	slog.Info("REG:FINISH", "source", s.sourceType.String(), "userId", req.UserId)
 
 	return

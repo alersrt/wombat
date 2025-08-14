@@ -100,19 +100,33 @@ func (t *JiraTarget) handle(ctx context.Context, req *Request) (err error) {
 		pkg.Throw(errors.Errorf("tag not found: %v", req.Content))
 	}
 
-	tx := t.db.BeginTx(ctxTx)
+	tx, err := t.db.BeginTx(ctxTx)
+	if err != nil {
+		return err
+	}
 
-	targetConnection := tx.GetTargetConnection(req.SourceType.String(), req.TargetType.String(), req.UserId)
-	client, ex := NewJiraClient(t.url, t.cipher.Decrypt(targetConnection.Token))
-	pkg.Throw(ex)
+	targetConnection, err := tx.GetTargetConnection(req.SourceType.String(), req.TargetType.String(), req.UserId)
+	if err != nil {
+		return err
+	}
+	client, err := NewJiraClient(t.url, t.cipher.Decrypt(targetConnection.Token))
+	if err != nil {
+		return err
+	}
 
 	tags := t.tagsRegex.FindAllString(req.Content, -1)
-	savedComments := tx.GetCommentMetadata(req.SourceType.String(), req.ChatId, req.MessageId)
+
+	savedComments, err := tx.GetCommentMetadata(req.SourceType.String(), req.ChatId, req.MessageId)
+	if err != nil {
+		return err
+	}
 
 	if len(savedComments) == 0 {
 		for _, tag := range tags {
 			commentId := client.Add(tag, req.Content)
-			tx.SaveCommentMetadata(&Comment{Request: req, Tag: tag, CommentId: commentId})
+			if _, err := tx.SaveCommentMetadata(&Comment{Request: req, Tag: tag, CommentId: commentId}); err != nil {
+				return err
+			}
 		}
 	} else {
 		taggedComments := map[string]*Comment{}
@@ -122,9 +136,13 @@ func (t *JiraTarget) handle(ctx context.Context, req *Request) (err error) {
 		for _, tag := range tags {
 			comment := taggedComments[tag]
 			client.Update(tag, comment.CommentId, req.Content)
-			tx.SaveCommentMetadata(&Comment{Request: req, Tag: tag, CommentId: comment.CommentId})
+			if _, err := tx.SaveCommentMetadata(&Comment{Request: req, Tag: tag, CommentId: comment.CommentId}); err != nil {
+				return err
+			}
 		}
 	}
-	tx.CommitTx()
+	if err = tx.CommitTx(); err != nil {
+		return err
+	}
 	return
 }

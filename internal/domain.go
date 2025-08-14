@@ -3,6 +3,7 @@ package internal
 import (
 	"encoding/json"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	"time"
 )
 
@@ -49,7 +50,7 @@ func (t *SourceType) UnmarshalJSON(b []byte) error {
 	var s string
 	err := json.Unmarshal(b, &s)
 	if err != nil {
-		return err
+		return errors.New(err.Error())
 	}
 	*t = sourceTypeFromString[s]
 	return nil
@@ -71,7 +72,7 @@ func (t *TargetType) UnmarshalJSON(b []byte) error {
 	var s string
 	err := json.Unmarshal(b, &s)
 	if err != nil {
-		return err
+		return errors.New(err.Error())
 	}
 	*t = targetTypeFromString[s]
 	return nil
