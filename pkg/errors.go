@@ -12,25 +12,6 @@ func Catch() {
 	}
 }
 
-func CatchWithReturn(err *error) {
-	if r := recover(); r != nil {
-		switch v := r.(type) {
-		case error:
-			if err != nil {
-				*err = v
-			}
-		case string:
-			if err != nil {
-				*err = errors.New(v)
-			}
-		default:
-			if err != nil {
-				*err = errors.New("internal")
-			}
-		}
-	}
-}
-
 // Throw prints error and panic.
 func Throw(err error) {
 	if err != nil {

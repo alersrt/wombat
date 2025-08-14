@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 	"log/slog"
 	"mvdan.cc/sh/v3/shell"
@@ -43,24 +44,27 @@ type Config struct {
 
 var _ pkg.Config = (*Config)(nil)
 
-func (c *Config) Init(args []string) (err error) {
+func (c *Config) Init(args []string) error {
 	slog.Info("Wombat initialization...")
 	configPath := args[0]
 
 	defer slog.Info("Config file: " + configPath)
-	defer pkg.CatchWithReturn(&err)
 
 	file, err := os.ReadFile(configPath)
-	pkg.Throw(err)
+	if err != nil {
+		return errors.WithStack(err)
+	}
 
 	replaced, err := shell.Expand(string(file), nil)
-	pkg.Throw(err)
-
+	if err != nil {
+		return errors.WithStack(err)
+	}
 	err = yaml.Unmarshal([]byte(replaced), c)
-	pkg.Throw(err)
-
+	if err != nil {
+		return errors.WithStack(err)
+	}
 	c.isInitiated = true
-	return
+	return nil
 }
 
 func (c *Config) IsInitiated() bool {

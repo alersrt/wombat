@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/pkg/errors"
 	"log/slog"
 	"strconv"
 	"wombat/pkg"
@@ -28,10 +29,10 @@ type TelegramSource struct {
 var _ pkg.Task = (*TelegramSource)(nil)
 
 func NewTelegramSource(token string, router *Router, db *DbStorage, cipher *AesGcmCipher) (ts *TelegramSource, err error) {
-	defer pkg.CatchWithReturn(&err)
-
 	bot, err := tgbotapi.NewBotAPI(token)
-	pkg.Throw(err)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
 
 	updCfg := tgbotapi.NewUpdate(0)
 	updCfg.AllowedUpdates = append(
@@ -42,7 +43,9 @@ func NewTelegramSource(token string, router *Router, db *DbStorage, cipher *AesG
 	updCfg.Timeout = 60
 
 	_, err = bot.Request(tgbotapi.NewSetMyCommands(botCommandRegister))
-	pkg.Throw(err)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
 
 	slog.Info(fmt.Sprintf("Authorized on account %s", bot.Self.UserName))
 
@@ -93,8 +96,7 @@ func (s *TelegramSource) Do(ctx context.Context) {
 		case res := <-s.router.ResChan():
 			s.handleResponse(res)
 		case <-ctx.Done():
-			pkg.Throw(ctx.Err())
-			return
+			break
 		}
 	}
 }
@@ -145,14 +147,6 @@ func (s *TelegramSource) checkAccess(req *Request) (AccessState, error) {
 	}
 }
 
-func (s *TelegramSource) askToRegister(req *Request) {
-	chatId, err := strconv.ParseInt(req.ChatId, 10, 64)
-	pkg.Throw(err)
-	askMsg := tgbotapi.NewMessage(chatId, "/register <Private Access Token>")
-	_, err = s.bot.Send(askMsg)
-	pkg.Throw(err)
-}
-
 func (s *TelegramSource) handleRegistration(ctx context.Context, req *Request) (err error) {
 	ctxTx, cancelTx := context.WithCancel(ctx)
 	defer cancelTx()
@@ -174,7 +168,11 @@ func (s *TelegramSource) handleRegistration(ctx context.Context, req *Request) (
 		return err
 	}
 	targetType := JiraType
-	err = tx.CreateTargetConnection(accountGid, targetType.String(), s.cipher.Encrypt(req.Content))
+	encoded, err := s.cipher.Encrypt(req.Content)
+	if err != nil {
+		return err
+	}
+	err = tx.CreateTargetConnection(accountGid, targetType.String(), encoded)
 	if err != nil {
 		return err
 	}
@@ -188,9 +186,23 @@ func (s *TelegramSource) handleRegistration(ctx context.Context, req *Request) (
 	return
 }
 
+func (s *TelegramSource) askToRegister(req *Request) {
+	chatId, err := strconv.ParseInt(req.ChatId, 10, 64)
+	if err != nil {
+		slog.Error("%+w", errors.WithStack(err))
+	}
+	askMsg := tgbotapi.NewMessage(chatId, "/register <Private Access Token>")
+	_, err = s.bot.Send(askMsg)
+	if err != nil {
+		slog.Error("%+w", errors.WithStack(err))
+	}
+}
+
 func (s *TelegramSource) handleResponse(res *Response) {
 	chatId, err := strconv.ParseInt(res.ChatId, 10, 64)
-	pkg.Throw(err)
+	if err != nil {
+		slog.Error("%+w", errors.WithStack(err))
+	}
 	var msg tgbotapi.MessageConfig
 	if !res.Ok {
 		msg = tgbotapi.NewMessage(chatId, "🙁")
@@ -198,5 +210,7 @@ func (s *TelegramSource) handleResponse(res *Response) {
 		msg = tgbotapi.NewMessage(chatId, "🙂")
 	}
 	_, err = s.bot.Send(msg)
-	pkg.Throw(err)
+	if err != nil {
+		slog.Error("%+w", errors.WithStack(err))
+	}
 }

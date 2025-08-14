@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"context"
+	"github.com/pkg/errors"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -37,12 +38,12 @@ func (d *Daemon) AddTasks(tasks ...Task) *Daemon {
 	return d
 }
 
-func (d *Daemon) Start(ctx context.Context) (err error) {
-	defer CatchWithReturn(&err)
-
+func (d *Daemon) Start(ctx context.Context) error {
 	if !d.conf.IsInitiated() {
 		err := d.conf.Init(os.Args)
-		Throw(err)
+		if err != nil {
+			return errors.New(err.Error())
+		}
 	}
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -50,7 +51,7 @@ func (d *Daemon) Start(ctx context.Context) (err error) {
 	go d.handleSignals(ctx, cancel)
 
 	d.startTasks(ctx)
-	return
+	return nil
 }
 
 func (d *Daemon) GetConfig() Config {
@@ -74,7 +75,10 @@ func (d *Daemon) handleSignals(ctx context.Context, cancel context.CancelFunc) {
 		case syscall.SIGHUP:
 			cancel()
 			err := d.Start(ctx)
-			Throw(err)
+			if err != nil {
+				slog.Error(err.Error())
+				os.Exit(1)
+			}
 		case os.Interrupt:
 			os.Exit(130)
 		case os.Kill:
