@@ -106,41 +106,26 @@ type Request struct {
 	MessageId  string     `json:"message_id"`
 }
 
+func (r *Request) ToResponse(ok bool, desc string) *Response {
+	return &Response{
+		Ok:         ok,
+		Desc:       desc,
+		SourceType: r.SourceType,
+		TargetType: r.TargetType,
+		UserId:     r.UserId,
+		ChatId:     r.ChatId,
+		MessageId:  r.MessageId,
+	}
+}
+
 type Response struct {
 	Ok         bool       `json:"ok"`
+	Desc       string     `json:"desc"`
 	SourceType SourceType `json:"source_type"`
 	TargetType TargetType `json:"target_type"`
 	UserId     string     `json:"user_id"`
 	ChatId     string     `json:"chat_id"`
 	MessageId  string     `json:"message_id"`
-}
-
-type Router struct {
-	requests  chan *Request
-	responses chan *Response
-}
-
-func NewRouter() *Router {
-	return &Router{
-		requests:  make(chan *Request),
-		responses: make(chan *Response),
-	}
-}
-
-func (r *Router) SendReq(req *Request) {
-	r.requests <- req
-}
-
-func (r *Router) SendRes(res *Response) {
-	r.responses <- res
-}
-
-func (r *Router) ReqChan() chan *Request {
-	return r.requests
-}
-
-func (r *Router) ResChan() chan *Response {
-	return r.responses
 }
 
 type Comment struct {

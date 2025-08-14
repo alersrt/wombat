@@ -62,20 +62,26 @@ func (s *TelegramSource) Do(ctx context.Context) {
 	defer pkg.Catch()
 	for {
 		select {
+
 		case upd := <-s.updChan:
-			msg := s.getMessage(&upd)
-			if !upd.Message.IsCommand() {
-				switch s.checkAccess(msg) {
+			msg := s.getMsg(&upd)
+			req := s.getReq(msg)
+			if !msg.IsCommand() {
+				switch s.checkAccess(req) {
 				case Registered:
-					s.handleRequest(msg)
+					s.router.SendReq(req)
 				case NotRegistered:
-					s.askToRegister(msg)
+					s.askToRegister(req)
 				}
 			} else {
 				switch msg.Command() {
 				case botCommandRegister.Command:
-					err := s.handleRegistration(ctx, msg)
-					pkg.Throw(err)
+					err := s.handleRegistration(ctx, req)
+					if err != nil {
+						s.router.SendRes(req.ToResponse(false, err.Error()))
+					} else {
+						s.router.SendRes(req.ToResponse(true, ""))
+					}
 				}
 			}
 		case res := <-s.router.ResChan():
@@ -87,36 +93,47 @@ func (s *TelegramSource) Do(ctx context.Context) {
 	}
 }
 
-func (s *TelegramSource) checkAccess(message *tgbotapi.Message) AccessState {
-	isOk := s.db.HasConnectionSource(s.sourceType.String(), strconv.FormatInt(message.From.ID, 10))
-	if isOk {
+func (s *TelegramSource) getMsg(upd *tgbotapi.Update) *tgbotapi.Message {
+	var message *tgbotapi.Message
+	switch {
+	case upd.Message != nil:
+		message = upd.Message
+	case upd.EditedMessage != nil:
+		message = upd.EditedMessage
+	}
+
+	return message
+}
+
+func (s *TelegramSource) getReq(msg *tgbotapi.Message) *Request {
+	if msg == nil {
+		return nil
+	}
+
+	var content string
+	if msg.IsCommand() {
+		content = msg.CommandArguments()
+	} else {
+		content = msg.Text
+	}
+
+	return &Request{
+		TargetType: JiraType,
+		SourceType: TelegramType,
+		Content:    content,
+		UserId:     strconv.FormatInt(msg.From.ID, 10),
+		ChatId:     strconv.FormatInt(msg.Chat.ID, 10),
+		MessageId:  strconv.Itoa(msg.MessageID),
+	}
+}
+
+func (s *TelegramSource) checkAccess(req *Request) AccessState {
+	ok := s.db.HasConnectionSource(s.sourceType.String(), req.UserId)
+	if ok {
 		return Registered
 	} else {
 		return NotRegistered
 	}
-}
-
-func (s *TelegramSource) getMessage(update *tgbotapi.Update) *tgbotapi.Message {
-	var message *tgbotapi.Message
-	switch {
-	case update.Message != nil:
-		message = update.Message
-	case update.EditedMessage != nil:
-		message = update.EditedMessage
-	}
-	return message
-}
-
-func (s *TelegramSource) handleRequest(message *tgbotapi.Message) {
-	req := &Request{
-		TargetType: JiraType,
-		SourceType: TelegramType,
-		Content:    message.Text,
-		UserId:     strconv.FormatInt(message.From.ID, 10),
-		ChatId:     strconv.FormatInt(message.Chat.ID, 10),
-		MessageId:  strconv.Itoa(message.MessageID),
-	}
-	s.router.SendReq(req)
 }
 
 func (s *TelegramSource) handleResponse(res *Response) {
@@ -132,32 +149,29 @@ func (s *TelegramSource) handleResponse(res *Response) {
 	pkg.Throw(err)
 }
 
-func (s *TelegramSource) askToRegister(message *tgbotapi.Message) {
-	askMsg := tgbotapi.NewMessage(message.Chat.ID, "/register <Private Access Token>")
-	_, err := s.Send(askMsg)
+func (s *TelegramSource) askToRegister(req *Request) {
+	chatId, err := strconv.ParseInt(req.ChatId, 10, 64)
+	pkg.Throw(err)
+	askMsg := tgbotapi.NewMessage(chatId, "/register <Private Access Token>")
+	_, err = s.Send(askMsg)
 	pkg.Throw(err)
 }
 
-func (s *TelegramSource) handleRegistration(ctx context.Context, msg *tgbotapi.Message) (err error) {
-	userId := strconv.FormatInt(msg.From.ID, 10)
-	chatId := strconv.FormatInt(msg.Chat.ID, 10)
-	messageId := strconv.Itoa(msg.MessageID)
-	token := msg.CommandArguments()
+func (s *TelegramSource) handleRegistration(ctx context.Context, req *Request) (err error) {
+	defer pkg.CatchWithReturn(&err)
 
-	slog.Info("REG:START", "source", s.sourceType.String(), "userId", userId)
+	slog.Info("REG:START", "source", s.sourceType.String(), "userId", req.UserId)
 
 	tx := s.db.BeginTx(ctx)
-	defer pkg.CatchWithReturnAndCall(&err, tx.RollbackTx)
+	defer tx.RollbackTx()
 
 	accountGid := tx.CreateAccount()
-	tx.CreateSourceConnection(accountGid, s.sourceType.String(), userId)
+	tx.CreateSourceConnection(accountGid, s.sourceType.String(), req.UserId)
 	targetType := JiraType
-	tx.CreateTargetConnection(accountGid, targetType.String(), s.cipher.Encrypt(token))
+	tx.CreateTargetConnection(accountGid, targetType.String(), s.cipher.Encrypt(req.Content))
 
 	tx.CommitTx()
-	slog.Info("REG:FINISH", "source", s.sourceType.String(), "userId", userId)
-
-	s.router.SendRes(&Response{Ok: true, UserId: userId, ChatId: chatId, MessageId: messageId})
+	slog.Info("REG:FINISH", "source", s.sourceType.String(), "userId", req.UserId)
 
 	return
 }

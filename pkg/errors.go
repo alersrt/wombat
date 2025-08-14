@@ -6,16 +6,9 @@ import (
 	"log/slog"
 )
 
+// Catch recovers the goroutine.
 func Catch() {
 	if r := recover(); r != nil {
-		switch v := r.(type) {
-		case error:
-			slog.Error(fmt.Sprintf("%+v", v))
-		case string:
-			slog.Error(fmt.Sprintf("%s", v))
-		default:
-			slog.Error(fmt.Sprintf("%+v", v))
-		}
 	}
 }
 
@@ -38,31 +31,10 @@ func CatchWithReturn(err *error) {
 	}
 }
 
-func CatchWithReturnAndCall(err *error, call func()) {
-	if r := recover(); r != nil {
-		switch v := r.(type) {
-		case error:
-			if err != nil {
-				*err = v
-			}
-		case string:
-			if err != nil {
-				*err = errors.New(v)
-			}
-		default:
-			if err != nil {
-				*err = errors.New("internal")
-			}
-		}
-
-		if call != nil {
-			call()
-		}
-	}
-}
-
+// Throw prints error and panic.
 func Throw(err error) {
 	if err != nil {
+		slog.Error(fmt.Sprintf("%+v", err))
 		panic(err)
 	}
 }

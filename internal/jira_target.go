@@ -75,14 +75,12 @@ func (t *JiraTarget) Do(ctx context.Context) {
 	for {
 		select {
 		case req := <-t.router.ReqChan():
-			ex := t.handle(ctx, req)
-			res := &Response{UserId: req.UserId, ChatId: req.ChatId, MessageId: req.MessageId}
-			if ex != nil {
-				res.Ok = false
+			err := t.handle(ctx, req)
+			if err != nil {
+				t.router.SendRes(req.ToResponse(false, err.Error()))
 			} else {
-				res.Ok = true
+				t.router.SendRes(req.ToResponse(true, ""))
 			}
-			t.router.SendRes(res)
 		case <-ctx.Done():
 			pkg.Throw(ctx.Err())
 			return
@@ -91,12 +89,14 @@ func (t *JiraTarget) Do(ctx context.Context) {
 }
 
 func (t *JiraTarget) handle(ctx context.Context, req *Request) (err error) {
+	defer pkg.CatchWithReturn(&err)
+
 	if !t.tagsRegex.MatchString(req.Content) {
-		return fmt.Errorf("tag not found: %v", req.Content)
+		pkg.Throw(fmt.Errorf("tag not found: %v", req.Content))
 	}
 
 	tx := t.db.BeginTx(ctx)
-	defer pkg.CatchWithReturnAndCall(&err, tx.RollbackTx)
+	defer tx.RollbackTx()
 
 	targetConnection := tx.GetTargetConnection(req.SourceType.String(), req.TargetType.String(), req.UserId)
 	client, ex := NewJiraClient(t.url, t.cipher.Decrypt(targetConnection.Token))
