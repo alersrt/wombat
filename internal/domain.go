@@ -11,11 +11,11 @@ type SourceType uint
 type TargetType uint
 
 const (
-	TelegramType SourceType = iota
+	TelegramType SourceType = iota + 1
 )
 
 const (
-	JiraType TargetType = iota
+	JiraType TargetType = iota + 1
 )
 
 var (
@@ -80,7 +80,7 @@ func (t *TargetType) UnmarshalJSON(b []byte) error {
 type AccessState uint
 
 const (
-	NotRegistered AccessState = iota
+	NotRegistered AccessState = iota + 1
 	Registered
 )
 
