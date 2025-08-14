@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/google/uuid"
 	"time"
@@ -9,13 +8,14 @@ import (
 
 type SourceType uint
 
-type Source interface {
-	GetSourceType() SourceType
-	Do(ctx context.Context) error
-}
+type TargetType uint
 
 const (
 	TelegramType SourceType = iota
+)
+
+const (
+	JiraType TargetType = iota
 )
 
 var (
@@ -24,6 +24,12 @@ var (
 	}
 	sourceTypeFromString = map[string]SourceType{
 		"TELEGRAM": TelegramType,
+	}
+	targetTypeToString = map[TargetType]string{
+		JiraType: "JIRA",
+	}
+	targetTypeFromString = map[string]TargetType{
+		"JIRA": JiraType,
 	}
 )
 
@@ -48,25 +54,6 @@ func (t *SourceType) UnmarshalJSON(b []byte) error {
 	*t = sourceTypeFromString[s]
 	return nil
 }
-
-type Target interface {
-	GetTargetType() TargetType
-	Do(ctx context.Context) error
-}
-type TargetType uint
-
-const (
-	JiraType TargetType = iota
-)
-
-var (
-	targetTypeToString = map[TargetType]string{
-		JiraType: "JIRA",
-	}
-	targetTypeFromString = map[string]TargetType{
-		"JIRA": JiraType,
-	}
-)
 
 func (t *TargetType) String() string {
 	return targetTypeToString[*t]

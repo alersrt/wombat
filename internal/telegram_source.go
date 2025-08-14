@@ -25,6 +25,8 @@ type TelegramSource struct {
 	updChan tgbotapi.UpdatesChannel
 }
 
+var _ pkg.Task = (*TelegramSource)(nil)
+
 func NewTelegramSource(token string, router *Router, db *DbStorage, cipher *AesGcmCipher) (ts *TelegramSource, err error) {
 	defer pkg.CatchWithReturn(&err)
 

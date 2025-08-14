@@ -49,6 +49,8 @@ type JiraTarget struct {
 	router     *Router
 }
 
+var _ pkg.Task = (*JiraTarget)(nil)
+
 func NewJiraTarget(
 	url string,
 	tag string,
