@@ -1,8 +1,8 @@
 package pkg
 
 import (
-	"errors"
 	"fmt"
+	"github.com/pkg/errors"
 	"log/slog"
 )
 
@@ -34,6 +34,7 @@ func CatchWithReturn(err *error) {
 // Throw prints error and panic.
 func Throw(err error) {
 	if err != nil {
+		err := errors.WithStack(err)
 		slog.Error(fmt.Sprintf("%+v", err))
 		panic(err)
 	}

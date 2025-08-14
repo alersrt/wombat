@@ -147,10 +147,12 @@ func (s *TelegramSource) askToRegister(req *Request) {
 func (s *TelegramSource) handleRegistration(ctx context.Context, req *Request) (err error) {
 	defer pkg.CatchWithReturn(&err)
 
+	ctxTx, cancelTx := context.WithCancel(ctx)
+	defer cancelTx()
+
 	slog.Info("REG:START", "source", s.sourceType.String(), "userId", req.UserId)
 
-	tx := s.db.BeginTx(ctx)
-	defer tx.RollbackTx()
+	tx := s.db.BeginTx(ctxTx)
 
 	accountGid := tx.CreateAccount()
 	tx.CreateSourceConnection(accountGid, s.sourceType.String(), req.UserId)

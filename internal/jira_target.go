@@ -2,8 +2,8 @@ package internal
 
 import (
 	"context"
-	"fmt"
 	"github.com/andygrunwald/go-jira"
+	"github.com/pkg/errors"
 	"regexp"
 	"wombat/pkg"
 )
@@ -91,12 +91,14 @@ func (t *JiraTarget) Do(ctx context.Context) {
 func (t *JiraTarget) handle(ctx context.Context, req *Request) (err error) {
 	defer pkg.CatchWithReturn(&err)
 
+	ctxTx, cancelTx := context.WithCancel(ctx)
+	defer cancelTx()
+
 	if !t.tagsRegex.MatchString(req.Content) {
-		pkg.Throw(fmt.Errorf("tag not found: %v", req.Content))
+		pkg.Throw(errors.Errorf("tag not found: %v", req.Content))
 	}
 
-	tx := t.db.BeginTx(ctx)
-	defer tx.RollbackTx()
+	tx := t.db.BeginTx(ctxTx)
 
 	targetConnection := tx.GetTargetConnection(req.SourceType.String(), req.TargetType.String(), req.UserId)
 	client, ex := NewJiraClient(t.url, t.cipher.Decrypt(targetConnection.Token))
