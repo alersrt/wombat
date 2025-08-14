@@ -41,6 +41,8 @@ type Config struct {
 	*Database   `yaml:"database,omitempty"`
 }
 
+var _ pkg.Config = (*Config)(nil)
+
 func (c *Config) Init(args []string) (err error) {
 	slog.Info("Wombat initialization...")
 	configPath := args[0]
