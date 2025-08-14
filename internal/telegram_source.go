@@ -136,19 +136,6 @@ func (s *TelegramSource) checkAccess(req *Request) AccessState {
 	}
 }
 
-func (s *TelegramSource) handleResponse(res *Response) {
-	chatId, err := strconv.ParseInt(res.ChatId, 10, 64)
-	pkg.Throw(err)
-	var msg tgbotapi.MessageConfig
-	if !res.Ok {
-		msg = tgbotapi.NewMessage(chatId, "🙁")
-	} else {
-		msg = tgbotapi.NewMessage(chatId, "🙂")
-	}
-	_, err = s.Send(msg)
-	pkg.Throw(err)
-}
-
 func (s *TelegramSource) askToRegister(req *Request) {
 	chatId, err := strconv.ParseInt(req.ChatId, 10, 64)
 	pkg.Throw(err)
@@ -174,4 +161,17 @@ func (s *TelegramSource) handleRegistration(ctx context.Context, req *Request) (
 	slog.Info("REG:FINISH", "source", s.sourceType.String(), "userId", req.UserId)
 
 	return
+}
+
+func (s *TelegramSource) handleResponse(res *Response) {
+	chatId, err := strconv.ParseInt(res.ChatId, 10, 64)
+	pkg.Throw(err)
+	var msg tgbotapi.MessageConfig
+	if !res.Ok {
+		msg = tgbotapi.NewMessage(chatId, "🙁")
+	} else {
+		msg = tgbotapi.NewMessage(chatId, "🙂")
+	}
+	_, err = s.Send(msg)
+	pkg.Throw(err)
 }
