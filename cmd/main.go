@@ -71,7 +71,6 @@ func main() {
 		if err != nil {
 			return err
 		}
-		go app.Do(mainCtx)
 		return nil
 	}
 
@@ -80,6 +79,8 @@ func main() {
 		slog.Error(fmt.Sprintf("%+v", err))
 		os.Exit(1)
 	}
+
+	go app.Do(mainCtx)
 
 	code, err := pkg.HandleSignals(mainCtx, app)
 	if err != nil {
