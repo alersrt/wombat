@@ -94,7 +94,7 @@ func (s *TelegramSource) Do(ctx context.Context) {
 		case res := <-s.router.ResChan():
 			s.handleResponse(res)
 		case <-ctx.Done():
-			break
+			return
 		}
 	}
 }

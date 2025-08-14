@@ -54,12 +54,16 @@ func (a *App) Init(args []string) error {
 func (a *App) Do(ctx context.Context) {
 	go a.source.Do(ctx)
 	go a.target.Do(ctx)
-	select {}
+	for {
+		select {
+		case <-ctx.Done():
+			break
+		}
+	}
 }
 
 func main() {
-	mainCtx, mainCancelCauseFunc := context.WithCancelCause(context.Background())
-	defer mainCancelCauseFunc(nil)
+	ctx := context.Background()
 
 	app := new(App)
 	init := func() error {
@@ -80,9 +84,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	go app.Do(mainCtx)
+	go app.Do(ctx)
 
-	code, err := pkg.HandleSignals(mainCtx, app)
+	code, err := pkg.HandleSignals(ctx, app)
 	if err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
 	}
