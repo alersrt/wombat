@@ -18,11 +18,11 @@ var (
 
 type TelegramSource struct {
 	sourceType SourceType
-	*tgbotapi.BotAPI
-	cipher  *AesGcmCipher
-	router  *Router
-	db      *DbStorage
-	updChan tgbotapi.UpdatesChannel
+	bot        *tgbotapi.BotAPI
+	cipher     *AesGcmCipher
+	router     *Router
+	db         *DbStorage
+	updChan    tgbotapi.UpdatesChannel
 }
 
 var _ pkg.Task = (*TelegramSource)(nil)
@@ -48,7 +48,7 @@ func NewTelegramSource(token string, router *Router, db *DbStorage, cipher *AesG
 
 	return &TelegramSource{
 		sourceType: TelegramType,
-		BotAPI:     bot,
+		bot:        bot,
 		router:     router,
 		db:         db,
 		cipher:     cipher,
@@ -142,7 +142,7 @@ func (s *TelegramSource) askToRegister(req *Request) {
 	chatId, err := strconv.ParseInt(req.ChatId, 10, 64)
 	pkg.Throw(err)
 	askMsg := tgbotapi.NewMessage(chatId, "/register <Private Access Token>")
-	_, err = s.Send(askMsg)
+	_, err = s.bot.Send(askMsg)
 	pkg.Throw(err)
 }
 
@@ -176,6 +176,6 @@ func (s *TelegramSource) handleResponse(res *Response) {
 	} else {
 		msg = tgbotapi.NewMessage(chatId, "🙂")
 	}
-	_, err = s.Send(msg)
+	_, err = s.bot.Send(msg)
 	pkg.Throw(err)
 }

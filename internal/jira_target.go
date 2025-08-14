@@ -14,7 +14,7 @@ type TargetClient interface {
 }
 
 type JiraClient struct {
-	*jira.Client
+	client *jira.Client
 }
 
 func NewJiraClient(url string, token string) (tc TargetClient, err error) {
@@ -29,13 +29,13 @@ func NewJiraClient(url string, token string) (tc TargetClient, err error) {
 }
 
 func (c *JiraClient) Update(issue string, commentId string, text string) {
-	_, _, err := c.Issue.UpdateComment(issue, &jira.Comment{ID: commentId, Body: text})
+	_, _, err := c.client.Issue.UpdateComment(issue, &jira.Comment{ID: commentId, Body: text})
 	pkg.Throw(err)
 	return
 }
 
 func (c *JiraClient) Add(issue string, text string) string {
-	comment, _, ex := c.Issue.AddComment(issue, &jira.Comment{Body: text})
+	comment, _, ex := c.client.Issue.AddComment(issue, &jira.Comment{Body: text})
 	pkg.Throw(ex)
 	return comment.ID
 }

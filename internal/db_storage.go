@@ -26,7 +26,7 @@ func ToDomain[D any](entities []Entity[D]) []*D {
 }
 
 type Tx struct {
-	*sqlx.Tx
+	tx *sqlx.Tx
 }
 
 func NewDbStorage(url string) (db *DbStorage, err error) {
@@ -39,16 +39,16 @@ func NewDbStorage(url string) (db *DbStorage, err error) {
 func (db *DbStorage) BeginTx(ctx context.Context) *Tx {
 	tx, err := db.db.BeginTxx(ctx, nil)
 	pkg.Throw(err)
-	return &Tx{Tx: tx}
+	return &Tx{tx}
 }
 
 func (tx *Tx) CommitTx() {
-	err := tx.Commit()
+	err := tx.tx.Commit()
 	pkg.Throw(err)
 }
 
 func (tx *Tx) RollbackTx() {
-	err := tx.Rollback()
+	err := tx.tx.Rollback()
 	pkg.Throw(err)
 }
 
@@ -66,7 +66,7 @@ func (db *DbStorage) HasConnectionSource(sourceType string, userId string) bool 
 func (tx *Tx) CreateAccount() *uuid.UUID {
 	gid := uuid.New()
 	query := `insert into wombatsm.accounts(gid) values($1)`
-	_, err := tx.Exec(query, &gid)
+	_, err := tx.tx.Exec(query, &gid)
 	pkg.Throw(err)
 	return &gid
 }
@@ -74,7 +74,7 @@ func (tx *Tx) CreateAccount() *uuid.UUID {
 func (tx *Tx) CreateSourceConnection(accountGid *uuid.UUID, sourceType string, userId string) {
 	query := `insert into wombatsm.source_connections(account_gid, source_type, user_id)
               values($1, $2, $3)`
-	_, err := tx.Exec(query, accountGid, sourceType, userId)
+	_, err := tx.tx.Exec(query, accountGid, sourceType, userId)
 	pkg.Throw(err)
 	return
 }
@@ -82,7 +82,7 @@ func (tx *Tx) CreateSourceConnection(accountGid *uuid.UUID, sourceType string, u
 func (tx *Tx) CreateTargetConnection(accountGid *uuid.UUID, targetType string, token []byte) {
 	query := `insert into wombatsm.target_connections(account_gid, target_type, token)
               values($1, $2, $3)`
-	_, err := tx.Exec(query, accountGid, targetType, token)
+	_, err := tx.tx.Exec(query, accountGid, targetType, token)
 	pkg.Throw(err)
 	return
 }
@@ -96,7 +96,7 @@ func (tx *Tx) GetTargetConnection(sourceType string, targetType string, userId s
                 and wtc.target_type = $2
                 and wsc.user_id = $3`
 	targetConnection := &TargetConnectionEntity{}
-	err := tx.Get(targetConnection, query, sourceType, targetType, userId)
+	err := tx.tx.Get(targetConnection, query, sourceType, targetType, userId)
 	pkg.Throw(err)
 	return targetConnection.ToDomain()
 }
@@ -107,7 +107,7 @@ func (tx *Tx) GetCommentMetadata(sourceType string, chatId string, userId string
               where source_type = $1
                 and chat_id = $2
                 and message_id = $3`
-	rows, err := tx.Queryx(query, sourceType, chatId, userId)
+	rows, err := tx.tx.Queryx(query, sourceType, chatId, userId)
 	pkg.Throw(err)
 	var comments []Entity[Comment]
 	if rows.Next() {
@@ -123,7 +123,7 @@ func (tx *Tx) SaveCommentMetadata(domain *Comment) *Comment {
 	query := `insert into wombatsm.comments(target_type, source_type, comment_id, user_id, chat_id, message_id, tag)
               values (:target_type, :source_type, :comment_id, :user_id, :chat_id, :message_id, :tag)
               returning *`
-	rows, err := tx.NamedQuery(query, (*CommentEntity).FromDomain(nil, domain))
+	rows, err := tx.tx.NamedQuery(query, (*CommentEntity).FromDomain(nil, domain))
 	pkg.Throw(err)
 	entity := &CommentEntity{}
 	if rows.Next() {
