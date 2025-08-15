@@ -66,8 +66,9 @@ func (s *TelegramSource) GetSourceType() SourceType {
 
 func (s *TelegramSource) Do(ctx context.Context, wg *sync.WaitGroup) {
 	slog.Info("telegram:do:start")
-	defer slog.Info("telegram:do:finish")
 	defer wg.Done()
+	defer slog.Info("telegram:do:finish")
+
 	for {
 		select {
 		case upd := <-s.updChan:

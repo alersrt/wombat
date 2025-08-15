@@ -59,8 +59,9 @@ func (a *App) Init(args []string) error {
 func (a *App) Do(ctx context.Context) {
 	slog.Info("app:do:start")
 	defer slog.Info("app:do:finish")
-	a.wg.Add(2)
+	a.wg.Add(1)
 	go a.source.Do(ctx, &a.wg)
+	a.wg.Add(1)
 	go a.target.Do(ctx, &a.wg)
 	a.wg.Wait()
 }
