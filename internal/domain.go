@@ -78,20 +78,29 @@ func (t *TargetType) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-type AccessState uint
+type AccState uint
 
 const (
-	NotRegistered AccessState = iota + 1
-	Registered
+	AccStateNotRegistered AccState = iota + 1
+	AccStateRegistered
+)
+
+type RequestType uint
+
+const (
+	RequestTypeText RequestType = iota + 1
+	RequestTypeCommand
 )
 
 type Request struct {
-	SourceType SourceType `json:"source_type"`
-	TargetType TargetType `json:"target_type"`
-	Content    string     `json:"content"`
-	UserId     string     `json:"user_id"`
-	ChatId     string     `json:"chat_id"`
-	MessageId  string     `json:"message_id"`
+	SourceType  SourceType  `json:"source_type"`
+	TargetType  TargetType  `json:"target_type"`
+	RequestType RequestType `json:"request_type"`
+	Content     string      `json:"content"`
+	Command     string      `json:"command"`
+	UserId      string      `json:"user_id"`
+	ChatId      string      `json:"chat_id"`
+	MessageId   string      `json:"message_id"`
 }
 
 func (r *Request) ToResponse(ok bool, desc string) *Response {

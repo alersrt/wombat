@@ -74,32 +74,10 @@ func (s *TelegramSource) Do(ctx context.Context, wg *sync.WaitGroup) {
 		case upd := <-s.updChan:
 			msg := s.getMsg(&upd)
 			req := s.getReq(msg)
-			if !msg.IsCommand() {
-				st, err := s.checkAccess(req)
-				if err != nil {
-					slog.Error(fmt.Sprintf("%+v", err))
-					s.router.SendRes(req.ToResponse(false, err.Error()))
-				} else {
-					switch st {
-					case Registered:
-						s.router.SendReq(req)
-					case NotRegistered:
-						s.askToRegister(req)
-					}
-				}
+			if err := s.handleUpdate(ctx, req); err != nil {
+				slog.Error(fmt.Sprintf("%+v", err))
+				s.router.SendRes(req.ToResponse(false, err.Error()))
 			} else {
-				switch msg.Command() {
-				case botCommandRegister.Command:
-					err := s.handleRegistration(ctx, req)
-					if err != nil {
-						slog.Error(fmt.Sprintf("%+v", err))
-						s.router.SendRes(req.ToResponse(false, err.Error()))
-					} else {
-						s.router.SendRes(req.ToResponse(true, ""))
-					}
-				default:
-					s.router.SendRes(req.ToResponse(false, "wrong command"))
-				}
 			}
 		case res := <-s.router.ResChan():
 			s.handleResponse(res)
@@ -128,31 +106,65 @@ func (s *TelegramSource) getReq(msg *tgbotapi.Message) *Request {
 	}
 
 	var content string
+	var command string
+	var reqType RequestType
 	if msg.IsCommand() {
 		content = msg.CommandArguments()
+		command = msg.Command()
+		reqType = RequestTypeCommand
 	} else {
 		content = msg.Text
+		reqType = RequestTypeText
 	}
 
 	return &Request{
-		TargetType: JiraType,
-		SourceType: TelegramType,
-		Content:    content,
-		UserId:     strconv.FormatInt(msg.From.ID, 10),
-		ChatId:     strconv.FormatInt(msg.Chat.ID, 10),
-		MessageId:  strconv.Itoa(msg.MessageID),
+		TargetType:  JiraType,
+		SourceType:  TelegramType,
+		RequestType: reqType,
+		Content:     content,
+		Command:     command,
+		UserId:      strconv.FormatInt(msg.From.ID, 10),
+		ChatId:      strconv.FormatInt(msg.Chat.ID, 10),
+		MessageId:   strconv.Itoa(msg.MessageID),
 	}
 }
 
-func (s *TelegramSource) checkAccess(req *Request) (AccessState, error) {
+func (s *TelegramSource) handleUpdate(ctx context.Context, req *Request) error {
+	switch req.RequestType {
+	case RequestTypeText:
+		st, err := s.checkAccess(req)
+		if err != nil {
+			return err
+		} else {
+			switch st {
+			case AccStateRegistered:
+				s.router.SendReq(req)
+			case AccStateNotRegistered:
+				s.askToRegister(req)
+			}
+		}
+	case RequestTypeCommand:
+		switch req.Command {
+		case botCommandRegister.Command:
+			if err := s.handleRegistration(ctx, req); err != nil {
+				return err
+			}
+		default:
+			return errors.New("wrong command")
+		}
+	}
+	return nil
+}
+
+func (s *TelegramSource) checkAccess(req *Request) (AccState, error) {
 	ok, err := s.db.HasConnectionSource(s.sourceType.String(), req.UserId)
 	if err != nil {
 		return 0, err
 	}
 	if ok {
-		return Registered, nil
+		return AccStateRegistered, nil
 	} else {
-		return NotRegistered, nil
+		return AccStateNotRegistered, nil
 	}
 }
 
