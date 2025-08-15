@@ -7,8 +7,8 @@ type Router struct {
 
 func NewRouter() *Router {
 	return &Router{
-		requests:  make(chan *Request),
-		responses: make(chan *Response),
+		requests:  make(chan *Request, 1),
+		responses: make(chan *Response, 1),
 	}
 }
 
@@ -20,10 +20,10 @@ func (r *Router) SendRes(res *Response) {
 	r.responses <- res
 }
 
-func (r *Router) GetReq() chan *Request {
+func (r *Router) ReqChan() chan *Request {
 	return r.requests
 }
 
-func (r *Router) GetRes() chan *Response {
+func (r *Router) ResChan() chan *Response {
 	return r.responses
 }

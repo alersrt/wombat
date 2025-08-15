@@ -8,84 +8,58 @@ import (
 	"syscall"
 )
 
-type Task func(ctx context.Context) error
+type Task interface {
+	Do(ctx context.Context)
+}
 
 type Config interface {
 	Init(args []string) error
-	IsInitiated() bool
 }
 
-type Daemon struct {
-	conf  Config
-	tasks []Task
+type Daemon interface {
+	Init(args []string) error
+	Shutdown()
 }
 
-func Create(conf Config) *Daemon {
-	dmn := &Daemon{conf: conf}
-	return dmn
-}
+// HandleSignals handles os signals. Returns exit code and error if any.
+func HandleSignals(ctx context.Context, daemon Daemon) (int, error) {
+	slog.Info("daemon:handle:start")
+	defer slog.Info("daemon:handle:finish")
 
-func (d *Daemon) handleSignals(ctx context.Context) {
 	signalChan := make(chan os.Signal, 1)
-
-	signal.Notify(signalChan, os.Interrupt, syscall.SIGHUP)
 	defer signal.Stop(signalChan)
 
-	select {
-	case s := <-signalChan:
-		switch s {
-		case syscall.SIGHUP:
-			err := d.conf.Init(os.Args)
-			Throw(err)
-		case os.Interrupt:
-			os.Exit(130)
-		case os.Kill:
-			os.Exit(137)
-		case syscall.SIGTERM:
-			os.Exit(143)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGHUP)
+	for {
+		select {
+		case s := <-signalChan:
+			switch s {
+			case syscall.SIGHUP:
+				slog.Info("daemon:handle:sighup:start")
+				daemon.Shutdown()
+				if err := daemon.Init(os.Args); err != nil {
+					slog.Info("daemon:handle:sighup:error")
+					return 1, err
+				}
+				slog.Info("daemon:handle:sighup:finish")
+			case os.Interrupt:
+				slog.Info("daemon:handle:interrupt")
+				return 130, nil
+			case os.Kill:
+				slog.Info("daemon:handle:kill")
+				return 137, nil
+			case syscall.SIGTERM:
+				slog.Info("daemon:handle:sigterm")
+				return 143, nil
+			}
+		case <-ctx.Done():
+			if err := ctx.Err(); err != nil {
+				slog.Info("daemon:handle:ctx:error")
+				return 1, err
+			} else {
+				slog.Info("daemon:handle:ctx:done")
+				return 0, nil
+			}
 		}
-	case <-ctx.Done():
-		if err := ctx.Err(); err != nil {
-			slog.Error(err.Error())
-			os.Exit(1)
-		} else {
-			slog.Info("Done.")
-			os.Exit(0)
-		}
 	}
-}
-
-func (d *Daemon) AddTask(task Task) *Daemon {
-	d.tasks = append(d.tasks, task)
-	return d
-}
-
-func (d *Daemon) AddTasks(tasks ...Task) *Daemon {
-	d.tasks = append(d.tasks, tasks...)
-	return d
-}
-
-func (d *Daemon) Start(ctx context.Context) (err error) {
-	defer CatchWithReturn(&err)
-
-	if !d.conf.IsInitiated() {
-		err := d.conf.Init(os.Args)
-		Throw(err)
-	}
-
-	go d.handleSignals(ctx)
-
-	for _, task := range d.tasks {
-		go func() {
-			defer Catch()
-			err := task(ctx)
-			Throw(err)
-		}()
-	}
-
-	return
-}
-
-func (d *Daemon) GetConfig() Config {
-	return d.conf
 }

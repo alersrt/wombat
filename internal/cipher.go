@@ -4,9 +4,8 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"errors"
+	"github.com/pkg/errors"
 	"io"
-	"wombat/pkg"
 )
 
 type AesGcmCipher struct {
@@ -15,32 +14,39 @@ type AesGcmCipher struct {
 }
 
 // NewAesGcmCipher Creates new GCM with standard nonce size (12)
-func NewAesGcmCipher(key []byte) *AesGcmCipher {
+func NewAesGcmCipher(key []byte) (*AesGcmCipher, error) {
 	block, err := aes.NewCipher(key)
-	pkg.Throw(err)
-	gcm, err := cipher.NewGCM(block)
-	pkg.Throw(err)
-	return &AesGcmCipher{
-		gcm: gcm,
+	if err != nil {
+		return nil, errors.New(err.Error())
 	}
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, errors.New(err.Error())
+	}
+
+	return &AesGcmCipher{gcm: gcm}, nil
 }
 
-func (a *AesGcmCipher) Encrypt(plaintext string) (ciphertext []byte) {
+func (a *AesGcmCipher) Encrypt(plaintext string) ([]byte, error) {
 	nonce := make([]byte, a.gcm.NonceSize())
 	_, err := io.ReadFull(rand.Reader, nonce)
-	pkg.Throw(err)
-	ciphertext = a.gcm.Seal(nonce, nonce, []byte(plaintext), nil)
-	return
+	if err != nil {
+		return nil, errors.New(err.Error())
+	}
+	ciphertext := a.gcm.Seal(nonce, nonce, []byte(plaintext), nil)
+	return ciphertext, nil
 }
 
-func (a *AesGcmCipher) Decrypt(ciphertext []byte) (plaintext string) {
+func (a *AesGcmCipher) Decrypt(ciphertext []byte) (string, error) {
 	nonceSize := a.gcm.NonceSize()
 	if len(ciphertext) < nonceSize {
-		pkg.Throw(errors.New("ciphertext and nonce size mismatch"))
+		return "", errors.New("ciphertext and nonce size mismatch")
 	}
 	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
 	plaintextBytes, err := a.gcm.Open(nil, nonce, ciphertext, nil)
-	pkg.Throw(err)
-	plaintext = string(plaintextBytes)
-	return
+	if err != nil {
+		return "", errors.New(err.Error())
+	}
+	plaintext := string(plaintextBytes)
+	return plaintext, nil
 }

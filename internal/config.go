@@ -1,10 +1,12 @@
 package internal
 
 import (
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 	"log/slog"
 	"mvdan.cc/sh/v3/shell"
 	"os"
+	"sync"
 	"wombat/pkg"
 )
 
@@ -33,34 +35,38 @@ type Database struct {
 }
 
 type Config struct {
-	isInitiated bool
-	*Bot        `yaml:"bot,omitempty"`
-	*Cipher     `yaml:"cipher,omitempty"`
-	*Jira       `yaml:"jira,omitempty"`
-	*Telegram   `yaml:"telegram,omitempty"`
-	*Database   `yaml:"database,omitempty"`
+	mtx      sync.Mutex
+	Bot      `yaml:"bot,omitempty"`
+	Cipher   `yaml:"cipher,omitempty"`
+	Jira     `yaml:"jira,omitempty"`
+	Telegram `yaml:"telegram,omitempty"`
+	Database `yaml:"database,omitempty"`
 }
 
-func (c *Config) Init(args []string) (err error) {
-	slog.Info("Wombat initialization...")
+var _ pkg.Config = (*Config)(nil)
+
+func (c *Config) Init(args []string) error {
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
+
+	slog.Info("config:init:start")
+	defer slog.Info("config:init:finish")
 	configPath := args[0]
 
-	defer slog.Info("Config file: " + configPath)
-	defer pkg.CatchWithReturn(&err)
+	defer slog.Info("config:file:" + configPath)
 
 	file, err := os.ReadFile(configPath)
-	pkg.Throw(err)
+	if err != nil {
+		return errors.New(err.Error())
+	}
 
 	replaced, err := shell.Expand(string(file), nil)
-	pkg.Throw(err)
-
+	if err != nil {
+		return errors.New(err.Error())
+	}
 	err = yaml.Unmarshal([]byte(replaced), c)
-	pkg.Throw(err)
-
-	c.isInitiated = true
-	return
-}
-
-func (c *Config) IsInitiated() bool {
-	return c.isInitiated
+	if err != nil {
+		return errors.New(err.Error())
+	}
+	return nil
 }
