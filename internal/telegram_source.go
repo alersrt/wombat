@@ -78,6 +78,7 @@ func (s *TelegramSource) Do(ctx context.Context, wg *sync.WaitGroup) {
 				slog.Error(fmt.Sprintf("%+v", err))
 				s.router.SendRes(req.ToResponse(false, err.Error()))
 			} else {
+				s.router.SendRes(req.ToResponse(true, ""))
 			}
 		case res := <-s.router.ResChan():
 			s.handleResponse(res)
