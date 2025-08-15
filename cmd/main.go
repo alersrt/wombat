@@ -87,8 +87,7 @@ func main() {
 		return nil
 	}
 
-	err := init()
-	if err != nil {
+	if err := init(); err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
 		os.Exit(1)
 	}

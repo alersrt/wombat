@@ -100,10 +100,8 @@ func (s *TelegramSource) Do(ctx context.Context, wg *sync.WaitGroup) {
 					s.router.SendRes(req.ToResponse(false, "wrong command"))
 				}
 			}
-			continue
 		case res := <-s.router.ResChan():
 			s.handleResponse(res)
-			continue
 		case <-ctx.Done():
 			slog.Info("telegram:do:ctx:done")
 			return
