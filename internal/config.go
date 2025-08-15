@@ -49,10 +49,10 @@ func (c *Config) Init(args []string) error {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
-	slog.Info("Wombat initialization...")
+	slog.Info("config:init:start")
 	configPath := args[0]
 
-	defer slog.Info("Config file: " + configPath)
+	defer slog.Info("config:file:" + configPath)
 
 	file, err := os.ReadFile(configPath)
 	if err != nil {
@@ -67,5 +67,6 @@ func (c *Config) Init(args []string) error {
 	if err != nil {
 		return errors.New(err.Error())
 	}
+	slog.Info("config:init:finish")
 	return nil
 }

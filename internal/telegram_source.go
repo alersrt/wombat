@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"log/slog"
 	"strconv"
+	"sync"
 )
 
 var (
@@ -26,9 +27,11 @@ type TelegramSource struct {
 }
 
 func NewTelegramSource(token string, router *Router, db *DbStorage, cipher *AesGcmCipher) (ts *TelegramSource, err error) {
+	slog.Info("telegram:init:start")
+
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errors.New(err.Error())
 	}
 
 	updCfg := tgbotapi.NewUpdate(0)
@@ -41,11 +44,12 @@ func NewTelegramSource(token string, router *Router, db *DbStorage, cipher *AesG
 
 	_, err = bot.Request(tgbotapi.NewSetMyCommands(botCommandRegister))
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errors.New(err.Error())
 	}
 
-	slog.Info(fmt.Sprintf("Authorized on account %s", bot.Self.UserName))
+	slog.Info(fmt.Sprintf("telegram:account:%s", bot.Self.UserName))
 
+	slog.Info("telegram:init:finish")
 	return &TelegramSource{
 		sourceType: TelegramType,
 		bot:        bot,
@@ -60,7 +64,8 @@ func (s *TelegramSource) GetSourceType() SourceType {
 	return s.sourceType
 }
 
-func (s *TelegramSource) Do(ctx context.Context) {
+func (s *TelegramSource) Do(ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for {
 		select {
 		case upd := <-s.updChan:
@@ -89,10 +94,14 @@ func (s *TelegramSource) Do(ctx context.Context) {
 					} else {
 						s.router.SendRes(req.ToResponse(true, ""))
 					}
+				default:
+					s.router.SendRes(req.ToResponse(false, "wrong command"))
 				}
 			}
+			continue
 		case res := <-s.router.ResChan():
 			s.handleResponse(res)
+			continue
 		case <-ctx.Done():
 			return
 		}
@@ -149,7 +158,7 @@ func (s *TelegramSource) handleRegistration(ctx context.Context, req *Request) e
 	ctxTx, cancelTx := context.WithCancel(ctx)
 	defer cancelTx()
 
-	slog.Info("REG:START", "source", s.sourceType.String(), "userId", req.UserId)
+	slog.Info("reg:start", "source", s.sourceType.String(), "userId", req.UserId)
 
 	tx, err := s.db.BeginTx(ctxTx)
 	if err != nil {
@@ -179,7 +188,7 @@ func (s *TelegramSource) handleRegistration(ctx context.Context, req *Request) e
 	if err != nil {
 		return err
 	}
-	slog.Info("REG:FINISH", "source", s.sourceType.String(), "userId", req.UserId)
+	slog.Info("reg:finish", "source", s.sourceType.String(), "userId", req.UserId)
 
 	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"log/slog"
 	"regexp"
+	"sync"
 )
 
 type TargetClient interface {
@@ -73,7 +74,8 @@ func (t *JiraTarget) GetTargetType() TargetType {
 	return t.targetType
 }
 
-func (t *JiraTarget) Do(ctx context.Context) {
+func (t *JiraTarget) Do(ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
 	for {
 		select {
 		case req := <-t.router.ReqChan():
