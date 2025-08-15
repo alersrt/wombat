@@ -65,6 +65,8 @@ func (s *TelegramSource) GetSourceType() SourceType {
 }
 
 func (s *TelegramSource) Do(ctx context.Context, wg *sync.WaitGroup) {
+	slog.Info("telegram:do:start")
+	defer slog.Info("telegram:do:finish")
 	defer wg.Done()
 	for {
 		select {
@@ -103,6 +105,7 @@ func (s *TelegramSource) Do(ctx context.Context, wg *sync.WaitGroup) {
 			s.handleResponse(res)
 			continue
 		case <-ctx.Done():
+			slog.Info("telegram:do:ctx:done")
 			return
 		}
 	}

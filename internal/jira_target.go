@@ -75,7 +75,9 @@ func (t *JiraTarget) GetTargetType() TargetType {
 }
 
 func (t *JiraTarget) Do(ctx context.Context, wg *sync.WaitGroup) {
+	slog.Info("jira:do:start")
 	defer wg.Done()
+	defer slog.Info("jira:do:finish")
 	for {
 		select {
 		case req := <-t.router.ReqChan():
@@ -87,6 +89,7 @@ func (t *JiraTarget) Do(ctx context.Context, wg *sync.WaitGroup) {
 				t.router.SendRes(req.ToResponse(true, ""))
 			}
 		case <-ctx.Done():
+			slog.Info("jira:do:ctx:done")
 			return
 		}
 	}

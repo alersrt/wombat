@@ -24,6 +24,7 @@ var _ pkg.Daemon = (*App)(nil)
 
 func (a *App) Init(args []string) error {
 	slog.Info("app:init:start")
+	defer slog.Info("app:init:finish")
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
 
@@ -52,11 +53,12 @@ func (a *App) Init(args []string) error {
 	a.source = telegramSource
 	a.target = jiraTarget
 
-	slog.Info("app:init:finish")
 	return nil
 }
 
 func (a *App) Do(ctx context.Context) {
+	slog.Info("app:do:start")
+	defer slog.Info("app:do:finish")
 	a.wg.Add(2)
 	go a.source.Do(ctx, &a.wg)
 	go a.target.Do(ctx, &a.wg)
@@ -64,9 +66,9 @@ func (a *App) Do(ctx context.Context) {
 }
 
 func (a *App) Shutdown() {
-	slog.Info("shutdown:start")
+	slog.Info("app:shutdown:start")
+	defer slog.Info("app:shutdown:finish")
 	a.wg.Add(-2)
-	slog.Info("shutdown:finish")
 }
 
 func main() {

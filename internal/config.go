@@ -50,6 +50,7 @@ func (c *Config) Init(args []string) error {
 	defer c.mtx.Unlock()
 
 	slog.Info("config:init:start")
+	defer slog.Info("config:init:finish")
 	configPath := args[0]
 
 	defer slog.Info("config:file:" + configPath)
@@ -67,6 +68,5 @@ func (c *Config) Init(args []string) error {
 	if err != nil {
 		return errors.New(err.Error())
 	}
-	slog.Info("config:init:finish")
 	return nil
 }
