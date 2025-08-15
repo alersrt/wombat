@@ -60,7 +60,9 @@ func (a *App) Do(ctx context.Context) {
 	slog.Info("app:do:start")
 	defer slog.Info("app:do:finish")
 	a.wg.Add(1)
-	go a.source.Do(ctx, &a.wg)
+	go a.source.DoReq(ctx, &a.wg)
+	a.wg.Add(1)
+	go a.source.DoRes(ctx, &a.wg)
 	a.wg.Add(1)
 	go a.target.Do(ctx, &a.wg)
 	a.wg.Wait()
@@ -69,7 +71,7 @@ func (a *App) Do(ctx context.Context) {
 func (a *App) Shutdown() {
 	slog.Info("app:shutdown:start")
 	defer slog.Info("app:shutdown:finish")
-	a.wg.Add(-2)
+	a.wg.Add(-3)
 }
 
 func main() {

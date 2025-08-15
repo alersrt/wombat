@@ -64,26 +64,39 @@ func (s *TelegramSource) GetSourceType() SourceType {
 	return s.sourceType
 }
 
-func (s *TelegramSource) Do(ctx context.Context, wg *sync.WaitGroup) {
-	slog.Info("telegram:do:start")
+func (s *TelegramSource) DoReq(ctx context.Context, wg *sync.WaitGroup) {
+	slog.Info("telegram:do:req:start")
 	defer wg.Done()
-	defer slog.Info("telegram:do:finish")
+	defer slog.Info("telegram:do:req:finish")
 
 	for {
 		select {
 		case upd := <-s.updChan:
-			msg := s.getMsg(&upd)
-			req := s.getReq(msg)
+			req := s.getReq(s.getMsg(&upd))
 			if err := s.handleUpdate(ctx, req); err != nil {
 				slog.Error(fmt.Sprintf("%+v", err))
 				s.router.SendRes(req.ToResponse(false, err.Error()))
 			} else {
 				s.router.SendRes(req.ToResponse(true, ""))
 			}
+		case <-ctx.Done():
+			slog.Info("telegram:do:req:ctx:done")
+			return
+		}
+	}
+}
+
+func (s *TelegramSource) DoRes(ctx context.Context, wg *sync.WaitGroup) {
+	slog.Info("telegram:do:res:start")
+	defer wg.Done()
+	defer slog.Info("telegram:do:res:finish")
+
+	for {
+		select {
 		case res := <-s.router.ResChan():
 			s.handleResponse(res)
 		case <-ctx.Done():
-			slog.Info("telegram:do:ctx:done")
+			slog.Info("telegram:do:res:ctx:done")
 			return
 		}
 	}
