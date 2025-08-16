@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/andygrunwald/go-jira"
-	"github.com/pkg/errors"
 	"log/slog"
 	"regexp"
 	"sync"
@@ -26,7 +25,7 @@ func NewJiraClient(url string, token string) (TargetClient, error) {
 	tp := jira.PATAuthTransport{Token: token}
 	client, err := jira.NewClient(tp.Client(), url)
 	if err != nil {
-		return nil, errors.New(err.Error())
+		return nil, fmt.Errorf("jira:client:new:err: url=%s", url)
 	}
 	return &JiraClient{client}, nil
 }
@@ -34,7 +33,7 @@ func NewJiraClient(url string, token string) (TargetClient, error) {
 func (c *JiraClient) Update(issue string, commentId string, text string) error {
 	_, _, err := c.client.Issue.UpdateComment(issue, &jira.Comment{ID: commentId, Body: text})
 	if err != nil {
-		return errors.New(err.Error())
+		return fmt.Errorf("jira:client:update:err: %w", err)
 	}
 	return nil
 }
@@ -42,7 +41,7 @@ func (c *JiraClient) Update(issue string, commentId string, text string) error {
 func (c *JiraClient) Add(issue string, text string) (string, error) {
 	comment, _, err := c.client.Issue.AddComment(issue, &jira.Comment{Body: text})
 	if err != nil {
-		return "", errors.New(err.Error())
+		return "", fmt.Errorf("jira:client:add:err: %w", err)
 	}
 	return comment.ID, nil
 }
@@ -87,7 +86,7 @@ func (t *JiraTarget) Do(ctx context.Context, wg *sync.WaitGroup) {
 		case req := <-t.router.ReqChan():
 			err := t.handle(ctx, req)
 			if err != nil {
-				slog.Error(fmt.Sprintf("%+v", err))
+				slog.Error(err.Error())
 				t.router.SendRes(req.ToResponse(false, err.Error()))
 			} else {
 				t.router.SendRes(req.ToResponse(true, ""))
@@ -104,7 +103,7 @@ func (t *JiraTarget) handle(ctx context.Context, req *domain.Request) error {
 	defer cancelTx()
 
 	if !t.tagsRegex.MatchString(req.Content) {
-		return errors.Errorf("tag not found: %v", req.Content)
+		return fmt.Errorf("jira:do:err: tag not found")
 	}
 
 	tx, err := t.db.BeginTx(ctxTx)

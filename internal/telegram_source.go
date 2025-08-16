@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/pkg/errors"
 	"log/slog"
 	"strconv"
 	"sync"
@@ -30,11 +29,11 @@ type TelegramSource struct {
 }
 
 func NewTelegramSource(token string, router *Router, db *storage.DbStorage, cipher *cipher.AesGcmCipher) (ts *TelegramSource, err error) {
-	slog.Info("telegram:init:start")
+	slog.Info("tg:new:start")
 
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
-		return nil, errors.New(err.Error())
+		return nil, fmt.Errorf("tg:new:err: %w", err)
 	}
 
 	updCfg := tgbotapi.NewUpdate(0)
@@ -47,12 +46,12 @@ func NewTelegramSource(token string, router *Router, db *storage.DbStorage, ciph
 
 	_, err = bot.Request(tgbotapi.NewSetMyCommands(botCommandRegister))
 	if err != nil {
-		return nil, errors.New(err.Error())
+		return nil, fmt.Errorf("tg:new:err: %w", err)
 	}
 
-	slog.Info(fmt.Sprintf("telegram:account:%s", bot.Self.UserName))
+	slog.Info(fmt.Sprintf("tg:new:acc: %s", bot.Self.UserName))
 
-	slog.Info("telegram:init:finish")
+	slog.Info("tg:new:finish")
 	return &TelegramSource{
 		sourceType: domain.SourceTypeTelegram,
 		bot:        bot,
@@ -68,9 +67,9 @@ func (s *TelegramSource) GetSourceType() domain.SourceType {
 }
 
 func (s *TelegramSource) DoReq(ctx context.Context, wg *sync.WaitGroup) {
-	slog.Info("telegram:do:req:start")
+	slog.Info("tg:do:req:start")
 	defer wg.Done()
-	defer slog.Info("telegram:do:req:finish")
+	defer slog.Info("tg:do:req:finish")
 
 	for {
 		select {
@@ -83,23 +82,23 @@ func (s *TelegramSource) DoReq(ctx context.Context, wg *sync.WaitGroup) {
 				s.router.SendRes(req.ToResponse(true, ""))
 			}
 		case <-ctx.Done():
-			slog.Info("telegram:do:req:ctx:done")
+			slog.Info("tg:do:req:ctx:done")
 			return
 		}
 	}
 }
 
 func (s *TelegramSource) DoRes(ctx context.Context, wg *sync.WaitGroup) {
-	slog.Info("telegram:do:res:start")
+	slog.Info("tg:do:res:start")
 	defer wg.Done()
-	defer slog.Info("telegram:do:res:finish")
+	defer slog.Info("tg:do:res:finish")
 
 	for {
 		select {
 		case res := <-s.router.ResChan():
 			s.handleResponse(res)
 		case <-ctx.Done():
-			slog.Info("telegram:do:res:ctx:done")
+			slog.Info("tg:do:res:ctx:done")
 			return
 		}
 	}
@@ -167,7 +166,7 @@ func (s *TelegramSource) handleUpdate(ctx context.Context, req *domain.Request) 
 				return err
 			}
 		default:
-			return errors.New("wrong command")
+			return fmt.Errorf("tg:upd: wrong cmd=%s", req.Command)
 		}
 	}
 	return nil
@@ -189,7 +188,7 @@ func (s *TelegramSource) handleRegistration(ctx context.Context, req *domain.Req
 	ctxTx, cancelTx := context.WithCancel(ctx)
 	defer cancelTx()
 
-	slog.Info("reg:start", "source", s.sourceType, "userId", req.UserId)
+	slog.Info("tg:reg:start", "source", s.sourceType, "userId", req.UserId)
 
 	tx, err := s.db.BeginTx(ctxTx)
 	if err != nil {
@@ -219,7 +218,7 @@ func (s *TelegramSource) handleRegistration(ctx context.Context, req *domain.Req
 	if err != nil {
 		return err
 	}
-	slog.Info("reg:finish", "source", s.sourceType, "userId", req.UserId)
+	slog.Info("tg:reg:finish", "source", s.sourceType, "userId", req.UserId)
 
 	return nil
 }
