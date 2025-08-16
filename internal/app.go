@@ -11,10 +11,8 @@ import (
 
 type App struct {
 	mtx    sync.Mutex
-	cfg    *config.Config
 	source *TelegramSource
 	target *JiraTarget
-	stop   func()
 }
 
 func (a *App) Init(args []string) error {
