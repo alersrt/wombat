@@ -11,8 +11,7 @@ import (
 )
 
 func main() {
-	mctx := context.Background()
-	ctx, cancel := context.WithCancel(mctx)
+	ctx, cancel := context.WithCancel(context.Background())
 
 	app := new(internal.App)
 	init := func() error {
@@ -20,7 +19,7 @@ func main() {
 		if err != nil {
 			return err
 		}
-		err = app.Init(ctx, args)
+		err = app.Init(args)
 		if err != nil {
 			return err
 		}
@@ -34,7 +33,7 @@ func main() {
 
 	go app.Do(ctx)
 
-	code, err := daemon.HandleSignals(mctx, cancel, init)
+	code, err := daemon.HandleSignals(ctx, cancel)
 	if err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
 	}

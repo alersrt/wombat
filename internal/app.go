@@ -14,9 +14,10 @@ type App struct {
 	cfg    *config.Config
 	source *TelegramSource
 	target *JiraTarget
+	stop   func()
 }
 
-func (a *App) Init(ctx context.Context, args []string) error {
+func (a *App) Init(args []string) error {
 	slog.Info("app:init:start")
 	defer slog.Info("app:init:finish")
 	a.mtx.Lock()
@@ -54,15 +55,9 @@ func (a *App) Do(ctx context.Context) {
 	slog.Info("app:do:start")
 	defer slog.Info("app:do:finish")
 
-	go func() {
-		go a.source.DoReq(ctx)
-	}()
-	go func() {
-		go a.source.DoRes(ctx)
-	}()
-	go func() {
-		go a.target.Do(ctx)
-	}()
+	go a.source.DoReq(ctx)
+	go a.source.DoRes(ctx)
+	go a.target.Do(ctx)
 
 	<-ctx.Done()
 }

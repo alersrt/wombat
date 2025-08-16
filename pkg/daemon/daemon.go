@@ -10,7 +10,7 @@ import (
 )
 
 // HandleSignals handles os signals. Returns exit code and error if any.
-func HandleSignals(ctx context.Context, shutdown func(), init func() error) (int, error) {
+func HandleSignals(ctx context.Context, cancel func()) (int, error) {
 	slog.Info("daemon:handle:start")
 	defer slog.Info("daemon:handle:finish")
 
@@ -22,21 +22,16 @@ func HandleSignals(ctx context.Context, shutdown func(), init func() error) (int
 		select {
 		case s := <-signalChan:
 			switch s {
-			case syscall.SIGHUP:
-				slog.Info("daemon:handle:sighup:start")
-				shutdown()
-				if err := init(); err != nil {
-					slog.Info("daemon:handle:sighup:err")
-					return 1, fmt.Errorf("daemon:handle:sighup:err: %w", err)
-				}
-				slog.Info("daemon:handle:sighup:finish")
 			case os.Interrupt:
+				cancel()
 				slog.Info("daemon:handle:interrupt")
 				return 130, nil
 			case os.Kill:
+				cancel()
 				slog.Info("daemon:handle:kill")
 				return 137, nil
 			case syscall.SIGTERM:
+				cancel()
 				slog.Info("daemon:handle:sigterm")
 				return 143, nil
 			}
