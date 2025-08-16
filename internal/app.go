@@ -10,18 +10,17 @@ import (
 )
 
 type App struct {
-	mu     sync.Mutex
-	wg     sync.WaitGroup
+	mtx    sync.Mutex
 	cfg    *config.Config
 	source *TelegramSource
 	target *JiraTarget
 }
 
-func (a *App) Init(args []string) error {
+func (a *App) Init(ctx context.Context, args []string) error {
 	slog.Info("app:init:start")
 	defer slog.Info("app:init:finish")
-	a.mu.Lock()
-	defer a.mu.Unlock()
+	a.mtx.Lock()
+	defer a.mtx.Unlock()
 
 	conf := new(config.Config)
 	err := conf.Init(args)
@@ -55,26 +54,20 @@ func (a *App) Do(ctx context.Context) {
 	slog.Info("app:do:start")
 	defer slog.Info("app:do:finish")
 
-	// Any of these three functions are important for execution so the goroutine must
-	// be stopped if any of these is stopped.
-	a.wg.Add(1)
 	go func() {
-		defer a.wg.Done()
 		go a.source.DoReq(ctx)
 	}()
 	go func() {
-		defer a.wg.Done()
 		go a.source.DoRes(ctx)
 	}()
 	go func() {
-		defer a.wg.Done()
 		go a.target.Do(ctx)
 	}()
-	a.wg.Wait()
+
 }
 
-func (a *App) Shutdown() {
+func (a *App) Shutdown(cancel func()) {
 	slog.Info("app:shutdown:start")
 	defer slog.Info("app:shutdown:finish")
-	a.wg.Add(-1)
+	cancel()
 }

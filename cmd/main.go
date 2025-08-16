@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 
 	app := new(internal.App)
 	init := func() error {
@@ -20,14 +20,14 @@ func main() {
 		if err != nil {
 			return err
 		}
-		err = app.Init(args)
+		err = app.Init(ctx, args)
 		if err != nil {
 			return err
 		}
 		return nil
 	}
 	shutdown := func() {
-		app.Shutdown()
+		app.Shutdown(cancel)
 	}
 
 	if err := init(); err != nil {
