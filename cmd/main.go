@@ -62,12 +62,22 @@ func (a *App) Init(args []string) error {
 func (a *App) Do(ctx context.Context) {
 	slog.Info("app:do:start")
 	defer slog.Info("app:do:finish")
+
 	a.wg.Add(1)
-	go a.source.DoReq(ctx, &a.wg)
+	go func() {
+		defer a.wg.Done()
+		go a.source.DoReq(ctx)
+	}()
 	a.wg.Add(1)
-	go a.source.DoRes(ctx, &a.wg)
+	go func() {
+		defer a.wg.Done()
+		go a.source.DoRes(ctx)
+	}()
 	a.wg.Add(1)
-	go a.target.Do(ctx, &a.wg)
+	go func() {
+		defer a.wg.Done()
+		go a.target.Do(ctx)
+	}()
 	a.wg.Wait()
 }
 

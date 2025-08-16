@@ -6,7 +6,6 @@ import (
 	"github.com/andygrunwald/go-jira"
 	"log/slog"
 	"regexp"
-	"sync"
 	"wombat/internal/domain"
 	"wombat/internal/storage"
 	"wombat/pkg/cipher"
@@ -76,9 +75,8 @@ func (t *JiraTarget) GetTargetType() domain.TargetType {
 	return t.targetType
 }
 
-func (t *JiraTarget) Do(ctx context.Context, wg *sync.WaitGroup) {
+func (t *JiraTarget) Do(ctx context.Context) {
 	slog.Info("jira:do:start")
-	defer wg.Done()
 	defer slog.Info("jira:do:finish")
 
 	for {

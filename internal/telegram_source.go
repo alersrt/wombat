@@ -6,7 +6,6 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log/slog"
 	"strconv"
-	"sync"
 	"wombat/internal/domain"
 	"wombat/internal/storage"
 	"wombat/pkg/cipher"
@@ -66,9 +65,8 @@ func (s *TelegramSource) GetSourceType() domain.SourceType {
 	return s.sourceType
 }
 
-func (s *TelegramSource) DoReq(ctx context.Context, wg *sync.WaitGroup) {
+func (s *TelegramSource) DoReq(ctx context.Context) {
 	slog.Info("tg:do:req:start")
-	defer wg.Done()
 	defer slog.Info("tg:do:req:finish")
 
 	for {
@@ -88,9 +86,8 @@ func (s *TelegramSource) DoReq(ctx context.Context, wg *sync.WaitGroup) {
 	}
 }
 
-func (s *TelegramSource) DoRes(ctx context.Context, wg *sync.WaitGroup) {
+func (s *TelegramSource) DoRes(ctx context.Context) {
 	slog.Info("tg:do:res:start")
-	defer wg.Done()
 	defer slog.Info("tg:do:res:finish")
 
 	for {
