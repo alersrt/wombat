@@ -9,6 +9,14 @@ import (
 	"syscall"
 )
 
+const (
+	ExitCodeDone      = 0
+	ExitCodeError     = 1
+	ExitCodeInterrupt = 130
+	ExitCodeKill      = 137
+	ExitCodeTerminate = 143
+)
+
 // HandleSignals handles os signals. Returns exit code and error if any.
 func HandleSignals(ctx context.Context, cancel func()) (int, error) {
 	slog.Info("daemon:handle:start")
@@ -17,7 +25,7 @@ func HandleSignals(ctx context.Context, cancel func()) (int, error) {
 	signalChan := make(chan os.Signal, 1)
 	defer signal.Stop(signalChan)
 
-	signal.Notify(signalChan, os.Interrupt, syscall.SIGHUP)
+	signal.Notify(signalChan, os.Interrupt, os.Kill, syscall.SIGTERM)
 	for {
 		select {
 		case s := <-signalChan:
@@ -25,22 +33,22 @@ func HandleSignals(ctx context.Context, cancel func()) (int, error) {
 			case os.Interrupt:
 				cancel()
 				slog.Info("daemon:handle:interrupt")
-				return 130, nil
+				return ExitCodeInterrupt, nil
 			case os.Kill:
 				slog.Info("daemon:handle:kill")
-				return 137, nil
+				return ExitCodeKill, nil
 			case syscall.SIGTERM:
 				cancel()
 				slog.Info("daemon:handle:sigterm")
-				return 143, nil
+				return ExitCodeTerminate, nil
 			}
 		case <-ctx.Done():
 			if err := ctx.Err(); err != nil {
 				slog.Info("daemon:handle:ctx:err")
-				return 1, fmt.Errorf("daemon:handle:ctx:err: %w", err)
+				return ExitCodeError, fmt.Errorf("daemon:handle:ctx:err: %w", err)
 			} else {
 				slog.Info("daemon:handle:ctx:done")
-				return 0, nil
+				return ExitCodeDone, nil
 			}
 		}
 	}

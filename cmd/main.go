@@ -28,7 +28,7 @@ func main() {
 
 	if err := init(); err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
-		os.Exit(1)
+		os.Exit(daemon.ExitCodeError)
 	}
 
 	go app.Do(ctx)
