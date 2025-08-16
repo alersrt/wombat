@@ -16,7 +16,7 @@ func main() {
 
 	app := new(internal.App)
 	init := func() error {
-		args, err := parseArgs(os.Args)
+		args, err := parseArgs()
 		if err != nil {
 			return err
 		}
@@ -44,7 +44,10 @@ func main() {
 	os.Exit(code)
 }
 
-func parseArgs(args []string) ([]string, error) {
+// parseArgs parses os.Args and returns list of parsed values. Here is descriptions by indexes:
+// 0 - path to config file.
+func parseArgs() ([]string, error) {
+	args := os.Args
 	flags := flag.NewFlagSet(args[0], flag.ExitOnError)
 	configPath := flags.String("config", "./cmd/config.yaml", "path to config")
 

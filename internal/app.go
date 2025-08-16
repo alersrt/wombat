@@ -76,5 +76,5 @@ func (a *App) Do(ctx context.Context) {
 func (a *App) Shutdown() {
 	slog.Info("app:shutdown:start")
 	defer slog.Info("app:shutdown:finish")
-	a.wg.Add(-3)
+	a.wg.Add(-1)
 }
