@@ -8,6 +8,9 @@ import (
 	"log/slog"
 	"regexp"
 	"sync"
+	"wombat/internal/domain"
+	router2 "wombat/internal/router"
+	"wombat/internal/storage"
 	"wombat/pkg/cipher"
 )
 
@@ -47,22 +50,22 @@ func (c *JiraClient) Add(issue string, text string) (string, error) {
 
 type JiraTarget struct {
 	cipher     *cipher.AesGcmCipher
-	targetType TargetType
+	targetType domain.TargetType
 	url        string
-	db         *DbStorage
+	db         *storage.DbStorage
 	tagsRegex  *regexp.Regexp
-	router     *Router
+	router     *router2.Router
 }
 
 func NewJiraTarget(
 	url string,
 	tag string,
-	router *Router,
-	dbStorage *DbStorage,
+	router *router2.Router,
+	dbStorage *storage.DbStorage,
 	cipher *cipher.AesGcmCipher,
 ) *JiraTarget {
 	return &JiraTarget{
-		targetType: JiraType,
+		targetType: domain.JiraType,
 		cipher:     cipher,
 		url:        url,
 		tagsRegex:  regexp.MustCompile(tag),
@@ -71,7 +74,7 @@ func NewJiraTarget(
 	}
 }
 
-func (t *JiraTarget) GetTargetType() TargetType {
+func (t *JiraTarget) GetTargetType() domain.TargetType {
 	return t.targetType
 }
 
@@ -97,7 +100,7 @@ func (t *JiraTarget) Do(ctx context.Context, wg *sync.WaitGroup) {
 	}
 }
 
-func (t *JiraTarget) handle(ctx context.Context, req *Request) error {
+func (t *JiraTarget) handle(ctx context.Context, req *domain.Request) error {
 	ctxTx, cancelTx := context.WithCancel(ctx)
 	defer cancelTx()
 
@@ -136,13 +139,13 @@ func (t *JiraTarget) handle(ctx context.Context, req *Request) error {
 			if err != nil {
 				return err
 			}
-			_, err = tx.SaveCommentMetadata(&Comment{Request: req, Tag: tag, CommentId: commentId})
+			_, err = tx.SaveCommentMetadata(&domain.Comment{Request: req, Tag: tag, CommentId: commentId})
 			if err != nil {
 				return err
 			}
 		}
 	} else {
-		taggedComments := map[string]*Comment{}
+		taggedComments := map[string]*domain.Comment{}
 		for _, comment := range savedComments {
 			taggedComments[comment.Tag] = comment
 		}
@@ -152,7 +155,7 @@ func (t *JiraTarget) handle(ctx context.Context, req *Request) error {
 			if err != nil {
 				return err
 			}
-			_, err = tx.SaveCommentMetadata(&Comment{Request: req, Tag: tag, CommentId: comment.CommentId})
+			_, err = tx.SaveCommentMetadata(&domain.Comment{Request: req, Tag: tag, CommentId: comment.CommentId})
 			if err != nil {
 				return err
 			}

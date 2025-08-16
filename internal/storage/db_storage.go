@@ -1,4 +1,4 @@
-package internal
+package storage
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
+	"wombat/internal/domain"
 )
 
 type DbStorage struct {
@@ -104,7 +105,7 @@ func (tx *Tx) CreateTargetConnection(accountGid *uuid.UUID, targetType string, t
 	}
 }
 
-func (tx *Tx) GetTargetConnection(sourceType string, targetType string, userId string) (*TargetConnection, error) {
+func (tx *Tx) GetTargetConnection(sourceType string, targetType string, userId string) (*domain.TargetConnection, error) {
 	query := `select wtc.*
               from wombatsm.accounts wa
                 left join wombatsm.target_connections wtc on wa.gid = wtc.account_gid
@@ -120,7 +121,7 @@ func (tx *Tx) GetTargetConnection(sourceType string, targetType string, userId s
 	}
 }
 
-func (tx *Tx) GetCommentMetadata(sourceType string, chatId string, userId string) ([]*Comment, error) {
+func (tx *Tx) GetCommentMetadata(sourceType string, chatId string, userId string) ([]*domain.Comment, error) {
 	query := `select *
               from wombatsm.comments
               where source_type = $1
@@ -130,7 +131,7 @@ func (tx *Tx) GetCommentMetadata(sourceType string, chatId string, userId string
 	if err != nil {
 		return nil, errors.New(err.Error())
 	}
-	var comments []Entity[Comment]
+	var comments []Entity[domain.Comment]
 	if rows.Next() {
 		comment := &CommentEntity{}
 		err = rows.Scan(comment)
@@ -142,7 +143,7 @@ func (tx *Tx) GetCommentMetadata(sourceType string, chatId string, userId string
 	return ToDomain(comments), nil
 }
 
-func (tx *Tx) SaveCommentMetadata(domain *Comment) (*Comment, error) {
+func (tx *Tx) SaveCommentMetadata(domain *domain.Comment) (*domain.Comment, error) {
 	query := `insert into wombatsm.comments(target_type, source_type, comment_id, user_id, chat_id, message_id, tag)
               values (:target_type, :source_type, :comment_id, :user_id, :chat_id, :message_id, :tag)
               returning *`

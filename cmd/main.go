@@ -9,14 +9,17 @@ import (
 	"os"
 	"sync"
 	"wombat/internal"
+	"wombat/internal/config"
+	"wombat/internal/router"
+	"wombat/internal/storage"
 	"wombat/pkg/cipher"
 	"wombat/pkg/daemon"
 )
 
 type App struct {
-	mtx    sync.Mutex
+	mu     sync.Mutex
 	wg     sync.WaitGroup
-	conf   *daemon.Config
+	cfg    *daemon.Config
 	source *internal.TelegramSource
 	target *internal.JiraTarget
 }
@@ -26,30 +29,30 @@ var _ daemon.Daemon = (*App)(nil)
 func (a *App) Init(args []string) error {
 	slog.Info("app:init:start")
 	defer slog.Info("app:init:finish")
-	a.mtx.Lock()
-	defer a.mtx.Unlock()
+	a.mu.Lock()
+	defer a.mu.Unlock()
 
-	conf := new(internal.Config)
+	conf := new(config.Config)
 	err := conf.Init(args)
 	if err != nil {
 		return err
 	}
 
-	cipher, err := cipher.NewAesGcmCipher([]byte(conf.Cipher.Key))
+	gcm, err := cipher.NewAesGcmCipher([]byte(conf.Cipher.Key))
 	if err != nil {
 		return err
 	}
-	router := internal.NewRouter()
+	router := router.NewRouter()
 
-	db, err := internal.NewDbStorage(conf.PostgreSQL.Url)
+	db, err := storage.NewDbStorage(conf.PostgreSQL.Url)
 	if err != nil {
 		return err
 	}
-	telegramSource, err := internal.NewTelegramSource(conf.Telegram.Token, router, db, cipher)
+	telegramSource, err := internal.NewTelegramSource(conf.Telegram.Token, router, db, gcm)
 	if err != nil {
 		return err
 	}
-	jiraTarget := internal.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, router, db, cipher)
+	jiraTarget := internal.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, router, db, gcm)
 
 	a.source = telegramSource
 	a.target = jiraTarget
