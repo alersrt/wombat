@@ -14,19 +14,13 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	app := new(internal.App)
-	init := func() error {
-		args, err := parseArgs()
-		if err != nil {
-			return err
-		}
-		err = app.Init(args)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
 
-	if err := init(); err != nil {
+	args, err := parseArgs()
+	if err != nil {
+		slog.Error(fmt.Sprintf("%+v", err))
+		os.Exit(daemon.ExitCodeMissingKeyword)
+	}
+	if err := app.Init(args); err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
 		os.Exit(daemon.ExitCodeError)
 	}
