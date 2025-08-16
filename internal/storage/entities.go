@@ -1,8 +1,9 @@
-package internal
+package storage
 
 import (
 	"github.com/google/uuid"
 	"time"
+	"wombat/internal/domain"
 )
 
 type SourceConnectionEntity struct {
@@ -14,22 +15,22 @@ type SourceConnectionEntity struct {
 	UpdateTs   time.Time `db:"update_ts"`
 }
 
-func (e *SourceConnectionEntity) ToDomain() *SourceConnection {
-	return &SourceConnection{
+func (e *SourceConnectionEntity) ToDomain() *domain.SourceConnection {
+	return &domain.SourceConnection{
 		Gid:        e.Gid,
 		AccountGid: e.AccountGid,
-		SourceType: SourceTypeFromString(e.SourceType),
+		SourceType: domain.SourceType(e.SourceType),
 		UserId:     e.UserId,
 		CreateTs:   e.CreateTs,
 		UpdateTs:   e.UpdateTs,
 	}
 }
 
-func (e *SourceConnectionEntity) FromDomain(domain *SourceConnection) Entity[SourceConnection] {
+func (e *SourceConnectionEntity) FromDomain(domain *domain.SourceConnection) Entity[domain.SourceConnection] {
 	return &SourceConnectionEntity{
 		Gid:        domain.Gid,
 		AccountGid: domain.AccountGid,
-		SourceType: domain.SourceType.String(),
+		SourceType: string(domain.SourceType),
 		UserId:     domain.UserId,
 		CreateTs:   domain.CreateTs,
 		UpdateTs:   domain.UpdateTs,
@@ -45,22 +46,22 @@ type TargetConnectionEntity struct {
 	UpdateTs   time.Time `db:"update_ts"`
 }
 
-func (e *TargetConnectionEntity) ToDomain() *TargetConnection {
-	return &TargetConnection{
+func (e *TargetConnectionEntity) ToDomain() *domain.TargetConnection {
+	return &domain.TargetConnection{
 		Gid:        e.Gid,
 		AccountGid: e.AccountGid,
-		TargetType: TargetTypeFromString(e.TargetType),
+		TargetType: domain.TargetType(e.TargetType),
 		Token:      e.Token,
 		CreateTs:   e.CreateTs,
 		UpdateTs:   e.UpdateTs,
 	}
 }
 
-func (e *TargetConnectionEntity) FromDomain(domain *TargetConnection) Entity[TargetConnection] {
+func (e *TargetConnectionEntity) FromDomain(domain *domain.TargetConnection) Entity[domain.TargetConnection] {
 	return &TargetConnectionEntity{
 		Gid:        domain.Gid,
 		AccountGid: domain.AccountGid,
-		TargetType: domain.TargetType.String(),
+		TargetType: string(domain.TargetType),
 		Token:      domain.Token,
 		CreateTs:   domain.CreateTs,
 		UpdateTs:   domain.UpdateTs,
@@ -80,15 +81,15 @@ type CommentEntity struct {
 	UpdateTs   time.Time `db:"update_ts"`
 }
 
-func (e *CommentEntity) ToDomain() *Comment {
-	return &Comment{
+func (e *CommentEntity) ToDomain() *domain.Comment {
+	return &domain.Comment{
 		Gid: e.Gid,
-		Request: &Request{
-			SourceType: SourceTypeFromString(e.SourceType),
+		Request: &domain.Request{
+			SourceType: domain.SourceType(e.SourceType),
+			TargetType: domain.TargetType(e.TargetType),
 			UserId:     e.UserId,
 			ChatId:     e.ChatId,
 			MessageId:  e.MessageId,
-			TargetType: TargetTypeFromString(e.TargetType),
 		},
 		CommentId: e.CommentId,
 		Tag:       e.Tag,
@@ -97,11 +98,11 @@ func (e *CommentEntity) ToDomain() *Comment {
 	}
 }
 
-func (e *CommentEntity) FromDomain(domain *Comment) Entity[Comment] {
+func (e *CommentEntity) FromDomain(domain *domain.Comment) Entity[domain.Comment] {
 	return &CommentEntity{
 		Gid:        domain.Gid,
-		TargetType: domain.TargetType.String(),
-		SourceType: domain.SourceType.String(),
+		TargetType: string(domain.TargetType),
+		SourceType: string(domain.SourceType),
 		CommentId:  domain.CommentId,
 		UserId:     domain.UserId,
 		ChatId:     domain.ChatId,

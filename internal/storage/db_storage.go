@@ -1,11 +1,12 @@
-package internal
+package storage
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"github.com/pkg/errors"
+	"wombat/internal/domain"
 )
 
 type DbStorage struct {
@@ -32,14 +33,14 @@ type Tx struct {
 func NewDbStorage(url string) (*DbStorage, error) {
 	dbConn, err := sqlx.Connect("postgres", url)
 	if err != nil {
-		return nil, errors.New(err.Error())
+		return nil, fmt.Errorf("storage:db:new: %w", err)
 	}
 	return &DbStorage{db: dbConn}, nil
 }
 
 func (db *DbStorage) BeginTx(ctx context.Context) (*Tx, error) {
 	if tx, err := db.db.BeginTxx(ctx, nil); err != nil {
-		return nil, errors.New(err.Error())
+		return nil, fmt.Errorf("storage:tx:begin: %w", err)
 	} else {
 		return &Tx{tx}, nil
 	}
@@ -47,7 +48,7 @@ func (db *DbStorage) BeginTx(ctx context.Context) (*Tx, error) {
 
 func (tx *Tx) CommitTx() error {
 	if err := tx.tx.Commit(); err != nil {
-		return errors.New(err.Error())
+		return fmt.Errorf("storage:tx:commit: %w", err)
 	} else {
 		return nil
 	}
@@ -55,7 +56,7 @@ func (tx *Tx) CommitTx() error {
 
 func (tx *Tx) RollbackTx() error {
 	if err := tx.tx.Rollback(); err != nil {
-		return errors.New(err.Error())
+		return fmt.Errorf("storage:tx:rollback: %w", err)
 	} else {
 		return nil
 	}
@@ -68,7 +69,7 @@ func (db *DbStorage) HasConnectionSource(sourceType string, userId string) (bool
                 and wsc.user_id = $2;`
 	var count int
 	if err := db.db.Get(&count, query, sourceType, userId); err != nil {
-		return false, errors.New(err.Error())
+		return false, fmt.Errorf("%w", err)
 	} else {
 		return count == 1, nil
 	}
@@ -78,7 +79,7 @@ func (tx *Tx) CreateAccount() (*uuid.UUID, error) {
 	gid := uuid.New()
 	query := `insert into wombatsm.accounts(gid) values($1)`
 	if _, err := tx.tx.Exec(query, &gid); err != nil {
-		return nil, errors.New(err.Error())
+		return nil, fmt.Errorf("%w", err)
 	} else {
 		return &gid, nil
 	}
@@ -88,7 +89,7 @@ func (tx *Tx) CreateSourceConnection(accountGid *uuid.UUID, sourceType string, u
 	query := `insert into wombatsm.source_connections(account_gid, source_type, user_id)
               values($1, $2, $3)`
 	if _, err := tx.tx.Exec(query, accountGid, sourceType, userId); err != nil {
-		return errors.New(err.Error())
+		return fmt.Errorf("%w", err)
 	} else {
 		return nil
 	}
@@ -98,13 +99,13 @@ func (tx *Tx) CreateTargetConnection(accountGid *uuid.UUID, targetType string, t
 	query := `insert into wombatsm.target_connections(account_gid, target_type, token)
               values($1, $2, $3)`
 	if _, err := tx.tx.Exec(query, accountGid, targetType, token); err != nil {
-		return errors.New(err.Error())
+		return fmt.Errorf("%w", err)
 	} else {
 		return nil
 	}
 }
 
-func (tx *Tx) GetTargetConnection(sourceType string, targetType string, userId string) (*TargetConnection, error) {
+func (tx *Tx) GetTargetConnection(sourceType string, targetType string, userId string) (*domain.TargetConnection, error) {
 	query := `select wtc.*
               from wombatsm.accounts wa
                 left join wombatsm.target_connections wtc on wa.gid = wtc.account_gid
@@ -114,13 +115,13 @@ func (tx *Tx) GetTargetConnection(sourceType string, targetType string, userId s
                 and wsc.user_id = $3`
 	targetConnection := &TargetConnectionEntity{}
 	if err := tx.tx.Get(targetConnection, query, sourceType, targetType, userId); err != nil {
-		return nil, errors.New(err.Error())
+		return nil, fmt.Errorf("%w", err)
 	} else {
 		return targetConnection.ToDomain(), nil
 	}
 }
 
-func (tx *Tx) GetCommentMetadata(sourceType string, chatId string, userId string) ([]*Comment, error) {
+func (tx *Tx) GetCommentMetadata(sourceType string, chatId string, userId string) ([]*domain.Comment, error) {
 	query := `select *
               from wombatsm.comments
               where source_type = $1
@@ -128,33 +129,33 @@ func (tx *Tx) GetCommentMetadata(sourceType string, chatId string, userId string
                 and message_id = $3`
 	rows, err := tx.tx.Queryx(query, sourceType, chatId, userId)
 	if err != nil {
-		return nil, errors.New(err.Error())
+		return nil, fmt.Errorf("%w", err)
 	}
-	var comments []Entity[Comment]
+	var comments []Entity[domain.Comment]
 	if rows.Next() {
 		comment := &CommentEntity{}
 		err = rows.Scan(comment)
 		if err != nil {
-			return nil, errors.New(err.Error())
+			return nil, fmt.Errorf("%w", err)
 		}
 		comments = append(comments, comment)
 	}
 	return ToDomain(comments), nil
 }
 
-func (tx *Tx) SaveCommentMetadata(domain *Comment) (*Comment, error) {
+func (tx *Tx) SaveCommentMetadata(domain *domain.Comment) (*domain.Comment, error) {
 	query := `insert into wombatsm.comments(target_type, source_type, comment_id, user_id, chat_id, message_id, tag)
               values (:target_type, :source_type, :comment_id, :user_id, :chat_id, :message_id, :tag)
               returning *`
 	rows, err := tx.tx.NamedQuery(query, (*CommentEntity).FromDomain(nil, domain))
 	if err != nil {
-		return nil, errors.New(err.Error())
+		return nil, fmt.Errorf("%w", err)
 	}
 	entity := &CommentEntity{}
 	if rows.Next() {
 		err = rows.Scan(entity)
 		if err != nil {
-			return nil, errors.New(err.Error())
+			return nil, fmt.Errorf("%w", err)
 		}
 	}
 	return entity.ToDomain(), nil

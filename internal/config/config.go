@@ -1,4 +1,4 @@
-package internal
+package config
 
 import (
 	"github.com/pkg/errors"
@@ -7,7 +7,6 @@ import (
 	"mvdan.cc/sh/v3/shell"
 	"os"
 	"sync"
-	"wombat/pkg"
 )
 
 type Bot struct {
@@ -43,14 +42,13 @@ type Config struct {
 	Database `yaml:"database,omitempty"`
 }
 
-var _ pkg.Config = (*Config)(nil)
-
 func (c *Config) Init(args []string) error {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
 	slog.Info("config:init:start")
 	defer slog.Info("config:init:finish")
+
 	configPath := args[0]
 
 	defer slog.Info("config:file:" + configPath)

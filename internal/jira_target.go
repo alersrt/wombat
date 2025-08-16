@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/andygrunwald/go-jira"
-	"github.com/pkg/errors"
 	"log/slog"
 	"regexp"
-	"sync"
+	"wombat/internal/domain"
+	"wombat/internal/storage"
+	"wombat/pkg/cipher"
 )
 
 type TargetClient interface {
@@ -23,7 +24,7 @@ func NewJiraClient(url string, token string) (TargetClient, error) {
 	tp := jira.PATAuthTransport{Token: token}
 	client, err := jira.NewClient(tp.Client(), url)
 	if err != nil {
-		return nil, errors.New(err.Error())
+		return nil, fmt.Errorf("jira:client:new:err: url=%s", url)
 	}
 	return &JiraClient{client}, nil
 }
@@ -31,7 +32,7 @@ func NewJiraClient(url string, token string) (TargetClient, error) {
 func (c *JiraClient) Update(issue string, commentId string, text string) error {
 	_, _, err := c.client.Issue.UpdateComment(issue, &jira.Comment{ID: commentId, Body: text})
 	if err != nil {
-		return errors.New(err.Error())
+		return fmt.Errorf("jira:client:update:err: %w", err)
 	}
 	return nil
 }
@@ -39,16 +40,16 @@ func (c *JiraClient) Update(issue string, commentId string, text string) error {
 func (c *JiraClient) Add(issue string, text string) (string, error) {
 	comment, _, err := c.client.Issue.AddComment(issue, &jira.Comment{Body: text})
 	if err != nil {
-		return "", errors.New(err.Error())
+		return "", fmt.Errorf("jira:client:add:err: %w", err)
 	}
 	return comment.ID, nil
 }
 
 type JiraTarget struct {
-	cipher     *AesGcmCipher
-	targetType TargetType
+	cipher     *cipher.AesGcmCipher
+	targetType domain.TargetType
 	url        string
-	db         *DbStorage
+	db         *storage.DbStorage
 	tagsRegex  *regexp.Regexp
 	router     *Router
 }
@@ -57,11 +58,11 @@ func NewJiraTarget(
 	url string,
 	tag string,
 	router *Router,
-	dbStorage *DbStorage,
-	cipher *AesGcmCipher,
+	dbStorage *storage.DbStorage,
+	cipher *cipher.AesGcmCipher,
 ) *JiraTarget {
 	return &JiraTarget{
-		targetType: JiraType,
+		targetType: domain.TargetTypeJira,
 		cipher:     cipher,
 		url:        url,
 		tagsRegex:  regexp.MustCompile(tag),
@@ -70,13 +71,12 @@ func NewJiraTarget(
 	}
 }
 
-func (t *JiraTarget) GetTargetType() TargetType {
+func (t *JiraTarget) GetTargetType() domain.TargetType {
 	return t.targetType
 }
 
-func (t *JiraTarget) Do(ctx context.Context, wg *sync.WaitGroup) {
+func (t *JiraTarget) Do(ctx context.Context) {
 	slog.Info("jira:do:start")
-	defer wg.Done()
 	defer slog.Info("jira:do:finish")
 
 	for {
@@ -84,7 +84,7 @@ func (t *JiraTarget) Do(ctx context.Context, wg *sync.WaitGroup) {
 		case req := <-t.router.ReqChan():
 			err := t.handle(ctx, req)
 			if err != nil {
-				slog.Error(fmt.Sprintf("%+v", err))
+				slog.Error(err.Error())
 				t.router.SendRes(req.ToResponse(false, err.Error()))
 			} else {
 				t.router.SendRes(req.ToResponse(true, ""))
@@ -96,12 +96,12 @@ func (t *JiraTarget) Do(ctx context.Context, wg *sync.WaitGroup) {
 	}
 }
 
-func (t *JiraTarget) handle(ctx context.Context, req *Request) error {
+func (t *JiraTarget) handle(ctx context.Context, req *domain.Request) error {
 	ctxTx, cancelTx := context.WithCancel(ctx)
 	defer cancelTx()
 
 	if !t.tagsRegex.MatchString(req.Content) {
-		return errors.Errorf("tag not found: %v", req.Content)
+		return fmt.Errorf("jira:do:err: tag not found")
 	}
 
 	tx, err := t.db.BeginTx(ctxTx)
@@ -109,7 +109,7 @@ func (t *JiraTarget) handle(ctx context.Context, req *Request) error {
 		return err
 	}
 
-	targetConnection, err := tx.GetTargetConnection(req.SourceType.String(), req.TargetType.String(), req.UserId)
+	targetConnection, err := tx.GetTargetConnection(string(req.SourceType), string(req.TargetType), req.UserId)
 	if err != nil {
 		return err
 	}
@@ -124,7 +124,7 @@ func (t *JiraTarget) handle(ctx context.Context, req *Request) error {
 
 	tags := t.tagsRegex.FindAllString(req.Content, -1)
 
-	savedComments, err := tx.GetCommentMetadata(req.SourceType.String(), req.ChatId, req.MessageId)
+	savedComments, err := tx.GetCommentMetadata(string(req.SourceType), req.ChatId, req.MessageId)
 	if err != nil {
 		return err
 	}
@@ -135,13 +135,13 @@ func (t *JiraTarget) handle(ctx context.Context, req *Request) error {
 			if err != nil {
 				return err
 			}
-			_, err = tx.SaveCommentMetadata(&Comment{Request: req, Tag: tag, CommentId: commentId})
+			_, err = tx.SaveCommentMetadata(&domain.Comment{Request: req, Tag: tag, CommentId: commentId})
 			if err != nil {
 				return err
 			}
 		}
 	} else {
-		taggedComments := map[string]*Comment{}
+		taggedComments := map[string]*domain.Comment{}
 		for _, comment := range savedComments {
 			taggedComments[comment.Tag] = comment
 		}
@@ -151,7 +151,7 @@ func (t *JiraTarget) handle(ctx context.Context, req *Request) error {
 			if err != nil {
 				return err
 			}
-			_, err = tx.SaveCommentMetadata(&Comment{Request: req, Tag: tag, CommentId: comment.CommentId})
+			_, err = tx.SaveCommentMetadata(&domain.Comment{Request: req, Tag: tag, CommentId: comment.CommentId})
 			if err != nil {
 				return err
 			}

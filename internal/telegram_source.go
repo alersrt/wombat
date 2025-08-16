@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/pkg/errors"
 	"log/slog"
 	"strconv"
-	"sync"
+	"wombat/internal/domain"
+	"wombat/internal/storage"
+	"wombat/pkg/cipher"
 )
 
 var (
@@ -18,20 +19,20 @@ var (
 )
 
 type TelegramSource struct {
-	sourceType SourceType
+	sourceType domain.SourceType
 	bot        *tgbotapi.BotAPI
-	cipher     *AesGcmCipher
+	cipher     *cipher.AesGcmCipher
 	router     *Router
-	db         *DbStorage
+	db         *storage.DbStorage
 	updChan    tgbotapi.UpdatesChannel
 }
 
-func NewTelegramSource(token string, router *Router, db *DbStorage, cipher *AesGcmCipher) (ts *TelegramSource, err error) {
-	slog.Info("telegram:init:start")
+func NewTelegramSource(token string, router *Router, db *storage.DbStorage, cipher *cipher.AesGcmCipher) (ts *TelegramSource, err error) {
+	slog.Info("tg:new:start")
 
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
-		return nil, errors.New(err.Error())
+		return nil, fmt.Errorf("tg:new:err: %w", err)
 	}
 
 	updCfg := tgbotapi.NewUpdate(0)
@@ -44,14 +45,14 @@ func NewTelegramSource(token string, router *Router, db *DbStorage, cipher *AesG
 
 	_, err = bot.Request(tgbotapi.NewSetMyCommands(botCommandRegister))
 	if err != nil {
-		return nil, errors.New(err.Error())
+		return nil, fmt.Errorf("tg:new:err: %w", err)
 	}
 
-	slog.Info(fmt.Sprintf("telegram:account:%s", bot.Self.UserName))
+	slog.Info(fmt.Sprintf("tg:new:acc: %s", bot.Self.UserName))
 
-	slog.Info("telegram:init:finish")
+	slog.Info("tg:new:finish")
 	return &TelegramSource{
-		sourceType: TelegramType,
+		sourceType: domain.SourceTypeTelegram,
 		bot:        bot,
 		router:     router,
 		db:         db,
@@ -60,14 +61,13 @@ func NewTelegramSource(token string, router *Router, db *DbStorage, cipher *AesG
 	}, nil
 }
 
-func (s *TelegramSource) GetSourceType() SourceType {
+func (s *TelegramSource) GetSourceType() domain.SourceType {
 	return s.sourceType
 }
 
-func (s *TelegramSource) DoReq(ctx context.Context, wg *sync.WaitGroup) {
-	slog.Info("telegram:do:req:start")
-	defer wg.Done()
-	defer slog.Info("telegram:do:req:finish")
+func (s *TelegramSource) DoReq(ctx context.Context) {
+	slog.Info("tg:do:req:start")
+	defer slog.Info("tg:do:req:finish")
 
 	for {
 		select {
@@ -80,23 +80,22 @@ func (s *TelegramSource) DoReq(ctx context.Context, wg *sync.WaitGroup) {
 				s.router.SendRes(req.ToResponse(true, ""))
 			}
 		case <-ctx.Done():
-			slog.Info("telegram:do:req:ctx:done")
+			slog.Info("tg:do:req:ctx:done")
 			return
 		}
 	}
 }
 
-func (s *TelegramSource) DoRes(ctx context.Context, wg *sync.WaitGroup) {
-	slog.Info("telegram:do:res:start")
-	defer wg.Done()
-	defer slog.Info("telegram:do:res:finish")
+func (s *TelegramSource) DoRes(ctx context.Context) {
+	slog.Info("tg:do:res:start")
+	defer slog.Info("tg:do:res:finish")
 
 	for {
 		select {
 		case res := <-s.router.ResChan():
 			s.handleResponse(res)
 		case <-ctx.Done():
-			slog.Info("telegram:do:res:ctx:done")
+			slog.Info("tg:do:res:ctx:done")
 			return
 		}
 	}
@@ -114,26 +113,26 @@ func (s *TelegramSource) getMsg(upd *tgbotapi.Update) *tgbotapi.Message {
 	return message
 }
 
-func (s *TelegramSource) getReq(msg *tgbotapi.Message) *Request {
+func (s *TelegramSource) getReq(msg *tgbotapi.Message) *domain.Request {
 	if msg == nil {
 		return nil
 	}
 
 	var content string
 	var command string
-	var reqType RequestType
+	var reqType domain.RequestType
 	if msg.IsCommand() {
 		content = msg.CommandArguments()
 		command = msg.Command()
-		reqType = RequestTypeCommand
+		reqType = domain.RequestTypeCommand
 	} else {
 		content = msg.Text
-		reqType = RequestTypeText
+		reqType = domain.RequestTypeText
 	}
 
-	return &Request{
-		TargetType:  JiraType,
-		SourceType:  TelegramType,
+	return &domain.Request{
+		TargetType:  domain.TargetTypeJira,
+		SourceType:  domain.SourceTypeTelegram,
 		RequestType: reqType,
 		Content:     content,
 		Command:     command,
@@ -143,50 +142,50 @@ func (s *TelegramSource) getReq(msg *tgbotapi.Message) *Request {
 	}
 }
 
-func (s *TelegramSource) handleUpdate(ctx context.Context, req *Request) error {
+func (s *TelegramSource) handleUpdate(ctx context.Context, req *domain.Request) error {
 	switch req.RequestType {
-	case RequestTypeText:
+	case domain.RequestTypeText:
 		st, err := s.checkAccess(req)
 		if err != nil {
 			return err
 		} else {
 			switch st {
-			case AccStateRegistered:
+			case domain.AccStateRegistered:
 				s.router.SendReq(req)
-			case AccStateNotRegistered:
+			case domain.AccStateNotRegistered:
 				s.askToRegister(req)
 			}
 		}
-	case RequestTypeCommand:
+	case domain.RequestTypeCommand:
 		switch req.Command {
 		case botCommandRegister.Command:
 			if err := s.handleRegistration(ctx, req); err != nil {
 				return err
 			}
 		default:
-			return errors.New("wrong command")
+			return fmt.Errorf("tg:upd: wrong cmd=%s", req.Command)
 		}
 	}
 	return nil
 }
 
-func (s *TelegramSource) checkAccess(req *Request) (AccState, error) {
-	ok, err := s.db.HasConnectionSource(s.sourceType.String(), req.UserId)
+func (s *TelegramSource) checkAccess(req *domain.Request) (domain.AccState, error) {
+	ok, err := s.db.HasConnectionSource(string(s.sourceType), req.UserId)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 	if ok {
-		return AccStateRegistered, nil
+		return domain.AccStateRegistered, nil
 	} else {
-		return AccStateNotRegistered, nil
+		return domain.AccStateNotRegistered, nil
 	}
 }
 
-func (s *TelegramSource) handleRegistration(ctx context.Context, req *Request) error {
+func (s *TelegramSource) handleRegistration(ctx context.Context, req *domain.Request) error {
 	ctxTx, cancelTx := context.WithCancel(ctx)
 	defer cancelTx()
 
-	slog.Info("reg:start", "source", s.sourceType.String(), "userId", req.UserId)
+	slog.Info("tg:reg:start", "source", s.sourceType, "userId", req.UserId)
 
 	tx, err := s.db.BeginTx(ctxTx)
 	if err != nil {
@@ -198,16 +197,16 @@ func (s *TelegramSource) handleRegistration(ctx context.Context, req *Request) e
 		return err
 	}
 
-	err = tx.CreateSourceConnection(accountGid, s.sourceType.String(), req.UserId)
+	err = tx.CreateSourceConnection(accountGid, string(s.sourceType), req.UserId)
 	if err != nil {
 		return err
 	}
-	targetType := JiraType
+	targetType := domain.TargetTypeJira
 	encoded, err := s.cipher.Encrypt(req.Content)
 	if err != nil {
 		return err
 	}
-	err = tx.CreateTargetConnection(accountGid, targetType.String(), encoded)
+	err = tx.CreateTargetConnection(accountGid, targetType, encoded)
 	if err != nil {
 		return err
 	}
@@ -216,12 +215,12 @@ func (s *TelegramSource) handleRegistration(ctx context.Context, req *Request) e
 	if err != nil {
 		return err
 	}
-	slog.Info("reg:finish", "source", s.sourceType.String(), "userId", req.UserId)
+	slog.Info("tg:reg:finish", "source", s.sourceType, "userId", req.UserId)
 
 	return nil
 }
 
-func (s *TelegramSource) askToRegister(req *Request) {
+func (s *TelegramSource) askToRegister(req *domain.Request) {
 	chatId, err := strconv.ParseInt(req.ChatId, 10, 64)
 	if err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
@@ -233,7 +232,7 @@ func (s *TelegramSource) askToRegister(req *Request) {
 	}
 }
 
-func (s *TelegramSource) handleResponse(res *Response) {
+func (s *TelegramSource) handleResponse(res *domain.Response) {
 	chatId, err := strconv.ParseInt(res.ChatId, 10, 64)
 	if err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))

@@ -4,113 +4,47 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/pkg/errors"
 	"log/slog"
 	"os"
-	"sync"
 	"wombat/internal"
-	"wombat/pkg"
+	"wombat/pkg/daemon"
 )
 
-type App struct {
-	mtx    sync.Mutex
-	wg     sync.WaitGroup
-	conf   *pkg.Config
-	source *internal.TelegramSource
-	target *internal.JiraTarget
-}
-
-var _ pkg.Daemon = (*App)(nil)
-
-func (a *App) Init(args []string) error {
-	slog.Info("app:init:start")
-	defer slog.Info("app:init:finish")
-	a.mtx.Lock()
-	defer a.mtx.Unlock()
-
-	conf := new(internal.Config)
-	err := conf.Init(args)
-	if err != nil {
-		return err
-	}
-
-	cipher, err := internal.NewAesGcmCipher([]byte(conf.Cipher.Key))
-	if err != nil {
-		return err
-	}
-	router := internal.NewRouter()
-
-	db, err := internal.NewDbStorage(conf.PostgreSQL.Url)
-	if err != nil {
-		return err
-	}
-	telegramSource, err := internal.NewTelegramSource(conf.Telegram.Token, router, db, cipher)
-	if err != nil {
-		return err
-	}
-	jiraTarget := internal.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, router, db, cipher)
-
-	a.source = telegramSource
-	a.target = jiraTarget
-
-	return nil
-}
-
-func (a *App) Do(ctx context.Context) {
-	slog.Info("app:do:start")
-	defer slog.Info("app:do:finish")
-	a.wg.Add(1)
-	go a.source.DoReq(ctx, &a.wg)
-	a.wg.Add(1)
-	go a.source.DoRes(ctx, &a.wg)
-	a.wg.Add(1)
-	go a.target.Do(ctx, &a.wg)
-	a.wg.Wait()
-}
-
-func (a *App) Shutdown() {
-	slog.Info("app:shutdown:start")
-	defer slog.Info("app:shutdown:finish")
-	a.wg.Add(-3)
-}
-
 func main() {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 
-	app := new(App)
-	init := func() error {
-		args, err := parseArgs(os.Args)
-		if err != nil {
-			return err
-		}
-		err = app.Init(args)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
+	app := new(internal.App)
 
-	if err := init(); err != nil {
+	args, err := parseArgs()
+	if err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
-		os.Exit(1)
+		os.Exit(daemon.ExitCodeInvalidUsage)
+	}
+	if err := app.Init(args); err != nil {
+		slog.Error(fmt.Sprintf("%+v", err))
+		os.Exit(daemon.ExitCodeError)
 	}
 
 	go app.Do(ctx)
 
-	code, err := pkg.HandleSignals(ctx, app)
+	code, err := daemon.HandleSignals(ctx, cancel)
 	if err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
 	}
+	slog.Info("exit:", "code", code)
 	os.Exit(code)
 }
 
-func parseArgs(args []string) ([]string, error) {
+// parseArgs parses os.Args and returns list of parsed values. Here is descriptions by indexes:
+// 0 - path to config file.
+func parseArgs() ([]string, error) {
+	args := os.Args
 	flags := flag.NewFlagSet(args[0], flag.ExitOnError)
 	configPath := flags.String("config", "./cmd/config.yaml", "path to config")
 
 	err := flags.Parse(args[1:])
 	if err != nil {
-		return nil, errors.New(err.Error())
+		return nil, fmt.Errorf("parseArgs: %w", err)
 	}
 
 	return []string{*configPath}, nil
