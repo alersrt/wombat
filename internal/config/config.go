@@ -51,6 +51,7 @@ func (c *Config) Init(args []string) error {
 
 	slog.Info("config:init:start")
 	defer slog.Info("config:init:finish")
+
 	configPath := args[0]
 
 	defer slog.Info("config:file:" + configPath)
