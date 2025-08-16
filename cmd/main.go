@@ -10,7 +10,6 @@ import (
 	"sync"
 	"wombat/internal"
 	"wombat/internal/config"
-	"wombat/internal/router"
 	"wombat/internal/storage"
 	"wombat/pkg/cipher"
 	"wombat/pkg/daemon"
@@ -42,7 +41,7 @@ func (a *App) Init(args []string) error {
 	if err != nil {
 		return err
 	}
-	router := router.NewRouter()
+	router := internal.NewRouter()
 
 	db, err := storage.NewDbStorage(conf.PostgreSQL.Url)
 	if err != nil {

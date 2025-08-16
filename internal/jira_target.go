@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"sync"
 	"wombat/internal/domain"
-	router2 "wombat/internal/router"
 	"wombat/internal/storage"
 	"wombat/pkg/cipher"
 )
@@ -54,13 +53,13 @@ type JiraTarget struct {
 	url        string
 	db         *storage.DbStorage
 	tagsRegex  *regexp.Regexp
-	router     *router2.Router
+	router     *Router
 }
 
 func NewJiraTarget(
 	url string,
 	tag string,
-	router *router2.Router,
+	router *Router,
 	dbStorage *storage.DbStorage,
 	cipher *cipher.AesGcmCipher,
 ) *JiraTarget {

@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"sync"
 	"wombat/internal/domain"
-	router2 "wombat/internal/router"
 	"wombat/internal/storage"
 	"wombat/pkg/cipher"
 )
@@ -25,12 +24,12 @@ type TelegramSource struct {
 	sourceType domain.SourceType
 	bot        *tgbotapi.BotAPI
 	cipher     *cipher.AesGcmCipher
-	router     *router2.Router
+	router     *Router
 	db         *storage.DbStorage
 	updChan    tgbotapi.UpdatesChannel
 }
 
-func NewTelegramSource(token string, router *router2.Router, db *storage.DbStorage, cipher *cipher.AesGcmCipher) (ts *TelegramSource, err error) {
+func NewTelegramSource(token string, router *Router, db *storage.DbStorage, cipher *cipher.AesGcmCipher) (ts *TelegramSource, err error) {
 	slog.Info("telegram:init:start")
 
 	bot, err := tgbotapi.NewBotAPI(token)
