@@ -2,14 +2,14 @@ create extension if not exists "uuid-ossp";
 
 create schema if not exists wombatsm;
 
-create table if not exists wombatsm.accounts
+create table if not exists wombatsm.account
 (
     gid       uuid primary key                  default gen_random_uuid(),
     create_ts timestamp with time zone not null default current_timestamp,
     update_ts timestamp with time zone not null default current_timestamp
 );
 
-create table if not exists wombatsm.source_connections
+create table if not exists wombatsm.source_connection
 (
     gid         uuid primary key                  default gen_random_uuid(),
     account_gid uuid                     not null,
@@ -17,11 +17,11 @@ create table if not exists wombatsm.source_connections
     user_id     varchar                  not null,
     create_ts   timestamp with time zone not null default current_timestamp,
     update_ts   timestamp with time zone not null default current_timestamp,
-    constraint source_connections_account_gid_fk foreign key (account_gid) references wombatsm.accounts (gid),
+    constraint source_connections_account_gid_fk foreign key (account_gid) references wombatsm.account (gid),
     constraint source_connections_nk unique (source_type, user_id)
 );
 
-create table if not exists wombatsm.target_connections
+create table if not exists wombatsm.target_connection
 (
     gid         uuid primary key                  default gen_random_uuid(),
     account_gid uuid                     not null,
@@ -29,11 +29,11 @@ create table if not exists wombatsm.target_connections
     token       bytea                    not null,
     create_ts   timestamp with time zone not null default current_timestamp,
     update_ts   timestamp with time zone not null default current_timestamp,
-    constraint target_connections_account_gid_fk foreign key (account_gid) references wombatsm.accounts (gid),
+    constraint target_connections_account_gid_fk foreign key (account_gid) references wombatsm.account (gid),
     constraint target_connections_nk unique (target_type, account_gid)
 );
 
-create table if not exists wombatsm.comments
+create table if not exists wombatsm.comment
 (
     gid         uuid primary key                  default gen_random_uuid(),
     target_type varchar(64)              not null,

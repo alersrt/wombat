@@ -64,12 +64,12 @@ func (tx *Tx) RollbackTx() error {
 
 func (db *DbStorage) HasConnectionSource(sourceType string, userId string) (bool, error) {
 	query := `select count(*)
-              from wombatsm.source_connections wsc
+              from wombatsm.source_connection wsc
               where wsc.source_type = $1
                 and wsc.user_id = $2;`
 	var count int
 	if err := db.db.Get(&count, query, sourceType, userId); err != nil {
-		return false, fmt.Errorf("%w", err)
+		return false, fmt.Errorf("db: %w", err)
 	} else {
 		return count == 1, nil
 	}
@@ -77,29 +77,29 @@ func (db *DbStorage) HasConnectionSource(sourceType string, userId string) (bool
 
 func (tx *Tx) CreateAccount() (*uuid.UUID, error) {
 	gid := uuid.New()
-	query := `insert into wombatsm.accounts(gid) values($1)`
+	query := `insert into wombatsm.account(gid) values($1)`
 	if _, err := tx.tx.Exec(query, &gid); err != nil {
-		return nil, fmt.Errorf("%w", err)
+		return nil, fmt.Errorf("db: %w", err)
 	} else {
 		return &gid, nil
 	}
 }
 
 func (tx *Tx) CreateSourceConnection(accountGid *uuid.UUID, sourceType string, userId string) error {
-	query := `insert into wombatsm.source_connections(account_gid, source_type, user_id)
+	query := `insert into wombatsm.source_connection(account_gid, source_type, user_id)
               values($1, $2, $3)`
 	if _, err := tx.tx.Exec(query, accountGid, sourceType, userId); err != nil {
-		return fmt.Errorf("%w", err)
+		return fmt.Errorf("db: %w", err)
 	} else {
 		return nil
 	}
 }
 
 func (tx *Tx) CreateTargetConnection(accountGid *uuid.UUID, targetType string, token []byte) error {
-	query := `insert into wombatsm.target_connections(account_gid, target_type, token)
+	query := `insert into wombatsm.target_connection(account_gid, target_type, token)
               values($1, $2, $3)`
 	if _, err := tx.tx.Exec(query, accountGid, targetType, token); err != nil {
-		return fmt.Errorf("%w", err)
+		return fmt.Errorf("db: %w", err)
 	} else {
 		return nil
 	}
@@ -107,15 +107,15 @@ func (tx *Tx) CreateTargetConnection(accountGid *uuid.UUID, targetType string, t
 
 func (tx *Tx) GetTargetConnection(sourceType string, targetType string, userId string) (*domain.TargetConnection, error) {
 	query := `select wtc.*
-              from wombatsm.accounts wa
-                left join wombatsm.target_connections wtc on wa.gid = wtc.account_gid
-                left join wombatsm.source_connections wsc on wa.gid = wsc.account_gid
+              from wombatsm.account wa
+                left join wombatsm.target_connection wtc on wa.gid = wtc.account_gid
+                left join wombatsm.source_connection wsc on wa.gid = wsc.account_gid
               where wsc.source_type = $1
                 and wtc.target_type = $2
                 and wsc.user_id = $3`
 	targetConnection := &TargetConnectionEntity{}
 	if err := tx.tx.Get(targetConnection, query, sourceType, targetType, userId); err != nil {
-		return nil, fmt.Errorf("%w", err)
+		return nil, fmt.Errorf("db: %w", err)
 	} else {
 		return targetConnection.ToDomain(), nil
 	}
@@ -123,20 +123,20 @@ func (tx *Tx) GetTargetConnection(sourceType string, targetType string, userId s
 
 func (tx *Tx) GetCommentMetadata(sourceType string, chatId string, userId string) ([]*domain.Comment, error) {
 	query := `select *
-              from wombatsm.comments
+              from wombatsm.comment
               where source_type = $1
                 and chat_id = $2
                 and message_id = $3`
 	rows, err := tx.tx.Queryx(query, sourceType, chatId, userId)
 	if err != nil {
-		return nil, fmt.Errorf("%w", err)
+		return nil, fmt.Errorf("db: %w", err)
 	}
 	var comments []Entity[domain.Comment]
 	if rows.Next() {
 		comment := &CommentEntity{}
 		err = rows.Scan(comment)
 		if err != nil {
-			return nil, fmt.Errorf("%w", err)
+			return nil, fmt.Errorf("db: %w", err)
 		}
 		comments = append(comments, comment)
 	}
@@ -144,18 +144,18 @@ func (tx *Tx) GetCommentMetadata(sourceType string, chatId string, userId string
 }
 
 func (tx *Tx) SaveCommentMetadata(domain *domain.Comment) (*domain.Comment, error) {
-	query := `insert into wombatsm.comments(target_type, source_type, comment_id, user_id, chat_id, message_id, tag)
+	query := `insert into wombatsm.comment(target_type, source_type, comment_id, user_id, chat_id, message_id, tag)
               values (:target_type, :source_type, :comment_id, :user_id, :chat_id, :message_id, :tag)
               returning *`
 	rows, err := tx.tx.NamedQuery(query, (*CommentEntity).FromDomain(nil, domain))
 	if err != nil {
-		return nil, fmt.Errorf("%w", err)
+		return nil, fmt.Errorf("db: %w", err)
 	}
 	entity := &CommentEntity{}
 	if rows.Next() {
 		err = rows.Scan(entity)
 		if err != nil {
-			return nil, fmt.Errorf("%w", err)
+			return nil, fmt.Errorf("db: %w", err)
 		}
 	}
 	return entity.ToDomain(), nil

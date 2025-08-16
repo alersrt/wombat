@@ -11,11 +11,6 @@ import (
 	"wombat/pkg/cipher"
 )
 
-type TargetClient interface {
-	Add(tag string, text string) (string, error)
-	Update(tag string, commentId string, text string) error
-}
-
 type Target struct {
 	cipher     *cipher.AesGcmCipher
 	targetType domain.TargetType
