@@ -1,4 +1,4 @@
-package internal
+package router
 
 import (
 	"wombat/internal/domain"

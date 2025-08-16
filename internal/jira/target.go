@@ -1,12 +1,12 @@
-package internal
+package jira
 
 import (
 	"context"
 	"fmt"
-	"github.com/andygrunwald/go-jira"
 	"log/slog"
 	"regexp"
 	"wombat/internal/domain"
+	router2 "wombat/internal/router"
 	"wombat/internal/storage"
 	"wombat/pkg/cipher"
 )
@@ -16,52 +16,23 @@ type TargetClient interface {
 	Update(tag string, commentId string, text string) error
 }
 
-type JiraClient struct {
-	client *jira.Client
-}
-
-func NewJiraClient(url string, token string) (TargetClient, error) {
-	tp := jira.PATAuthTransport{Token: token}
-	client, err := jira.NewClient(tp.Client(), url)
-	if err != nil {
-		return nil, fmt.Errorf("jira:client:new:err: url=%s", url)
-	}
-	return &JiraClient{client}, nil
-}
-
-func (c *JiraClient) Update(issue string, commentId string, text string) error {
-	_, _, err := c.client.Issue.UpdateComment(issue, &jira.Comment{ID: commentId, Body: text})
-	if err != nil {
-		return fmt.Errorf("jira:client:update:err: %w", err)
-	}
-	return nil
-}
-
-func (c *JiraClient) Add(issue string, text string) (string, error) {
-	comment, _, err := c.client.Issue.AddComment(issue, &jira.Comment{Body: text})
-	if err != nil {
-		return "", fmt.Errorf("jira:client:add:err: %w", err)
-	}
-	return comment.ID, nil
-}
-
-type JiraTarget struct {
+type Target struct {
 	cipher     *cipher.AesGcmCipher
 	targetType domain.TargetType
 	url        string
 	db         *storage.DbStorage
 	tagsRegex  *regexp.Regexp
-	router     *Router
+	router     *router2.Router
 }
 
 func NewJiraTarget(
 	url string,
 	tag string,
-	router *Router,
+	router *router2.Router,
 	dbStorage *storage.DbStorage,
 	cipher *cipher.AesGcmCipher,
-) *JiraTarget {
-	return &JiraTarget{
+) *Target {
+	return &Target{
 		targetType: domain.TargetTypeJira,
 		cipher:     cipher,
 		url:        url,
@@ -71,11 +42,7 @@ func NewJiraTarget(
 	}
 }
 
-func (t *JiraTarget) GetTargetType() domain.TargetType {
-	return t.targetType
-}
-
-func (t *JiraTarget) Do(ctx context.Context) {
+func (t *Target) Do(ctx context.Context) {
 	slog.Info("jira:do:start")
 	defer slog.Info("jira:do:finish")
 
@@ -96,7 +63,7 @@ func (t *JiraTarget) Do(ctx context.Context) {
 	}
 }
 
-func (t *JiraTarget) handle(ctx context.Context, req *domain.Request) error {
+func (t *Target) handle(ctx context.Context, req *domain.Request) error {
 	ctxTx, cancelTx := context.WithCancel(ctx)
 	defer cancelTx()
 
@@ -117,7 +84,7 @@ func (t *JiraTarget) handle(ctx context.Context, req *domain.Request) error {
 	if err != nil {
 		return err
 	}
-	client, err := NewJiraClient(t.url, token)
+	client, err := NewClient(t.url, token)
 	if err != nil {
 		return err
 	}

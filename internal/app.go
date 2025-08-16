@@ -5,14 +5,17 @@ import (
 	"log/slog"
 	"sync"
 	"wombat/internal/config"
+	"wombat/internal/jira"
+	router2 "wombat/internal/router"
 	"wombat/internal/storage"
+	"wombat/internal/telegram"
 	"wombat/pkg/cipher"
 )
 
 type App struct {
 	mtx    sync.Mutex
-	source *TelegramSource
-	target *JiraTarget
+	source *telegram.Source
+	target *jira.Target
 }
 
 func (a *App) Init(args []string) error {
@@ -31,17 +34,17 @@ func (a *App) Init(args []string) error {
 	if err != nil {
 		return err
 	}
-	router := NewRouter()
+	router := router2.NewRouter()
 
 	db, err := storage.NewDbStorage(conf.PostgreSQL.Url)
 	if err != nil {
 		return err
 	}
-	telegramSource, err := NewTelegramSource(conf.Telegram.Token, router, db, gcm)
+	telegramSource, err := telegram.NewTelegramSource(conf.Telegram.Token, router, db, gcm)
 	if err != nil {
 		return err
 	}
-	jiraTarget := NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, router, db, gcm)
+	jiraTarget := jira.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, router, db, gcm)
 
 	a.source = telegramSource
 	a.target = jiraTarget
