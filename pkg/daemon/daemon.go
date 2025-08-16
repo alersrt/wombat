@@ -27,7 +27,6 @@ func HandleSignals(ctx context.Context, cancel func()) (int, error) {
 				slog.Info("daemon:handle:interrupt")
 				return 130, nil
 			case os.Kill:
-				cancel()
 				slog.Info("daemon:handle:kill")
 				return 137, nil
 			case syscall.SIGTERM:
