@@ -25,9 +25,6 @@ func main() {
 		}
 		return nil
 	}
-	shutdown := func() {
-		app.Shutdown(cancel)
-	}
 
 	if err := init(); err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
@@ -36,7 +33,7 @@ func main() {
 
 	go app.Do(ctx)
 
-	code, err := daemon.HandleSignals(ctx, shutdown, init)
+	code, err := daemon.HandleSignals(ctx, cancel, init)
 	if err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
 	}

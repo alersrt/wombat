@@ -64,10 +64,5 @@ func (a *App) Do(ctx context.Context) {
 		go a.target.Do(ctx)
 	}()
 
-}
-
-func (a *App) Shutdown(cancel func()) {
-	slog.Info("app:shutdown:start")
-	defer slog.Info("app:shutdown:finish")
-	cancel()
+	<-ctx.Done()
 }
