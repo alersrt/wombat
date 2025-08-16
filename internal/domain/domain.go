@@ -1,8 +1,6 @@
 package domain
 
 import (
-	"encoding/json"
-	"fmt"
 	"github.com/google/uuid"
 	"time"
 )
@@ -15,34 +13,6 @@ const (
 	SourceTypeTelegram = "TELEGRAM"
 	TargetTypeJira     = "JIRA"
 )
-
-func (t *SourceType) MarshalJSON() ([]byte, error) {
-	return json.Marshal(t)
-}
-
-func (t *SourceType) UnmarshalJSON(b []byte) error {
-	var s string
-	err := json.Unmarshal(b, &s)
-	if err != nil {
-		return fmt.Errorf("source_type:unmarchal: %w", err)
-	}
-	*t = SourceType(s)
-	return nil
-}
-
-func (t *TargetType) MarshalJSON() ([]byte, error) {
-	return json.Marshal(t)
-}
-
-func (t *TargetType) UnmarshalJSON(b []byte) error {
-	var s string
-	err := json.Unmarshal(b, &s)
-	if err != nil {
-		return fmt.Errorf("target_type:unmarchal: %w", err)
-	}
-	*t = TargetType(s)
-	return nil
-}
 
 type AccState string
 
