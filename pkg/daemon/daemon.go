@@ -2,27 +2,15 @@ package daemon
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
-type Task interface {
-	Do(ctx context.Context)
-}
-
-type Config interface {
-	Init(args []string) error
-}
-
-type Daemon interface {
-	Init(args []string) error
-	Shutdown()
-}
-
 // HandleSignals handles os signals. Returns exit code and error if any.
-func HandleSignals(ctx context.Context, daemon Daemon) (int, error) {
+func HandleSignals(ctx context.Context, shutdown func(), init func() error) (int, error) {
 	slog.Info("daemon:handle:start")
 	defer slog.Info("daemon:handle:finish")
 
@@ -36,10 +24,10 @@ func HandleSignals(ctx context.Context, daemon Daemon) (int, error) {
 			switch s {
 			case syscall.SIGHUP:
 				slog.Info("daemon:handle:sighup:start")
-				daemon.Shutdown()
-				if err := daemon.Init(os.Args); err != nil {
-					slog.Info("daemon:handle:sighup:error")
-					return 1, err
+				shutdown()
+				if err := init(); err != nil {
+					slog.Info("daemon:handle:sighup:err")
+					return 1, fmt.Errorf("daemon:handle:sighup:err: %w", err)
 				}
 				slog.Info("daemon:handle:sighup:finish")
 			case os.Interrupt:
@@ -54,8 +42,8 @@ func HandleSignals(ctx context.Context, daemon Daemon) (int, error) {
 			}
 		case <-ctx.Done():
 			if err := ctx.Err(); err != nil {
-				slog.Info("daemon:handle:ctx:error")
-				return 1, err
+				slog.Info("daemon:handle:ctx:err")
+				return 1, fmt.Errorf("daemon:handle:ctx:err: %w", err)
 			} else {
 				slog.Info("daemon:handle:ctx:done")
 				return 0, nil

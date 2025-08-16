@@ -7,18 +7,15 @@ import (
 	"wombat/internal/config"
 	"wombat/internal/storage"
 	"wombat/pkg/cipher"
-	"wombat/pkg/daemon"
 )
 
 type App struct {
 	mu     sync.Mutex
 	wg     sync.WaitGroup
-	cfg    *daemon.Config
+	cfg    *config.Config
 	source *TelegramSource
 	target *JiraTarget
 }
-
-var _ daemon.Daemon = (*App)(nil)
 
 func (a *App) Init(args []string) error {
 	slog.Info("app:init:start")
