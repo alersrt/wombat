@@ -28,7 +28,7 @@ type Source struct {
 	updChan    tgbotapi.UpdatesChannel
 }
 
-func NewTelegramSource(token string, rt *router.Router, db *storage.DbStorage, cipher *cipher.AesGcmCipher) (ts *Source, err error) {
+func NewTelegramSource(token string, rt *router.Router, db *storage.DbStorage, cipher *cipher.AesGcmCipher) (*Source, error) {
 	slog.Info("tg:new:start")
 
 	bot, err := tgbotapi.NewBotAPI(token)

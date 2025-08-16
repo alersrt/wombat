@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"regexp"
 	"wombat/internal/domain"
-	router2 "wombat/internal/router"
+	"wombat/internal/router"
 	"wombat/internal/storage"
 	"wombat/pkg/cipher"
 )
@@ -17,13 +17,13 @@ type Target struct {
 	url        string
 	db         *storage.DbStorage
 	tagsRegex  *regexp.Regexp
-	router     *router2.Router
+	rt         *router.Router
 }
 
 func NewJiraTarget(
 	url string,
 	tag string,
-	router *router2.Router,
+	rt *router.Router,
 	dbStorage *storage.DbStorage,
 	cipher *cipher.AesGcmCipher,
 ) *Target {
@@ -33,7 +33,7 @@ func NewJiraTarget(
 		url:        url,
 		tagsRegex:  regexp.MustCompile(tag),
 		db:         dbStorage,
-		router:     router,
+		rt:         rt,
 	}
 }
 
@@ -43,13 +43,13 @@ func (t *Target) Do(ctx context.Context) {
 
 	for {
 		select {
-		case req := <-t.router.ReqChan():
+		case req := <-t.rt.ReqChan():
 			err := t.handle(ctx, req)
 			if err != nil {
 				slog.Error(err.Error())
-				t.router.SendRes(req.ToResponse(false, err.Error()))
+				t.rt.SendRes(req.ToResponse(false, err.Error()))
 			} else {
-				t.router.SendRes(req.ToResponse(true, ""))
+				t.rt.SendRes(req.ToResponse(true, ""))
 			}
 		case <-ctx.Done():
 			slog.Info("jira:do:ctx:done")

@@ -5,16 +5,11 @@ import (
 	"github.com/andygrunwald/go-jira"
 )
 
-type TargetClient interface {
-	Add(tag string, text string) (string, error)
-	Update(tag string, commentId string, text string) error
-}
-
 type Client struct {
 	client *jira.Client
 }
 
-func NewClient(url string, token string) (TargetClient, error) {
+func NewClient(url string, token string) (*Client, error) {
 	tp := jira.PATAuthTransport{Token: token}
 	client, err := jira.NewClient(tp.Client(), url)
 	if err != nil {
