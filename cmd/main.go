@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/pkg/errors"
 	"log/slog"
 	"os"
 	"wombat/internal"
@@ -53,7 +52,7 @@ func parseArgs() ([]string, error) {
 
 	err := flags.Parse(args[1:])
 	if err != nil {
-		return nil, errors.New(err.Error())
+		return nil, fmt.Errorf("parseArgs: %w", err)
 	}
 
 	return []string{*configPath}, nil
