@@ -7,7 +7,7 @@ import (
 	"mvdan.cc/sh/v3/shell"
 	"os"
 	"sync"
-	"wombat/pkg"
+	"wombat/pkg/daemon"
 )
 
 type Bot struct {
@@ -43,7 +43,7 @@ type Config struct {
 	Database `yaml:"database,omitempty"`
 }
 
-var _ pkg.Config = (*Config)(nil)
+var _ daemon.Config = (*Config)(nil)
 
 func (c *Config) Init(args []string) error {
 	c.mtx.Lock()

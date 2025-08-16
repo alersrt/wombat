@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"strconv"
 	"sync"
+	"wombat/pkg/cipher"
 )
 
 var (
@@ -20,13 +21,13 @@ var (
 type TelegramSource struct {
 	sourceType SourceType
 	bot        *tgbotapi.BotAPI
-	cipher     *AesGcmCipher
+	cipher     *cipher.AesGcmCipher
 	router     *Router
 	db         *DbStorage
 	updChan    tgbotapi.UpdatesChannel
 }
 
-func NewTelegramSource(token string, router *Router, db *DbStorage, cipher *AesGcmCipher) (ts *TelegramSource, err error) {
+func NewTelegramSource(token string, router *Router, db *DbStorage, cipher *cipher.AesGcmCipher) (ts *TelegramSource, err error) {
 	slog.Info("telegram:init:start")
 
 	bot, err := tgbotapi.NewBotAPI(token)

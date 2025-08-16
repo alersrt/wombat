@@ -9,18 +9,19 @@ import (
 	"os"
 	"sync"
 	"wombat/internal"
-	"wombat/pkg"
+	"wombat/pkg/cipher"
+	"wombat/pkg/daemon"
 )
 
 type App struct {
 	mtx    sync.Mutex
 	wg     sync.WaitGroup
-	conf   *pkg.Config
+	conf   *daemon.Config
 	source *internal.TelegramSource
 	target *internal.JiraTarget
 }
 
-var _ pkg.Daemon = (*App)(nil)
+var _ daemon.Daemon = (*App)(nil)
 
 func (a *App) Init(args []string) error {
 	slog.Info("app:init:start")
@@ -34,7 +35,7 @@ func (a *App) Init(args []string) error {
 		return err
 	}
 
-	cipher, err := internal.NewAesGcmCipher([]byte(conf.Cipher.Key))
+	cipher, err := cipher.NewAesGcmCipher([]byte(conf.Cipher.Key))
 	if err != nil {
 		return err
 	}
@@ -97,7 +98,7 @@ func main() {
 
 	go app.Do(ctx)
 
-	code, err := pkg.HandleSignals(ctx, app)
+	code, err := daemon.HandleSignals(ctx, app)
 	if err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
 	}

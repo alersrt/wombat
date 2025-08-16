@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"regexp"
 	"sync"
+	"wombat/pkg/cipher"
 )
 
 type TargetClient interface {
@@ -45,7 +46,7 @@ func (c *JiraClient) Add(issue string, text string) (string, error) {
 }
 
 type JiraTarget struct {
-	cipher     *AesGcmCipher
+	cipher     *cipher.AesGcmCipher
 	targetType TargetType
 	url        string
 	db         *DbStorage
@@ -58,7 +59,7 @@ func NewJiraTarget(
 	tag string,
 	router *Router,
 	dbStorage *DbStorage,
-	cipher *AesGcmCipher,
+	cipher *cipher.AesGcmCipher,
 ) *JiraTarget {
 	return &JiraTarget{
 		targetType: JiraType,

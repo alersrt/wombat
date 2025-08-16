@@ -1,4 +1,4 @@
-package pkg
+package daemon
 
 import (
 	"context"
