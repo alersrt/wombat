@@ -10,12 +10,12 @@ import (
 )
 
 const (
-	ExitCodeDone           = 0
-	ExitCodeError          = 1
-	ExitCodeMissingKeyword = 2
-	ExitCodeInterrupt      = 130
-	ExitCodeKill           = 137
-	ExitCodeTerminate      = 143
+	ExitCodeDone         = 0
+	ExitCodeError        = 1
+	ExitCodeInvalidUsage = 2
+	ExitCodeInterrupt    = 130
+	ExitCodeKill         = 137
+	ExitCodeTerminate    = 143
 )
 
 // HandleSignals handles os signals. Returns exit code and error if any.

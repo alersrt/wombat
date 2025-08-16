@@ -18,7 +18,7 @@ func main() {
 	args, err := parseArgs()
 	if err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
-		os.Exit(daemon.ExitCodeMissingKeyword)
+		os.Exit(daemon.ExitCodeInvalidUsage)
 	}
 	if err := app.Init(args); err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
