@@ -11,7 +11,8 @@ import (
 )
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
+	mctx := context.Background()
+	ctx, cancel := context.WithCancel(mctx)
 
 	app := new(internal.App)
 	init := func() error {
@@ -33,10 +34,11 @@ func main() {
 
 	go app.Do(ctx)
 
-	code, err := daemon.HandleSignals(ctx, cancel, init)
+	code, err := daemon.HandleSignals(mctx, cancel, init)
 	if err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
 	}
+	slog.Info("exit:", "code", code)
 	os.Exit(code)
 }
 
