@@ -6,7 +6,7 @@ import (
 	"sync"
 	"wombat/internal/config"
 	"wombat/internal/jira"
-	router2 "wombat/internal/router"
+	"wombat/internal/router"
 	"wombat/internal/storage"
 	"wombat/internal/telegram"
 	"wombat/pkg/cipher"
@@ -34,17 +34,17 @@ func (a *App) Init(args []string) error {
 	if err != nil {
 		return err
 	}
-	router := router2.NewRouter()
+	rt := router.NewRouter()
 
 	db, err := storage.NewDbStorage(conf.PostgreSQL.Url)
 	if err != nil {
 		return err
 	}
-	telegramSource, err := telegram.NewTelegramSource(conf.Telegram.Token, router, db, gcm)
+	telegramSource, err := telegram.NewTelegramSource(conf.Telegram.Token, rt, db, gcm)
 	if err != nil {
 		return err
 	}
-	jiraTarget := jira.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, router, db, gcm)
+	jiraTarget := jira.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, rt, db, gcm)
 
 	a.source = telegramSource
 	a.target = jiraTarget

@@ -24,7 +24,7 @@ func NewJiraTarget(
 	url string,
 	tag string,
 	rt *router.Router,
-	dbStorage *storage.DbStorage,
+	db *storage.DbStorage,
 	cipher *cipher.AesGcmCipher,
 ) *Target {
 	return &Target{
@@ -32,7 +32,7 @@ func NewJiraTarget(
 		cipher:     cipher,
 		url:        url,
 		tagsRegex:  regexp.MustCompile(tag),
-		db:         dbStorage,
+		db:         db,
 		rt:         rt,
 	}
 }
