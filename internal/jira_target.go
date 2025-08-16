@@ -65,7 +65,7 @@ func NewJiraTarget(
 	cipher *cipher.AesGcmCipher,
 ) *JiraTarget {
 	return &JiraTarget{
-		targetType: domain.JiraType,
+		targetType: domain.TargetTypeJira,
 		cipher:     cipher,
 		url:        url,
 		tagsRegex:  regexp.MustCompile(tag),
@@ -113,7 +113,7 @@ func (t *JiraTarget) handle(ctx context.Context, req *domain.Request) error {
 		return err
 	}
 
-	targetConnection, err := tx.GetTargetConnection(req.SourceType.String(), req.TargetType.String(), req.UserId)
+	targetConnection, err := tx.GetTargetConnection(string(req.SourceType), string(req.TargetType), req.UserId)
 	if err != nil {
 		return err
 	}
@@ -128,7 +128,7 @@ func (t *JiraTarget) handle(ctx context.Context, req *domain.Request) error {
 
 	tags := t.tagsRegex.FindAllString(req.Content, -1)
 
-	savedComments, err := tx.GetCommentMetadata(req.SourceType.String(), req.ChatId, req.MessageId)
+	savedComments, err := tx.GetCommentMetadata(string(req.SourceType), req.ChatId, req.MessageId)
 	if err != nil {
 		return err
 	}

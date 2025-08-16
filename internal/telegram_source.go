@@ -55,7 +55,7 @@ func NewTelegramSource(token string, router *router2.Router, db *storage.DbStora
 
 	slog.Info("telegram:init:finish")
 	return &TelegramSource{
-		sourceType: domain.TelegramType,
+		sourceType: domain.SourceTypeTelegram,
 		bot:        bot,
 		router:     router,
 		db:         db,
@@ -136,8 +136,8 @@ func (s *TelegramSource) getReq(msg *tgbotapi.Message) *domain.Request {
 	}
 
 	return &domain.Request{
-		TargetType:  domain.JiraType,
-		SourceType:  domain.TelegramType,
+		TargetType:  domain.TargetTypeJira,
+		SourceType:  domain.SourceTypeTelegram,
 		RequestType: reqType,
 		Content:     content,
 		Command:     command,
@@ -175,9 +175,9 @@ func (s *TelegramSource) handleUpdate(ctx context.Context, req *domain.Request) 
 }
 
 func (s *TelegramSource) checkAccess(req *domain.Request) (domain.AccState, error) {
-	ok, err := s.db.HasConnectionSource(s.sourceType.String(), req.UserId)
+	ok, err := s.db.HasConnectionSource(string(s.sourceType), req.UserId)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 	if ok {
 		return domain.AccStateRegistered, nil
@@ -190,7 +190,7 @@ func (s *TelegramSource) handleRegistration(ctx context.Context, req *domain.Req
 	ctxTx, cancelTx := context.WithCancel(ctx)
 	defer cancelTx()
 
-	slog.Info("reg:start", "source", s.sourceType.String(), "userId", req.UserId)
+	slog.Info("reg:start", "source", s.sourceType, "userId", req.UserId)
 
 	tx, err := s.db.BeginTx(ctxTx)
 	if err != nil {
@@ -202,16 +202,16 @@ func (s *TelegramSource) handleRegistration(ctx context.Context, req *domain.Req
 		return err
 	}
 
-	err = tx.CreateSourceConnection(accountGid, s.sourceType.String(), req.UserId)
+	err = tx.CreateSourceConnection(accountGid, string(s.sourceType), req.UserId)
 	if err != nil {
 		return err
 	}
-	targetType := domain.JiraType
+	targetType := domain.TargetTypeJira
 	encoded, err := s.cipher.Encrypt(req.Content)
 	if err != nil {
 		return err
 	}
-	err = tx.CreateTargetConnection(accountGid, targetType.String(), encoded)
+	err = tx.CreateTargetConnection(accountGid, targetType, encoded)
 	if err != nil {
 		return err
 	}
@@ -220,7 +220,7 @@ func (s *TelegramSource) handleRegistration(ctx context.Context, req *domain.Req
 	if err != nil {
 		return err
 	}
-	slog.Info("reg:finish", "source", s.sourceType.String(), "userId", req.UserId)
+	slog.Info("reg:finish", "source", s.sourceType, "userId", req.UserId)
 
 	return nil
 }

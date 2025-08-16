@@ -2,94 +2,60 @@ package domain
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 	"time"
 )
 
-type SourceType uint
+type SourceType string
 
-type TargetType uint
-
-const (
-	TelegramType SourceType = iota + 1
-)
+type TargetType string
 
 const (
-	JiraType TargetType = iota + 1
+	SourceTypeTelegram = "TELEGRAM"
+	TargetTypeJira     = "JIRA"
 )
-
-var (
-	sourceTypeToString = map[SourceType]string{
-		TelegramType: "TELEGRAM",
-	}
-	sourceTypeFromString = map[string]SourceType{
-		"TELEGRAM": TelegramType,
-	}
-	targetTypeToString = map[TargetType]string{
-		JiraType: "JIRA",
-	}
-	targetTypeFromString = map[string]TargetType{
-		"JIRA": JiraType,
-	}
-)
-
-func (t *SourceType) String() string {
-	return sourceTypeToString[*t]
-}
-
-func SourceTypeFromString(s string) SourceType {
-	return sourceTypeFromString[s]
-}
 
 func (t *SourceType) MarshalJSON() ([]byte, error) {
-	return json.Marshal(sourceTypeToString[*t])
+	return json.Marshal(t)
 }
 
 func (t *SourceType) UnmarshalJSON(b []byte) error {
 	var s string
 	err := json.Unmarshal(b, &s)
 	if err != nil {
-		return errors.New(err.Error())
+		return fmt.Errorf("source_type:unmarchal: %w", err)
 	}
-	*t = sourceTypeFromString[s]
+	*t = SourceType(s)
 	return nil
 }
 
-func (t *TargetType) String() string {
-	return targetTypeToString[*t]
-}
-
-func TargetTypeFromString(s string) TargetType {
-	return targetTypeFromString[s]
-}
-
 func (t *TargetType) MarshalJSON() ([]byte, error) {
-	return json.Marshal(targetTypeToString[*t])
+	return json.Marshal(t)
 }
 
 func (t *TargetType) UnmarshalJSON(b []byte) error {
 	var s string
 	err := json.Unmarshal(b, &s)
 	if err != nil {
-		return errors.New(err.Error())
+		return fmt.Errorf("target_type:unmarchal: %w", err)
 	}
-	*t = targetTypeFromString[s]
+	*t = TargetType(s)
 	return nil
 }
 
-type AccState uint
+type AccState string
 
 const (
-	AccStateNotRegistered AccState = iota + 1
-	AccStateRegistered
+	AccStateNotRegistered = "NOT_REGISTERED"
+	AccStateRegistered    = "REGISTERED"
 )
 
-type RequestType uint
+type RequestType string
 
 const (
-	RequestTypeText RequestType = iota + 1
-	RequestTypeCommand
+	RequestTypeText    = "TEXT"
+	RequestTypeCommand = "COMMAND"
 )
 
 type Request struct {

@@ -19,7 +19,7 @@ func (e *SourceConnectionEntity) ToDomain() *domain.SourceConnection {
 	return &domain.SourceConnection{
 		Gid:        e.Gid,
 		AccountGid: e.AccountGid,
-		SourceType: domain.SourceTypeFromString(e.SourceType),
+		SourceType: domain.SourceType(e.SourceType),
 		UserId:     e.UserId,
 		CreateTs:   e.CreateTs,
 		UpdateTs:   e.UpdateTs,
@@ -30,7 +30,7 @@ func (e *SourceConnectionEntity) FromDomain(domain *domain.SourceConnection) Ent
 	return &SourceConnectionEntity{
 		Gid:        domain.Gid,
 		AccountGid: domain.AccountGid,
-		SourceType: domain.SourceType.String(),
+		SourceType: string(domain.SourceType),
 		UserId:     domain.UserId,
 		CreateTs:   domain.CreateTs,
 		UpdateTs:   domain.UpdateTs,
@@ -50,7 +50,7 @@ func (e *TargetConnectionEntity) ToDomain() *domain.TargetConnection {
 	return &domain.TargetConnection{
 		Gid:        e.Gid,
 		AccountGid: e.AccountGid,
-		TargetType: domain.TargetTypeFromString(e.TargetType),
+		TargetType: domain.TargetType(e.TargetType),
 		Token:      e.Token,
 		CreateTs:   e.CreateTs,
 		UpdateTs:   e.UpdateTs,
@@ -61,7 +61,7 @@ func (e *TargetConnectionEntity) FromDomain(domain *domain.TargetConnection) Ent
 	return &TargetConnectionEntity{
 		Gid:        domain.Gid,
 		AccountGid: domain.AccountGid,
-		TargetType: domain.TargetType.String(),
+		TargetType: string(domain.TargetType),
 		Token:      domain.Token,
 		CreateTs:   domain.CreateTs,
 		UpdateTs:   domain.UpdateTs,
@@ -85,11 +85,11 @@ func (e *CommentEntity) ToDomain() *domain.Comment {
 	return &domain.Comment{
 		Gid: e.Gid,
 		Request: &domain.Request{
-			SourceType: domain.SourceTypeFromString(e.SourceType),
+			SourceType: domain.SourceType(e.SourceType),
+			TargetType: domain.TargetType(e.TargetType),
 			UserId:     e.UserId,
 			ChatId:     e.ChatId,
 			MessageId:  e.MessageId,
-			TargetType: domain.TargetTypeFromString(e.TargetType),
 		},
 		CommentId: e.CommentId,
 		Tag:       e.Tag,
@@ -101,8 +101,8 @@ func (e *CommentEntity) ToDomain() *domain.Comment {
 func (e *CommentEntity) FromDomain(domain *domain.Comment) Entity[domain.Comment] {
 	return &CommentEntity{
 		Gid:        domain.Gid,
-		TargetType: domain.TargetType.String(),
-		SourceType: domain.SourceType.String(),
+		TargetType: string(domain.TargetType),
+		SourceType: string(domain.SourceType),
 		CommentId:  domain.CommentId,
 		UserId:     domain.UserId,
 		ChatId:     domain.ChatId,
