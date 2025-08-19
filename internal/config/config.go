@@ -7,9 +7,10 @@ import (
 	"mvdan.cc/sh/v3/shell"
 	"os"
 	"sync"
+	"wombat/pkg"
 )
 
-var ErrConfig = errors.New("config")
+var ErrCfg = errors.New("cfg")
 
 type Bot struct {
 	Tag string `yaml:"tag,omitempty"`
@@ -57,16 +58,16 @@ func (c *Config) Init(args []string) error {
 
 	file, err := os.ReadFile(configPath)
 	if err != nil {
-		return errors.Join(ErrConfig, err)
+		return pkg.Wrap(ErrCfg, err)
 	}
 
 	replaced, err := shell.Expand(string(file), nil)
 	if err != nil {
-		return errors.Join(ErrConfig, err)
+		return pkg.Wrap(ErrCfg, err)
 	}
 	err = yaml.Unmarshal([]byte(replaced), c)
 	if err != nil {
-		return errors.Join(ErrConfig, err)
+		return pkg.Wrap(ErrCfg, err)
 	}
 	return nil
 }

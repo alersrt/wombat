@@ -10,6 +10,7 @@ import (
 	"wombat/internal/router"
 	"wombat/internal/storage"
 	"wombat/internal/telegram"
+	"wombat/pkg"
 	"wombat/pkg/cipher"
 )
 
@@ -30,22 +31,22 @@ func (a *App) Init(args []string) error {
 	conf := new(config.Config)
 	err := conf.Init(args)
 	if err != nil {
-		return errors.Join(ErrApp, err)
+		return pkg.Wrap(ErrApp, err)
 	}
 
 	gcm, err := cipher.NewAesGcmCipher([]byte(conf.Cipher.Key))
 	if err != nil {
-		return errors.Join(ErrApp, err)
+		return pkg.Wrap(ErrApp, err)
 	}
 	rt := router.NewRouter()
 
 	db, err := storage.NewDbStorage(conf.PostgreSQL.Url)
 	if err != nil {
-		return errors.Join(ErrApp, err)
+		return pkg.Wrap(ErrApp, err)
 	}
 	tgTarget, err := telegram.NewTelegramSource(conf.Telegram.Token, rt, db, gcm)
 	if err != nil {
-		return errors.Join(ErrApp, err)
+		return pkg.Wrap(ErrApp, err)
 	}
 	jiraTarget := jira.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, rt, db, gcm)
 

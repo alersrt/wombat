@@ -20,7 +20,7 @@ func main() {
 		slog.Error(fmt.Sprintf("%+v", err))
 		os.Exit(daemon.ExitCodeInvalidUsage)
 	}
-	if err := app.Init(args); err != nil {
+	if err = app.Init(args); err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
 		os.Exit(daemon.ExitCodeError)
 	}

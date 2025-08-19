@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"wombat/pkg"
 )
 
 var ErrDaemon = errors.New("daemon")
@@ -48,7 +49,7 @@ func HandleSignals(ctx context.Context, cancel func()) (int, error) {
 		case <-ctx.Done():
 			if err := ctx.Err(); err != nil {
 				slog.Info("daemon:handle:ctx:err")
-				return ExitCodeError, errors.Join(ErrDaemon, ctx.Err())
+				return ExitCodeError, pkg.Wrap(ErrDaemon, err)
 			} else {
 				slog.Info("daemon:handle:ctx:done")
 				return ExitCodeDone, nil
