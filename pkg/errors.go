@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// Wrap wraps errors in order of their declaration.
 func Wrap(errors ...any) error {
 	var sb strings.Builder
 	if errors == nil || len(errors) == 0 {
