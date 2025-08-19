@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"sync"
 	"wombat/internal/config"
@@ -11,6 +12,8 @@ import (
 	"wombat/internal/telegram"
 	"wombat/pkg/cipher"
 )
+
+var ErrApp = errors.New("app")
 
 type App struct {
 	mtx    sync.Mutex
@@ -27,22 +30,22 @@ func (a *App) Init(args []string) error {
 	conf := new(config.Config)
 	err := conf.Init(args)
 	if err != nil {
-		return err
+		return errors.Join(ErrApp, err)
 	}
 
 	gcm, err := cipher.NewAesGcmCipher([]byte(conf.Cipher.Key))
 	if err != nil {
-		return err
+		return errors.Join(ErrApp, err)
 	}
 	rt := router.NewRouter()
 
 	db, err := storage.NewDbStorage(conf.PostgreSQL.Url)
 	if err != nil {
-		return err
+		return errors.Join(ErrApp, err)
 	}
 	tgTarget, err := telegram.NewTelegramSource(conf.Telegram.Token, rt, db, gcm)
 	if err != nil {
-		return err
+		return errors.Join(ErrApp, err)
 	}
 	jiraTarget := jira.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, rt, db, gcm)
 

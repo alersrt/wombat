@@ -1,13 +1,15 @@
 package config
 
 import (
-	"github.com/pkg/errors"
+	"errors"
 	"gopkg.in/yaml.v2"
 	"log/slog"
 	"mvdan.cc/sh/v3/shell"
 	"os"
 	"sync"
 )
+
+var ErrConfig = errors.New("config")
 
 type Bot struct {
 	Tag string `yaml:"tag,omitempty"`
@@ -55,16 +57,16 @@ func (c *Config) Init(args []string) error {
 
 	file, err := os.ReadFile(configPath)
 	if err != nil {
-		return errors.New(err.Error())
+		return errors.Join(ErrConfig, err)
 	}
 
 	replaced, err := shell.Expand(string(file), nil)
 	if err != nil {
-		return errors.New(err.Error())
+		return errors.Join(ErrConfig, err)
 	}
 	err = yaml.Unmarshal([]byte(replaced), c)
 	if err != nil {
-		return errors.New(err.Error())
+		return errors.Join(ErrConfig, err)
 	}
 	return nil
 }

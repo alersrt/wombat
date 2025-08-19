@@ -2,12 +2,14 @@ package daemon
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 )
+
+var ErrDaemon = errors.New("daemon")
 
 const (
 	ExitCodeDone         = 0
@@ -46,7 +48,7 @@ func HandleSignals(ctx context.Context, cancel func()) (int, error) {
 		case <-ctx.Done():
 			if err := ctx.Err(); err != nil {
 				slog.Info("daemon:handle:ctx:err")
-				return ExitCodeError, fmt.Errorf("daemon:handle:ctx:err: %w", err)
+				return ExitCodeError, errors.Join(ErrDaemon, ctx.Err())
 			} else {
 				slog.Info("daemon:handle:ctx:done")
 				return ExitCodeDone, nil
