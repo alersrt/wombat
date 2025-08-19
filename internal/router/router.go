@@ -11,8 +11,8 @@ type Router struct {
 
 func NewRouter() *Router {
 	return &Router{
-		requests:  make(chan *domain.Request, 1),
-		responses: make(chan *domain.Response, 1),
+		requests:  make(chan *domain.Request),
+		responses: make(chan *domain.Response),
 	}
 }
 

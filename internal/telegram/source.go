@@ -3,7 +3,7 @@ package telegram
 import (
 	"context"
 	"fmt"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	api "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"log/slog"
 	"strconv"
 	"wombat/internal/domain"
@@ -13,19 +13,16 @@ import (
 )
 
 var (
-	botCommandRegister = tgbotapi.BotCommand{
-		Command:     "register",
-		Description: "RG",
-	}
+	botCommandRegister = api.BotCommand{Command: "register", Description: "RG"}
 )
 
 type Source struct {
 	sourceType domain.SourceType
-	bot        *tgbotapi.BotAPI
 	cipher     *cipher.AesGcmCipher
 	rt         *router.Router
 	db         *storage.DbStorage
-	updChan    tgbotapi.UpdatesChannel
+	bot        *api.BotAPI
+	cfg        api.UpdateConfig
 }
 
 func NewTelegramSource(
@@ -36,20 +33,20 @@ func NewTelegramSource(
 ) (*Source, error) {
 	slog.Info("tg:new:start")
 
-	bot, err := tgbotapi.NewBotAPI(token)
+	bot, err := api.NewBotAPI(token)
 	if err != nil {
 		return nil, fmt.Errorf("tg:new:err: %w", err)
 	}
 
-	updCfg := tgbotapi.NewUpdate(0)
+	updCfg := api.NewUpdate(0)
 	updCfg.AllowedUpdates = append(
 		updCfg.AllowedUpdates,
-		tgbotapi.UpdateTypeMessage,
-		tgbotapi.UpdateTypeEditedMessage,
+		api.UpdateTypeMessage,
+		api.UpdateTypeEditedMessage,
 	)
 	updCfg.Timeout = 60
 
-	_, err = bot.Request(tgbotapi.NewSetMyCommands(botCommandRegister))
+	_, err = bot.Request(api.NewSetMyCommands(botCommandRegister))
 	if err != nil {
 		return nil, fmt.Errorf("tg:new:err: %w", err)
 	}
@@ -63,7 +60,7 @@ func NewTelegramSource(
 		rt:         rt,
 		db:         db,
 		cipher:     cipher,
-		updChan:    bot.GetUpdatesChan(updCfg),
+		cfg:        updCfg,
 	}, nil
 }
 
@@ -73,8 +70,8 @@ func (s *Source) DoReq(ctx context.Context) {
 
 	for {
 		select {
-		case upd := <-s.updChan:
-			req := s.getReq(s.getMsg(&upd))
+		case upd := <-s.bot.GetUpdatesChan(s.cfg):
+			req := s.updToReq(&upd)
 			if err := s.handleUpdate(ctx, req); err != nil {
 				slog.Error(fmt.Sprintf("%+v", err))
 				s.rt.SendRes(req.ToResponse(false, err.Error()))
@@ -82,6 +79,7 @@ func (s *Source) DoReq(ctx context.Context) {
 				s.rt.SendRes(req.ToResponse(true, ""))
 			}
 		case <-ctx.Done():
+			s.bot.StopReceivingUpdates()
 			slog.Info("tg:do:req:ctx:done")
 			return
 		}
@@ -103,19 +101,15 @@ func (s *Source) DoRes(ctx context.Context) {
 	}
 }
 
-func (s *Source) getMsg(upd *tgbotapi.Update) *tgbotapi.Message {
-	var message *tgbotapi.Message
+func (s *Source) updToReq(upd *api.Update) *domain.Request {
+	var msg *api.Message
 	switch {
 	case upd.Message != nil:
-		message = upd.Message
+		msg = upd.Message
 	case upd.EditedMessage != nil:
-		message = upd.EditedMessage
+		msg = upd.EditedMessage
 	}
 
-	return message
-}
-
-func (s *Source) getReq(msg *tgbotapi.Message) *domain.Request {
 	if msg == nil {
 		return nil
 	}
@@ -227,7 +221,7 @@ func (s *Source) askToRegister(req *domain.Request) {
 	if err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
 	}
-	askMsg := tgbotapi.NewMessage(chatId, "/register <Private Access Token>")
+	askMsg := api.NewMessage(chatId, "/register <Private Access Token>")
 	_, err = s.bot.Send(askMsg)
 	if err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
@@ -238,15 +232,17 @@ func (s *Source) handleResponse(res *domain.Response) {
 	chatId, err := strconv.ParseInt(res.ChatId, 10, 64)
 	if err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
+		return
 	}
-	var msg tgbotapi.MessageConfig
+	var msg api.MessageConfig
 	if !res.Ok {
-		msg = tgbotapi.NewMessage(chatId, "🙁")
+		msg = api.NewMessage(chatId, "🙁")
 	} else {
-		msg = tgbotapi.NewMessage(chatId, "🙂")
+		msg = api.NewMessage(chatId, "🙂")
 	}
 	_, err = s.bot.Send(msg)
 	if err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
+		return
 	}
 }

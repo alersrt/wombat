@@ -40,13 +40,13 @@ func (a *App) Init(args []string) error {
 	if err != nil {
 		return err
 	}
-	telegramSource, err := telegram.NewTelegramSource(conf.Telegram.Token, rt, db, gcm)
+	tgTarget, err := telegram.NewTelegramSource(conf.Telegram.Token, rt, db, gcm)
 	if err != nil {
 		return err
 	}
 	jiraTarget := jira.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, rt, db, gcm)
 
-	a.source = telegramSource
+	a.source = tgTarget
 	a.target = jiraTarget
 
 	return nil
