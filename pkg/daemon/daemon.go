@@ -10,7 +10,10 @@ import (
 	"syscall"
 )
 
-var ErrDaemonHandle = errors.New("daemon: handle")
+var (
+	ErrDaemon       = errors.New("daemon")
+	ErrDaemonHandle = errors.New("daemon: handle")
+)
 
 const (
 	ExitCodeDone         = 0

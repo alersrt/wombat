@@ -10,6 +10,7 @@ import (
 )
 
 var (
+	ErrCipher        = errors.New("cipher")
 	ErrCipherNew     = errors.New("cipher: new")
 	ErrCipherEncrypt = errors.New("cipher: encrypt")
 	ErrCipherDecrypt = errors.New("cipher: decrypt")

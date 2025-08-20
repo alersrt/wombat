@@ -10,7 +10,10 @@ import (
 	"sync"
 )
 
-var ErrConfigInit = errors.New("config: init")
+var (
+	ErrConfig     = errors.New("config")
+	ErrConfigInit = errors.New("config: init")
+)
 
 type Bot struct {
 	Tag string `yaml:"tag,omitempty"`

@@ -15,6 +15,7 @@ import (
 )
 
 var (
+	ErrApp     = errors.New("app")
 	ErrAppNew  = errors.New("app: new")
 	ErrAppInit = errors.New("app: init")
 )
