@@ -3,14 +3,14 @@ package daemon
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
-	"wombat/pkg"
 )
 
-var ErrDaemon = errors.New("daemon")
+var ErrDaemonHandle = errors.New("daemon: handle")
 
 const (
 	ExitCodeDone         = 0
@@ -23,8 +23,8 @@ const (
 
 // HandleSignals handles os signals. Returns exit code and error if any.
 func HandleSignals(ctx context.Context, cancel func()) (int, error) {
-	slog.Info("daemon:handle:start")
-	defer slog.Info("daemon:handle:finish")
+	slog.Info("daemon: handle: start")
+	defer slog.Info("daemon: handle: finish")
 
 	signalChan := make(chan os.Signal, 1)
 	defer signal.Stop(signalChan)
@@ -36,22 +36,22 @@ func HandleSignals(ctx context.Context, cancel func()) (int, error) {
 			switch s {
 			case os.Interrupt:
 				cancel()
-				slog.Info("daemon:handle:interrupt")
+				slog.Info("daemon: handle: interrupt")
 				return ExitCodeInterrupt, nil
 			case os.Kill:
-				slog.Info("daemon:handle:kill")
+				slog.Info("daemon: handle: kill")
 				return ExitCodeKill, nil
 			case syscall.SIGTERM:
 				cancel()
-				slog.Info("daemon:handle:sigterm")
+				slog.Info("daemon: handle: sigterm")
 				return ExitCodeTerminate, nil
 			}
 		case <-ctx.Done():
 			if err := ctx.Err(); err != nil {
-				slog.Info("daemon:handle:ctx:err")
-				return ExitCodeError, pkg.Wrap(ErrDaemon, err)
+				slog.Info("daemon: handle: ctx: err")
+				return ExitCodeError, fmt.Errorf("%w: %w", ErrDaemonHandle, err)
 			} else {
-				slog.Info("daemon:handle:ctx:done")
+				slog.Info("daemon: handle: ctx: done")
 				return ExitCodeDone, nil
 			}
 		}

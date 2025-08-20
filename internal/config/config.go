@@ -2,15 +2,15 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"gopkg.in/yaml.v2"
 	"log/slog"
 	"mvdan.cc/sh/v3/shell"
 	"os"
 	"sync"
-	"wombat/pkg"
 )
 
-var ErrCfg = errors.New("cfg")
+var ErrConfigInit = errors.New("config: init")
 
 type Bot struct {
 	Tag string `yaml:"tag,omitempty"`
@@ -49,25 +49,25 @@ func (c *Config) Init(args []string) error {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
-	slog.Info("config:init:start")
-	defer slog.Info("config:init:finish")
+	slog.Info("config: init: start")
+	defer slog.Info("config: init: finish")
 
 	configPath := args[0]
 
-	defer slog.Info("config:file:" + configPath)
+	defer slog.Info("config: file: " + configPath)
 
 	file, err := os.ReadFile(configPath)
 	if err != nil {
-		return pkg.Wrap(ErrCfg, err)
+		return fmt.Errorf("%w: %w", ErrConfigInit, err)
 	}
 
 	replaced, err := shell.Expand(string(file), nil)
 	if err != nil {
-		return pkg.Wrap(ErrCfg, err)
+		return fmt.Errorf("%w: %w", ErrConfigInit, err)
 	}
 	err = yaml.Unmarshal([]byte(replaced), c)
 	if err != nil {
-		return pkg.Wrap(ErrCfg, err)
+		return fmt.Errorf("%w: %w", ErrConfigInit, err)
 	}
 	return nil
 }
