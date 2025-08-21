@@ -38,8 +38,8 @@ func NewJiraTarget(
 }
 
 func (t *Target) Do(ctx context.Context) {
-	slog.Info("jira:do:start")
-	defer slog.Info("jira:do:finish")
+	slog.Info("jira: do: start")
+	defer slog.Info("jira: do: finish")
 
 	for {
 		select {
@@ -52,7 +52,7 @@ func (t *Target) Do(ctx context.Context) {
 				t.rt.SendRes(req.ToResponse(true, ""))
 			}
 		case <-ctx.Done():
-			slog.Info("jira:do:ctx:done")
+			slog.Info("jira: do: ctx: done")
 			return
 		}
 	}
@@ -63,7 +63,7 @@ func (t *Target) handle(ctx context.Context, req *domain.Request) error {
 	defer cancelTx()
 
 	if !t.tagsRegex.MatchString(req.Content) {
-		return fmt.Errorf("jira:do:err: tag not found")
+		return fmt.Errorf("jira: do: tag not found")
 	}
 
 	tx, err := t.db.BeginTx(ctxTx)

@@ -1,18 +1,12 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"gopkg.in/yaml.v2"
 	"log/slog"
 	"mvdan.cc/sh/v3/shell"
 	"os"
 	"sync"
-)
-
-var (
-	ErrConfig     = errors.New("config")
-	ErrConfigInit = fmt.Errorf("%w: init", ErrConfig)
 )
 
 type Bot struct {
@@ -61,16 +55,16 @@ func (c *Config) Init(args []string) error {
 
 	file, err := os.ReadFile(configPath)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrConfigInit, err)
+		return fmt.Errorf("config: init: %v", err)
 	}
 
 	replaced, err := shell.Expand(string(file), nil)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrConfigInit, err)
+		return fmt.Errorf("config: init: %v", err)
 	}
 	err = yaml.Unmarshal([]byte(replaced), c)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrConfigInit, err)
+		return fmt.Errorf("config: init: %v", err)
 	}
 	return nil
 }

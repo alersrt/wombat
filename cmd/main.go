@@ -47,7 +47,7 @@ func parseArgs() ([]string, error) {
 
 	err := flags.Parse(args[1:])
 	if err != nil {
-		return nil, fmt.Errorf("parseArgs: %w", err)
+		return nil, fmt.Errorf("parseArgs: %v", err)
 	}
 
 	return []string{*configPath}, nil

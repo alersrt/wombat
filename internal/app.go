@@ -2,7 +2,6 @@ package internal
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -12,11 +11,6 @@ import (
 	"wombat/internal/storage"
 	"wombat/internal/telegram"
 	"wombat/pkg/cipher"
-)
-
-var (
-	ErrApp     = errors.New("app")
-	ErrAppInit = fmt.Errorf("%w: init", ErrApp)
 )
 
 type App struct {
@@ -34,22 +28,22 @@ func (a *App) Init(args []string) error {
 	conf := new(config.Config)
 	err := conf.Init(args)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrAppInit, err)
+		return fmt.Errorf("app: init: %v", err)
 	}
 
 	gcm, err := cipher.NewAesGcmCipher([]byte(conf.Cipher.Key))
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrAppInit, err)
+		return fmt.Errorf("app: init: %v", err)
 	}
 	rt := router.NewRouter()
 
 	db, err := storage.NewDbStorage(conf.PostgreSQL.Url)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrAppInit, err)
+		return fmt.Errorf("app: init: %v", err)
 	}
 	tgTarget, err := telegram.NewTelegramSource(conf.Telegram.Token, rt, db, gcm)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrAppInit, err)
+		return fmt.Errorf("app: init: %v", err)
 	}
 	jiraTarget := jira.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, rt, db, gcm)
 
@@ -60,8 +54,8 @@ func (a *App) Init(args []string) error {
 }
 
 func (a *App) Do(ctx context.Context) {
-	slog.Info("app:do:start")
-	defer slog.Info("app:do:finish")
+	slog.Info("app: do: start")
+	defer slog.Info("app: do: finish")
 
 	go a.source.DoReq(ctx)
 	go a.source.DoRes(ctx)

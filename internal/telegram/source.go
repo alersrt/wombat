@@ -31,11 +31,12 @@ func NewTelegramSource(
 	db *storage.DbStorage,
 	cipher *cipher.AesGcmCipher,
 ) (*Source, error) {
-	slog.Info("tg:new:start")
+	slog.Info("tg: new: start")
+	defer slog.Info("tg: new: finish")
 
 	bot, err := api.NewBotAPI(token)
 	if err != nil {
-		return nil, fmt.Errorf("tg:new:err: %w", err)
+		return nil, fmt.Errorf("tg: new: %v", err)
 	}
 
 	updCfg := api.NewUpdate(0)
@@ -48,12 +49,11 @@ func NewTelegramSource(
 
 	_, err = bot.Request(api.NewSetMyCommands(botCommandRegister))
 	if err != nil {
-		return nil, fmt.Errorf("tg:new:err: %w", err)
+		return nil, fmt.Errorf("tg: new: %v", err)
 	}
 
-	slog.Info(fmt.Sprintf("tg:new:acc: %s", bot.Self.UserName))
+	slog.Info(fmt.Sprintf("tg: new: acc: %s", bot.Self.UserName))
 
-	slog.Info("tg:new:finish")
 	return &Source{
 		sourceType: domain.SourceTypeTelegram,
 		bot:        bot,
@@ -65,8 +65,8 @@ func NewTelegramSource(
 }
 
 func (s *Source) DoReq(ctx context.Context) {
-	slog.Info("tg:do:req:start")
-	defer slog.Info("tg:do:req:finish")
+	slog.Info("tg: do: req: start")
+	defer slog.Info("tg: do: req: finish")
 
 	for {
 		select {
@@ -80,22 +80,22 @@ func (s *Source) DoReq(ctx context.Context) {
 			}
 		case <-ctx.Done():
 			s.bot.StopReceivingUpdates()
-			slog.Info("tg:do:req:ctx:done")
+			slog.Info("tg: do: req: ctx: done")
 			return
 		}
 	}
 }
 
 func (s *Source) DoRes(ctx context.Context) {
-	slog.Info("tg:do:res:start")
-	defer slog.Info("tg:do:res:finish")
+	slog.Info("tg: do: res: start")
+	defer slog.Info("tg: do: res: finish")
 
 	for {
 		select {
 		case res := <-s.rt.ResChan():
 			s.handleResponse(res)
 		case <-ctx.Done():
-			slog.Info("tg:do:res:ctx:done")
+			slog.Info("tg: do: res: ctx: done")
 			return
 		}
 	}
@@ -159,7 +159,7 @@ func (s *Source) handleUpdate(ctx context.Context, req *domain.Request) error {
 				return err
 			}
 		default:
-			return fmt.Errorf("tg:upd: wrong cmd=%s", req.Command)
+			return fmt.Errorf("tg: upd: wrong cmd=%s", req.Command)
 		}
 	}
 	return nil
@@ -181,7 +181,8 @@ func (s *Source) handleRegistration(ctx context.Context, req *domain.Request) er
 	ctxTx, cancelTx := context.WithCancel(ctx)
 	defer cancelTx()
 
-	slog.Info("tg:reg:start", "source", s.sourceType, "userId", req.UserId)
+	slog.Info("tg: reg: start", "source", s.sourceType, "userId", req.UserId)
+	defer slog.Info("tg: reg: finish", "source", s.sourceType, "userId", req.UserId)
 
 	tx, err := s.db.BeginTx(ctxTx)
 	if err != nil {
@@ -211,7 +212,6 @@ func (s *Source) handleRegistration(ctx context.Context, req *domain.Request) er
 	if err != nil {
 		return err
 	}
-	slog.Info("tg:reg:finish", "source", s.sourceType, "userId", req.UserId)
 
 	return nil
 }
