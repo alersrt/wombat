@@ -68,9 +68,10 @@ func (s *Source) DoReq(ctx context.Context) {
 	slog.Info("tg: do: req: start")
 	defer slog.Info("tg: do: req: finish")
 
+	updates := s.bot.GetUpdatesChan(s.cfg)
 	for {
 		select {
-		case upd := <-s.bot.GetUpdatesChan(s.cfg):
+		case upd := <-updates:
 			req := s.updToReq(&upd)
 			if err := s.handleUpdate(ctx, req); err != nil {
 				slog.Error(fmt.Sprintf("%+v", err))
