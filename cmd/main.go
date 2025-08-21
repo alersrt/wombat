@@ -27,10 +27,13 @@ func main() {
 
 	go app.Do(ctx)
 
+	slog.Info("daemon: handle: start")
 	code, err := daemon.HandleSignals(ctx, cancel)
 	if err != nil {
+		slog.Info("daemon: handle: error")
 		slog.Error(fmt.Sprintf("%+v", err))
 	}
+	slog.Info("daemon: handle: finish")
 	slog.Info("exit:", "code", code)
 	os.Exit(code)
 }

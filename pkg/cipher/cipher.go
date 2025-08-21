@@ -11,9 +11,9 @@ import (
 
 var (
 	ErrCipher        = errors.New("cipher")
-	ErrCipherNew     = errors.New("cipher: new")
-	ErrCipherEncrypt = errors.New("cipher: encrypt")
-	ErrCipherDecrypt = errors.New("cipher: decrypt")
+	ErrCipherNew     = fmt.Errorf("%w: new", ErrCipher)
+	ErrCipherEncrypt = fmt.Errorf("%w: encrypt", ErrCipher)
+	ErrCipherDecrypt = fmt.Errorf("%w: decrypt", ErrCipher)
 )
 
 type AesGcmCipher struct {
@@ -25,11 +25,11 @@ type AesGcmCipher struct {
 func NewAesGcmCipher(key []byte) (*AesGcmCipher, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrCipherNew, err)
+		return nil, fmt.Errorf("%w: %v", ErrCipherNew, err)
 	}
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrCipherNew, err)
+		return nil, fmt.Errorf("%w: %v", ErrCipherNew, err)
 	}
 
 	return &AesGcmCipher{gcm: gcm}, nil
@@ -39,7 +39,7 @@ func (a *AesGcmCipher) Encrypt(plaintext string) ([]byte, error) {
 	nonce := make([]byte, a.gcm.NonceSize())
 	_, err := io.ReadFull(rand.Reader, nonce)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrCipherEncrypt, err)
+		return nil, fmt.Errorf("%w: %v", ErrCipherEncrypt, err)
 	}
 	ciphertext := a.gcm.Seal(nonce, nonce, []byte(plaintext), nil)
 	return ciphertext, nil
@@ -53,7 +53,7 @@ func (a *AesGcmCipher) Decrypt(ciphertext []byte) (string, error) {
 	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
 	plaintextBytes, err := a.gcm.Open(nil, nonce, ciphertext, nil)
 	if err != nil {
-		return "", fmt.Errorf("%w: %w", ErrCipherDecrypt, err)
+		return "", fmt.Errorf("%w: %v", ErrCipherDecrypt, err)
 	}
 	plaintext := string(plaintextBytes)
 	return plaintext, nil

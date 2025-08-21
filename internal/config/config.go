@@ -12,7 +12,7 @@ import (
 
 var (
 	ErrConfig     = errors.New("config")
-	ErrConfigInit = errors.New("config: init")
+	ErrConfigInit = fmt.Errorf("%w: init", ErrConfig)
 )
 
 type Bot struct {
@@ -61,16 +61,16 @@ func (c *Config) Init(args []string) error {
 
 	file, err := os.ReadFile(configPath)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrConfigInit, err)
+		return fmt.Errorf("%w: %v", ErrConfigInit, err)
 	}
 
 	replaced, err := shell.Expand(string(file), nil)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrConfigInit, err)
+		return fmt.Errorf("%w: %v", ErrConfigInit, err)
 	}
 	err = yaml.Unmarshal([]byte(replaced), c)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrConfigInit, err)
+		return fmt.Errorf("%w: %v", ErrConfigInit, err)
 	}
 	return nil
 }
