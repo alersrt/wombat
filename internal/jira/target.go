@@ -1,107 +1,69 @@
-package internal
+package jira
 
 import (
 	"context"
 	"fmt"
-	"github.com/andygrunwald/go-jira"
 	"log/slog"
 	"regexp"
 	"wombat/internal/domain"
+	"wombat/internal/router"
 	"wombat/internal/storage"
 	"wombat/pkg/cipher"
 )
 
-type TargetClient interface {
-	Add(tag string, text string) (string, error)
-	Update(tag string, commentId string, text string) error
-}
-
-type JiraClient struct {
-	client *jira.Client
-}
-
-func NewJiraClient(url string, token string) (TargetClient, error) {
-	tp := jira.PATAuthTransport{Token: token}
-	client, err := jira.NewClient(tp.Client(), url)
-	if err != nil {
-		return nil, fmt.Errorf("jira:client:new:err: url=%s", url)
-	}
-	return &JiraClient{client}, nil
-}
-
-func (c *JiraClient) Update(issue string, commentId string, text string) error {
-	_, _, err := c.client.Issue.UpdateComment(issue, &jira.Comment{ID: commentId, Body: text})
-	if err != nil {
-		return fmt.Errorf("jira:client:update:err: %w", err)
-	}
-	return nil
-}
-
-func (c *JiraClient) Add(issue string, text string) (string, error) {
-	comment, _, err := c.client.Issue.AddComment(issue, &jira.Comment{Body: text})
-	if err != nil {
-		return "", fmt.Errorf("jira:client:add:err: %w", err)
-	}
-	return comment.ID, nil
-}
-
-type JiraTarget struct {
+type Target struct {
 	cipher     *cipher.AesGcmCipher
 	targetType domain.TargetType
 	url        string
 	db         *storage.DbStorage
 	tagsRegex  *regexp.Regexp
-	router     *Router
+	rt         *router.Router
 }
 
 func NewJiraTarget(
 	url string,
 	tag string,
-	router *Router,
-	dbStorage *storage.DbStorage,
+	rt *router.Router,
+	db *storage.DbStorage,
 	cipher *cipher.AesGcmCipher,
-) *JiraTarget {
-	return &JiraTarget{
+) *Target {
+	return &Target{
 		targetType: domain.TargetTypeJira,
 		cipher:     cipher,
 		url:        url,
 		tagsRegex:  regexp.MustCompile(tag),
-		db:         dbStorage,
-		router:     router,
+		db:         db,
+		rt:         rt,
 	}
 }
 
-func (t *JiraTarget) GetTargetType() domain.TargetType {
-	return t.targetType
-}
-
-func (t *JiraTarget) Do(ctx context.Context) {
-	slog.Info("jira:do:start")
-	defer slog.Info("jira:do:finish")
+func (t *Target) Do(ctx context.Context) {
+	slog.Info("jira: do: start")
+	defer slog.Info("jira: do: finish")
 
 	for {
 		select {
-		case req := <-t.router.ReqChan():
+		case req := <-t.rt.ReqChan():
 			err := t.handle(ctx, req)
 			if err != nil {
 				slog.Error(err.Error())
-				t.router.SendRes(req.ToResponse(false, err.Error()))
+				t.rt.SendRes(req.ToResponse(false, err.Error()))
 			} else {
-				t.router.SendRes(req.ToResponse(true, ""))
+				t.rt.SendRes(req.ToResponse(true, ""))
 			}
 		case <-ctx.Done():
-			slog.Info("jira:do:ctx:done")
+			slog.Info("jira: do: ctx: done")
 			return
 		}
 	}
 }
 
-func (t *JiraTarget) handle(ctx context.Context, req *domain.Request) error {
+func (t *Target) handle(ctx context.Context, req *domain.Request) error {
 	ctxTx, cancelTx := context.WithCancel(ctx)
 	defer cancelTx()
 
 	if !t.tagsRegex.MatchString(req.Content) {
-		return fmt.Errorf("jira:do:err: tag not found")
+		return fmt.Errorf("jira: do: tag not found")
 	}
 
 	tx, err := t.db.BeginTx(ctxTx)
@@ -117,7 +79,7 @@ func (t *JiraTarget) handle(ctx context.Context, req *domain.Request) error {
 	if err != nil {
 		return err
 	}
-	client, err := NewJiraClient(t.url, token)
+	client, err := NewClient(t.url, token)
 	if err != nil {
 		return err
 	}

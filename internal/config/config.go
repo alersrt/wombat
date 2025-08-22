@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
 	"gopkg.in/yaml.v2"
 	"log/slog"
 	"mvdan.cc/sh/v3/shell"
@@ -46,25 +46,25 @@ func (c *Config) Init(args []string) error {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
-	slog.Info("config:init:start")
-	defer slog.Info("config:init:finish")
+	slog.Info("config: init: start")
+	defer slog.Info("config: init: finish")
 
 	configPath := args[0]
 
-	defer slog.Info("config:file:" + configPath)
+	defer slog.Info("config: file: " + configPath)
 
 	file, err := os.ReadFile(configPath)
 	if err != nil {
-		return errors.New(err.Error())
+		return fmt.Errorf("config: init: %v", err)
 	}
 
 	replaced, err := shell.Expand(string(file), nil)
 	if err != nil {
-		return errors.New(err.Error())
+		return fmt.Errorf("config: init: %v", err)
 	}
 	err = yaml.Unmarshal([]byte(replaced), c)
 	if err != nil {
-		return errors.New(err.Error())
+		return fmt.Errorf("config: init: %v", err)
 	}
 	return nil
 }

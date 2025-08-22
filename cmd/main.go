@@ -20,17 +20,20 @@ func main() {
 		slog.Error(fmt.Sprintf("%+v", err))
 		os.Exit(daemon.ExitCodeInvalidUsage)
 	}
-	if err := app.Init(args); err != nil {
+	if err = app.Init(args); err != nil {
 		slog.Error(fmt.Sprintf("%+v", err))
 		os.Exit(daemon.ExitCodeError)
 	}
 
 	go app.Do(ctx)
 
+	slog.Info("daemon: handle: start")
 	code, err := daemon.HandleSignals(ctx, cancel)
 	if err != nil {
+		slog.Info("daemon: handle: error")
 		slog.Error(fmt.Sprintf("%+v", err))
 	}
+	slog.Info("daemon: handle: finish")
 	slog.Info("exit:", "code", code)
 	os.Exit(code)
 }
@@ -44,7 +47,7 @@ func parseArgs() ([]string, error) {
 
 	err := flags.Parse(args[1:])
 	if err != nil {
-		return nil, fmt.Errorf("parseArgs: %w", err)
+		return nil, fmt.Errorf("parseArgs: %v", err)
 	}
 
 	return []string{*configPath}, nil
