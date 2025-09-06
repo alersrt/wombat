@@ -35,6 +35,7 @@ func main() {
 		slog.Info("daemon: handle: finish")
 	}()
 
+	<-ctx.Done()
 	os.Exit(ExitCodeDone)
 }
 
