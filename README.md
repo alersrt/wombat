@@ -1,24 +1,17 @@
 Wombat
 ======
 
-Why Wombat? Working bot for messengers, w-m-bot.
+Why Wombat? Working bot for messages, w-m-bot.
 
 Description
 -----------
 
-The main idea of this bot is providing possibility to add comments/texts to Jira tasks directly from messenger.
+DevOps related app needed to react on email's alerts.
 
-The main idea:
-
-1. User sends message directly to bot.
-2. Bot get messages from API.
-3. Parses message to match issues' numbers pattern.
-4. Creates comment in related Jira task or edits existed one.
-
-Auth
-----
-
-Right now it supports only really simple auth: bind to telegram's `user_id`.
+Main features:
+- Read alerted emails
+- Send alerts to Telegram
+- Create tasks for infrastructure engineers in Jira and update sent alerts with related Jira's links
 
 Usage
 ------
