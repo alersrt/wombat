@@ -1,0 +1,4 @@
+jira:
+  url: ${WOMBAT_JIRA_URL:-localhost}
+telegram:
+  token: ${WOMBAT_TELEGRAM_TOKEN}

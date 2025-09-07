@@ -18,14 +18,12 @@ const (
 )
 
 func main() {
-	args := parseArgs()
-
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
 	go func() {
 		app := new(internal.App)
-		if err := app.Init(args); err != nil {
+		if err := app.Init(); err != nil {
 			slog.Error(fmt.Sprintf("%+v", err))
 			os.Exit(ExitCodeError)
 		}
@@ -41,9 +39,9 @@ func main() {
 
 // parseArgs parses os.Args and returns list of parsed values. Here is descriptions by indexes:
 // 0 - path to config file.
-func parseArgs() []string {
+func parseArgs() string {
 	var path string
-	flag.StringVar(&path, "config", "./cmd/config.yaml", "path to config")
+	flag.StringVar(&path, "config", "", "path to config")
 	flag.Parse()
-	return []string{path}
+	return path
 }

@@ -2,15 +2,10 @@ package internal
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"sync"
-	"wombat/internal/config"
 	"wombat/internal/jira"
-	"wombat/internal/router"
-	"wombat/internal/storage"
 	"wombat/internal/telegram"
-	"wombat/pkg/cipher"
 )
 
 type App struct {
@@ -19,36 +14,7 @@ type App struct {
 	target *jira.Target
 }
 
-func (a *App) Init(args []string) error {
-	slog.Info("app: init: start")
-	defer slog.Info("app: init: finish")
-	a.mtx.Lock()
-	defer a.mtx.Unlock()
-
-	conf := new(config.Config)
-	err := conf.Init(args)
-	if err != nil {
-		return fmt.Errorf("app: init: %v", err)
-	}
-
-	gcm, err := cipher.NewAesGcmCipher([]byte(conf.Cipher.Key))
-	if err != nil {
-		return fmt.Errorf("app: init: %v", err)
-	}
-	rt := router.NewRouter()
-
-	db, err := storage.NewDbStorage(conf.PostgreSQL.Url)
-	if err != nil {
-		return fmt.Errorf("app: init: %v", err)
-	}
-	tgTarget, err := telegram.NewTelegramSource(conf.Telegram.Token, rt, db, gcm)
-	if err != nil {
-		return fmt.Errorf("app: init: %v", err)
-	}
-	jiraTarget := jira.NewJiraTarget(conf.Jira.Url, conf.Bot.Tag, rt, db, gcm)
-
-	a.source = tgTarget
-	a.target = jiraTarget
+func (a *App) Init() error {
 
 	return nil
 }
