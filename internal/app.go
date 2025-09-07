@@ -2,16 +2,12 @@ package internal
 
 import (
 	"context"
-	"log/slog"
-	"sync"
-	"wombat/internal/jira"
-	"wombat/internal/telegram"
+	"github.com/emersion/go-imap/v2/imapclient"
+	"github.com/emersion/go-message/charset"
+	"mime"
 )
 
 type App struct {
-	mtx    sync.Mutex
-	source *telegram.Source
-	target *jira.Target
 }
 
 func (a *App) Init() error {
@@ -19,13 +15,18 @@ func (a *App) Init() error {
 	return nil
 }
 
-func (a *App) Do(ctx context.Context) {
-	slog.Info("app: do: start")
-	defer slog.Info("app: do: finish")
+func (a *App) Do(ctx context.Context) error {
+	options := &imapclient.Options{
+		WordDecoder: &mime.WordDecoder{CharsetReader: charset.Reader},
+	}
+	client, err := imapclient.DialTLS("imap.example.org:993", options)
+	if err != nil {
+		return err
+	}
+	defer client.Logout()
 
-	go a.source.DoReq(ctx)
-	go a.source.DoRes(ctx)
-	go a.target.Do(ctx)
+	client.Login("username", "password")
 
 	<-ctx.Done()
+	return nil
 }
