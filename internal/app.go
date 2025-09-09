@@ -48,6 +48,7 @@ func (a *App) Do(ctx context.Context) error {
 	criteria := &imap.SearchCriteria{
 		NotFlag: []imap.Flag{imap.FlagSeen},
 	}
+	fetchOpts := &imap.FetchOptions{Envelope: true}
 
 	buffer := make(chan any)
 	defer close(buffer)
@@ -65,8 +66,7 @@ func (a *App) Do(ctx context.Context) error {
 			if client.Mailbox().NumMessages > 0 {
 				seqSet := new(imap.SeqSet)
 				seqSet.AddRange(search.Min, search.Max)
-				fetchOptions := &imap.FetchOptions{Envelope: true}
-				messages, err := client.Fetch(seqSet, fetchOptions).Collect()
+				messages, err := client.Fetch(seqSet, fetchOpts).Collect()
 				if err != nil {
 					continue
 				}
