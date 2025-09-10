@@ -25,12 +25,13 @@ func main() {
 		app := new(internal.App)
 		if err := app.Init(); err != nil {
 			slog.Error(fmt.Sprintf("%+v", err))
-			os.Exit(ExitCodeError)
 		}
 
-		slog.Info("daemon: handle: start")
-		app.Do(ctx)
-		slog.Info("daemon: handle: finish")
+		slog.Info("start")
+		err := app.Do(ctx)
+		if err != nil {
+			slog.Error(fmt.Sprintf("%+v", err))
+		}
 	}()
 
 	<-ctx.Done()
