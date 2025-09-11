@@ -8,8 +8,18 @@ import (
 	"time"
 )
 
+type Jira struct {
+	Url   string `yaml:"url"`
+	Token string `yaml:"token"`
+}
+
+type Telegram struct {
+	Token  string `yaml:"token"`
+	ChatId string `yaml:"chatId"`
+}
+
 type Imap struct {
-	Address     string        `yaml:"address"`
+	Url         string        `yaml:"url"`
 	Username    string        `yaml:"username"`
 	Password    string        `yaml:"password"`
 	Mailbox     string        `yaml:"mailbox"`
@@ -17,8 +27,17 @@ type Imap struct {
 	Verbose     bool          `yaml:"verbose"`
 }
 
+type Rule struct {
+	Name    string   `yaml:"name"`
+	Filter  string   `yaml:"filter"`
+	Actions []string `yaml:"actions"`
+}
+
 type Config struct {
-	Imap *Imap `yaml:"imap"`
+	Jira     *Jira     `yaml:"jira"`
+	Telegram *Telegram `yaml:"telegram"`
+	Imap     *Imap     `yaml:"imap"`
+	Rules    []*Rule   `yaml:"rules"`
 }
 
 func NewConfig(path string) (*Config, error) {

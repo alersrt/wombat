@@ -43,7 +43,7 @@ func (m *MailBot) Read(ctx context.Context) error {
 		WordDecoder: &mime.WordDecoder{CharsetReader: charset.Reader},
 		DebugWriter: debugWriter,
 	}
-	client, err := imapclient.DialTLS(m.cfg.Address, options)
+	client, err := imapclient.DialTLS(m.cfg.Url, options)
 	defer func() {
 		_ = client.Logout().Wait()
 	}()
