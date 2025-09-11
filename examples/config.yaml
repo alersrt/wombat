@@ -2,3 +2,11 @@ jira:
   url: ${WOMBAT_JIRA_URL:-localhost}
 telegram:
   token: ${WOMBAT_TELEGRAM_TOKEN}
+  chatId: ${WOMBAT_TELEGRAM_CHAT_ID}
+imap:
+  address: ${WOMBAT_IMAP_ADDRESS:-mail.dev:993}
+  username: ${WOMBAT_IMAP_USERNAME:-example@mail.dev}
+  password: ${WOMBAT_IMAP_PASSWORD:-password}
+  mailbox: ${WOMBAT_IMAP_MAILBOX:-Inbox}
+  idleTimeout: ${WOMBAT_IMAP_IDLE_TIMEOUT:-5000}
+  verbose: ${WOMBAT_IMAP_VERBOSE:-true}
