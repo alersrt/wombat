@@ -3,7 +3,6 @@ jira:
   token: ${WOMBAT_JIRA_TOKEN}
 telegram:
   token: ${WOMBAT_TELEGRAM_TOKEN}
-  chatId: ${WOMBAT_TELEGRAM_CHAT_ID}
 imap:
   url: ${WOMBAT_IMAP_ADDRESS:-mail.dev:993}
   username: ${WOMBAT_IMAP_USERNAME:-example@mail.dev}

@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"fmt"
 	"github.com/emersion/go-imap/v2"
 	"github.com/emersion/go-imap/v2/imapclient"
 	"github.com/emersion/go-message/charset"
@@ -48,15 +49,15 @@ func (m *MailBot) Read(ctx context.Context) error {
 		_ = client.Logout().Wait()
 	}()
 	if err != nil {
-		return err
+		return fmt.Errorf("mail: read: %v", err)
 	}
 
 	if err = client.Login(m.cfg.Username, m.cfg.Password).Wait(); err != nil {
-		return err
+		return fmt.Errorf("mail: read: %v", err)
 	}
 
 	if _, err = client.Select(m.cfg.Mailbox, &imap.SelectOptions{ReadOnly: false}).Wait(); err != nil {
-		return err
+		return fmt.Errorf("mail: read: %v", err)
 	}
 	defer func() {
 		_ = client.Unselect().Wait()
@@ -71,14 +72,14 @@ func (m *MailBot) Read(ctx context.Context) error {
 
 			search, err := client.Search(&imap.SearchCriteria{NotFlag: []imap.Flag{imap.FlagSeen}}, nil).Wait()
 			if err != nil {
-				return err
+				return fmt.Errorf("mail: read: %v", err)
 			}
 			if len(search.AllSeqNums()) == 0 {
 				continue
 			}
 			found, err := client.Fetch(search.All, &imap.FetchOptions{Envelope: true, BodySection: []*imap.FetchItemBodySection{{Specifier: imap.PartSpecifierText}}}).Collect()
 			if err != nil {
-				return err
+				return fmt.Errorf("mail: read: %v", err)
 			}
 			for _, item := range found {
 				m.messages <- &Message{

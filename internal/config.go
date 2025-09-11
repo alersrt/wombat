@@ -14,8 +14,7 @@ type Jira struct {
 }
 
 type Telegram struct {
-	Token  string `yaml:"token"`
-	ChatId string `yaml:"chatId"`
+	Token string `yaml:"token"`
 }
 
 type Imap struct {
