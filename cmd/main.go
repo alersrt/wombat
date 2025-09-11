@@ -22,15 +22,23 @@ func main() {
 	defer cancel()
 
 	go func() {
-		app := new(internal.App)
-		if err := app.Init(); err != nil {
+		cfg, err := internal.NewConfig(parseArgs())
+		if err != nil {
 			slog.Error(fmt.Sprintf("%+v", err))
+			cancel()
+		}
+
+		app := new(internal.App)
+		if err = app.Init(cfg); err != nil {
+			slog.Error(fmt.Sprintf("%+v", err))
+			cancel()
 		}
 
 		slog.Info("start")
-		err := app.Do(ctx)
+		err = app.Do(ctx)
 		if err != nil {
 			slog.Error(fmt.Sprintf("%+v", err))
+			cancel()
 		}
 	}()
 

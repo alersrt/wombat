@@ -5,9 +5,17 @@ import (
 	"gopkg.in/yaml.v2"
 	"mvdan.cc/sh/v3/shell"
 	"os"
+	"time"
 )
 
 type Config struct {
+	Imap struct {
+		Address     string        `yaml:"address"`
+		Username    string        `yaml:"username"`
+		Password    string        `yaml:"password"`
+		Mailbox     string        `yaml:"mailbox"`
+		IdleTimeout time.Duration `yaml:"idleTimeout"`
+	} `yaml:"imap"`
 }
 
 func NewConfig(path string) (*Config, error) {
