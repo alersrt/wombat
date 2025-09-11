@@ -6,7 +6,6 @@ import (
 	"github.com/emersion/go-imap/v2"
 	"github.com/emersion/go-imap/v2/imapclient"
 	"github.com/emersion/go-message/charset"
-	"log/slog"
 	"mime"
 	"os"
 	"time"
@@ -22,15 +21,11 @@ func (a *App) Init(cfg *Config) error {
 }
 
 func (a *App) Do(ctx context.Context) error {
+	var client *imapclient.Client
+
 	options := &imapclient.Options{
 		WordDecoder: &mime.WordDecoder{CharsetReader: charset.Reader},
 		DebugWriter: os.Stdout,
-		UnilateralDataHandler: &imapclient.UnilateralDataHandler{
-			Fetch: func(msg *imapclient.FetchMessageData) {
-				item, _ := msg.Collect()
-				fmt.Printf("%+v\n", item)
-			},
-		},
 	}
 	client, err := imapclient.DialTLS(a.cfg.Imap.Address, options)
 	defer func() {
@@ -56,20 +51,21 @@ func (a *App) Do(ctx context.Context) error {
 		case <-ctx.Done():
 			return nil
 		default:
-			idle, err := client.Idle()
+			search, err := client.Search(&imap.SearchCriteria{NotFlag: []imap.Flag{imap.FlagSeen}}, nil).Wait()
 			if err != nil {
-				slog.Error(fmt.Sprintf("%+v", err))
 				continue
 			}
+
+			found, err := client.Fetch(search.All, &imap.FetchOptions{BodyStructure: &imap.FetchItemBodyStructure{}}).Collect()
+			if err != nil {
+				continue
+			}
+			for _, item := range found {
+				fmt.Printf("==============================================================\n")
+				fmt.Printf("%s\n", string(item.FindBodySection(&imap.FetchItemBodySection{})))
+			}
+
 			time.Sleep(a.cfg.Imap.IdleTimeout * time.Millisecond)
-			if err := idle.Close(); err != nil {
-				slog.Error(fmt.Sprintf("%+v", err))
-				continue
-			}
-			if err := idle.Wait(); err != nil {
-				slog.Error(fmt.Sprintf("%+v", err))
-				continue
-			}
 		}
 	}
 }
