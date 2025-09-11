@@ -1,7 +1,4 @@
 package internal
 
-type Message {
-
+type Message struct {
 }
-
-
