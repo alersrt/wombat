@@ -28,14 +28,10 @@ func main() {
 			cancel()
 		}
 
-		app := new(internal.App)
-		if err = app.Init(cfg); err != nil {
-			slog.Error(fmt.Sprintf("%+v", err))
-			cancel()
-		}
+		app := internal.NewMailBot(cfg.Imap)
 
 		slog.Info("start")
-		err = app.Do(ctx)
+		err = app.Read(ctx, make(chan any))
 		if err != nil {
 			slog.Error(fmt.Sprintf("%+v", err))
 			cancel()

@@ -8,14 +8,16 @@ import (
 	"time"
 )
 
+type Imap struct {
+	Address     string        `yaml:"address"`
+	Username    string        `yaml:"username"`
+	Password    string        `yaml:"password"`
+	Mailbox     string        `yaml:"mailbox"`
+	IdleTimeout time.Duration `yaml:"idleTimeout"`
+}
+
 type Config struct {
-	Imap struct {
-		Address     string        `yaml:"address"`
-		Username    string        `yaml:"username"`
-		Password    string        `yaml:"password"`
-		Mailbox     string        `yaml:"mailbox"`
-		IdleTimeout time.Duration `yaml:"idleTimeout"`
-	} `yaml:"imap"`
+	Imap *Imap `yaml:"imap"`
 }
 
 func NewConfig(path string) (*Config, error) {
