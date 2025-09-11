@@ -13,22 +13,22 @@ import (
 
 // MailBot responsible for getting messages from mail.
 type MailBot struct {
-	cfg *Imap
-	out chan *Message
+	cfg      *Imap
+	messages chan *Message
 }
 
 func NewMailBot(cfg *Imap) *MailBot {
-	return &MailBot{cfg: cfg, out: make(chan *Message)}
+	return &MailBot{cfg: cfg, messages: make(chan *Message)}
 }
 
 func (m *MailBot) Close() error {
-	close(m.out)
+	close(m.messages)
 	return nil
 }
 
-// Out returns output channel for read
-func (m *MailBot) Out() <-chan *Message {
-	return m.out
+// Messages returns output channel for read
+func (m *MailBot) Messages() <-chan *Message {
+	return m.messages
 }
 
 // Read starts reading messages from mail.
@@ -81,7 +81,7 @@ func (m *MailBot) Read(ctx context.Context) error {
 				return err
 			}
 			for _, item := range found {
-				m.out <- &Message{
+				m.messages <- &Message{
 					Envelope: item.Envelope,
 					Text:     item.FindBodySection(&imap.FetchItemBodySection{Specifier: imap.PartSpecifierText}),
 				}
