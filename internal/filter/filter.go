@@ -7,16 +7,13 @@ import (
 	"github.com/google/cel-go/common/overloads"
 	"github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/common/types/ref"
+	"github.com/google/cel-go/common/types/traits"
 	"github.com/google/cel-go/ext"
+	"reflect"
 	"wombat/internal"
 )
 
-const (
-	VarKey       = "Key"
-	VarValue     = "Value"
-	VarTimestamp = "Timestamp"
-	VarHeaders   = "Headers"
-)
+const varNameMessage = "message"
 
 type Filter struct {
 	prog cel.Program
@@ -24,10 +21,8 @@ type Filter struct {
 
 func NewFilter(filter string) (*Filter, error) {
 	env, err := cel.NewEnv(
-		cel.Variable(VarKey, cel.AnyType),
-		cel.Variable(VarValue, cel.AnyType),
-		cel.Variable(VarHeaders, cel.MapType(cel.StringType, cel.AnyType)),
-		cel.Variable(VarTimestamp, cel.TimestampType),
+		ext.NativeTypes(reflect.TypeFor[internal.Message]()),
+		cel.Variable(varNameMessage, cel.ObjectType("internal.Message", traits.ReceiverType)),
 		cel.Function(overloads.TypeConvertString, cel.Overload(
 			"map_to_string", []*cel.Type{cel.MapType(cel.StringType, cel.AnyType)}, cel.StringType,
 			cel.UnaryBinding(func(value ref.Val) ref.Val {
@@ -61,9 +56,11 @@ func NewFilter(filter string) (*Filter, error) {
 	return &Filter{prog: prog}, nil
 }
 
-func (f *Filter) Eval(msg *internal.Message) (bool, error) {
+func (f *Filter) Eval(msg internal.Message) (bool, error) {
 
-	data := map[string]any{}
+	data := map[string]any{
+		varNameMessage: msg,
+	}
 
 	eval, _, err := f.prog.Eval(data)
 	if err != nil {

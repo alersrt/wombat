@@ -1,23 +1,44 @@
 package filter
 
 import (
+	"github.com/emersion/go-imap/v2"
 	"testing"
+	"time"
 	"wombat/internal"
 )
 
 func TestFilter(t *testing.T) {
-	filterContent := `Value.some == 0
-&& Headers.key1 in ['value']
-&& Headers.size() != 0
-&& string(Key).matches(".*test_key.*")
-&& Timestamp > timestamp('1970-01-01T00:00:00.000Z')
+	filterContent := `string(message.Text).matches(".*some.*")
+&& message.Envelope.From.Name == 'Test'
 `
 	testedUnit, err := NewFilter(filterContent)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 
-	msg := &internal.Message{}
+	msg := internal.Message{
+		Text: []byte("some test"),
+		Envelope: &imap.Envelope{
+			Date:    time.Time{},
+			Subject: "Some test subj",
+			From: []imap.Address{{
+				Name:    "Test",
+				Mailbox: "usertest",
+				Host:    "test.dev",
+			}},
+			Sender: []imap.Address{{
+				Name:    "Test",
+				Mailbox: "usertest",
+				Host:    "test.dev",
+			}},
+			ReplyTo:   nil,
+			To:        nil,
+			Cc:        nil,
+			Bcc:       nil,
+			InReplyTo: nil,
+			MessageID: "",
+		},
+	}
 	ok, err := testedUnit.Eval(msg)
 	if err != nil {
 		t.Errorf("%+v", err)
@@ -28,15 +49,34 @@ func TestFilter(t *testing.T) {
 }
 
 func BenchmarkFilter_Eval(b *testing.B) {
-	filterContent := `Value.some == 0
-&& Headers.key1 in ['value']
-&& Headers.size() != 0
-&& Key.kf == 'test_key'
-&& Timestamp > timestamp('1970-01-01T00:00:00.000Z')
+	filterContent := `string(message.Text).matches(".*some.*")
+&& message.Envelope.From.Name == 'Test'
 `
 	testedUnit, _ := NewFilter(filterContent)
 
-	msg := &internal.Message{}
+	msg := internal.Message{
+		Text: []byte("some test"),
+		Envelope: &imap.Envelope{
+			Date:    time.Time{},
+			Subject: "Some test subj",
+			From: []imap.Address{{
+				Name:    "Test",
+				Mailbox: "usertest",
+				Host:    "test.dev",
+			}},
+			Sender: []imap.Address{{
+				Name:    "Test",
+				Mailbox: "usertest",
+				Host:    "test.dev",
+			}},
+			ReplyTo:   nil,
+			To:        nil,
+			Cc:        nil,
+			Bcc:       nil,
+			InReplyTo: nil,
+			MessageID: "",
+		},
+	}
 
 	for i := 0; i < b.N; i++ {
 		_, _ = testedUnit.Eval(msg)
