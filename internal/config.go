@@ -29,10 +29,10 @@ func NewConfig(path string) (*Config, error) {
 		return nil, fmt.Errorf("config: new: %v", err)
 	}
 
-	var c *Config
-	err = yaml.Unmarshal([]byte(replaced), c)
+	var c Config
+	err = yaml.Unmarshal([]byte(replaced), &c)
 	if err != nil {
 		return nil, fmt.Errorf("config: new: %v", err)
 	}
-	return c, nil
+	return &c, nil
 }
