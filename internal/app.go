@@ -60,9 +60,7 @@ func (a *App) Do(ctx context.Context) error {
 				continue
 			}
 
-			seqNum := new(imap.UIDSet)
-			seqNum.AddNum(search.AllUIDs()...)
-			found, err := client.Fetch(seqNum, nil).Collect()
+			found, err := client.Fetch(imap.UIDSetNum(search.AllUIDs()...), nil).Collect()
 			if err != nil {
 				slog.Error(fmt.Sprintf("%+v", err))
 				continue
