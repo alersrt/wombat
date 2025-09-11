@@ -14,6 +14,7 @@ type Imap struct {
 	Password    string        `yaml:"password"`
 	Mailbox     string        `yaml:"mailbox"`
 	IdleTimeout time.Duration `yaml:"idleTimeout"`
+	Verbose     bool          `yaml:"verbose"`
 }
 
 type Config struct {

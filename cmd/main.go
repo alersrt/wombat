@@ -31,7 +31,7 @@ func main() {
 		app := internal.NewMailBot(cfg.Imap)
 
 		slog.Info("start")
-		err = app.Read(ctx, make(chan any))
+		err = app.Read(ctx)
 		if err != nil {
 			slog.Error(fmt.Sprintf("%+v", err))
 			cancel()
