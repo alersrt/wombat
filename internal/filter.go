@@ -7,12 +7,10 @@ import (
 	"github.com/google/cel-go/common/overloads"
 	"github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/common/types/ref"
-	"github.com/google/cel-go/common/types/traits"
 	"github.com/google/cel-go/ext"
-	"reflect"
 )
 
-const varNameMessage = "message"
+const varNameSelf = "self"
 
 type Filter struct {
 	prog cel.Program
@@ -20,8 +18,7 @@ type Filter struct {
 
 func NewFilter(filter string) (*Filter, error) {
 	env, err := cel.NewEnv(
-		ext.NativeTypes(reflect.TypeOf(&Message{})),
-		cel.Variable(varNameMessage, cel.ObjectType("internal.Message", traits.ReceiverType)),
+		cel.Variable(varNameSelf, cel.MapType(cel.StringType, cel.AnyType)),
 		cel.Function(overloads.TypeConvertString, cel.Overload(
 			"map_to_string", []*cel.Type{cel.MapType(cel.StringType, cel.AnyType)}, cel.StringType,
 			cel.UnaryBinding(func(value ref.Val) ref.Val {
@@ -53,13 +50,18 @@ func NewFilter(filter string) (*Filter, error) {
 	return &Filter{prog: prog}, nil
 }
 
-func (f *Filter) Eval(msg *Message) (bool, error) {
-
-	data := map[string]any{
-		varNameMessage: msg,
+func (f *Filter) Eval(obj any) (bool, error) {
+	bytes, err := json.Marshal(obj)
+	if err != nil {
+		return false, err
 	}
 
-	eval, _, err := f.prog.Eval(data)
+	data := make(map[string]any)
+	if err := json.Unmarshal(bytes, &data); err != nil {
+		return false, err
+	}
+
+	eval, _, err := f.prog.Eval(map[string]any{varNameSelf: data})
 	if err != nil {
 		return false, fmt.Errorf("filter: eval: %v", err)
 	}

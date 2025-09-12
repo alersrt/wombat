@@ -84,7 +84,7 @@ func (m *MailBot) Read(ctx context.Context) error {
 			for _, item := range found {
 				m.messages <- &Message{
 					Envelope: item.Envelope,
-					Text:     item.FindBodySection(&imap.FetchItemBodySection{Specifier: imap.PartSpecifierText}),
+					Text:     string(item.FindBodySection(&imap.FetchItemBodySection{Specifier: imap.PartSpecifierText})),
 				}
 			}
 		}
