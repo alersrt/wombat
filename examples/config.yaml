@@ -14,7 +14,7 @@ imap:
 rules:
   - name: rule1
     filter: |
-      message.matches(.*some regex.*)
+      self.Text.matches(.*some regex.*)
     actions:
       - name: test1
         args:
