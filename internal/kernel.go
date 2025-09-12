@@ -2,13 +2,15 @@ package internal
 
 import (
 	"context"
-	"sync"
+	"fmt"
+	"plugin"
 )
 
 type Source interface {
 	Close() error
 	Read(ctx context.Context) error
 	Publish() <-chan *Message
+	Name() string
 }
 
 type Target interface {
@@ -16,9 +18,33 @@ type Target interface {
 }
 
 type Action interface {
-	Execute(args ...any)
+	Execute(args ...any) error
 }
 
 type Kernel struct {
-	rwMtx sync.RWMutex
+	actions map[string]Action
+}
+
+func NewKernel(plugs []*Plugin) (*Kernel, error) {
+	actions := make(map[string]Action)
+	for _, p := range plugs {
+		open, err := plugin.Open(p.Path)
+		if err != nil {
+			return nil, err
+		}
+
+		lookup, err := open.Lookup("Action")
+		if err != nil {
+			return nil, err
+		}
+
+		action, ok := lookup.(Action)
+		if !ok {
+			return nil, fmt.Errorf("kernel: new: wrong plugin name=%s", p.Name)
+		}
+
+		actions[p.Name] = action
+	}
+
+	return &Kernel{actions: actions}, nil
 }

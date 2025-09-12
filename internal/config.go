@@ -26,16 +26,21 @@ type Imap struct {
 	Verbose     bool          `yaml:"verbose"`
 }
 
+type Plugin struct {
+	Name string `yaml:"name"`
+	Path string `yaml:"path"`
+}
+
 type Rule struct {
-	Name    string   `yaml:"name"`
-	Filter  string   `yaml:"filter"`
-	Actions []string `yaml:"actions"`
+	Name   string `yaml:"name"`
+	Filter string `yaml:"filter"`
 }
 
 type Config struct {
 	Jira     *Jira     `yaml:"jira"`
 	Telegram *Telegram `yaml:"telegram"`
 	Imap     *Imap     `yaml:"imap"`
+	Plugins  []*Plugin `yaml:"plugins"`
 	Rules    []*Rule   `yaml:"rules"`
 }
 

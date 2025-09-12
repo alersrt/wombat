@@ -11,17 +11,12 @@ imap:
   idleTimeout: ${WOMBAT_IMAP_IDLE_TIMEOUT:-5000}
   verbose: ${WOMBAT_IMAP_VERBOSE:-true}
 
+plugins:
+  - name: test
+    path: ./plugins/test.so
+
 rules:
   - name: rule1
     filter: |
       self.Text.matches(.*some regex.*)
-    actions:
-      - name: test1
-        args:
-          - 1
-          - 2
-      - name: test2
-        args:
-          - "some"
-          - 1
 
