@@ -25,4 +25,5 @@ It's necessary to specify path to custom [config](examples/config.yaml): `--conf
 | `WOMBAT_JIRA_URL`          |             |                                    |
 | `WOMBAT_TELEGRAM_TOKEN`    |             |                                    |
 
-[extra]: https://github.com/golang-standards/project-layout
+[cel-spec]: https://github.com/google/cel-spec
+[cel-k8s]: https://kubernetes.io/docs/reference/using-api/cel/
