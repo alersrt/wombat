@@ -28,16 +28,7 @@ func main() {
 			cancel()
 		}
 
-		_, err = internal.NewKernel(cfg.Plugins)
-		if err != nil {
-			slog.Error(fmt.Sprintf("%+v", err))
-			cancel()
-		}
-
-		app := internal.NewMailBot(cfg.Imap)
-
-		slog.Info("start")
-		err = app.Read(ctx)
+		_, err = internal.NewKernel(cfg.Sources, cfg.Destinations)
 		if err != nil {
 			slog.Error(fmt.Sprintf("%+v", err))
 			cancel()

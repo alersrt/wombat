@@ -5,43 +5,23 @@ import (
 	"gopkg.in/yaml.v2"
 	"mvdan.cc/sh/v3/shell"
 	"os"
-	"time"
 )
 
-type Jira struct {
-	Url   string `yaml:"url"`
-	Token string `yaml:"token"`
+type PluginCfg struct {
+	Name string         `yaml:"name"`
+	Bin  string         `yaml:"bin"`
+	Conf map[string]any `yaml:"conf"`
 }
 
-type Telegram struct {
-	Token string `yaml:"token"`
-}
-
-type Imap struct {
-	Url         string        `yaml:"url"`
-	Username    string        `yaml:"username"`
-	Password    string        `yaml:"password"`
-	Mailbox     string        `yaml:"mailbox"`
-	IdleTimeout time.Duration `yaml:"idleTimeout"`
-	Verbose     bool          `yaml:"verbose"`
-}
-
-type Plugin struct {
-	Name string `yaml:"name"`
-	Path string `yaml:"path"`
-}
-
-type Rule struct {
+type RuleCfg struct {
 	Name   string `yaml:"name"`
 	Filter string `yaml:"filter"`
 }
 
 type Config struct {
-	Jira     *Jira     `yaml:"jira"`
-	Telegram *Telegram `yaml:"telegram"`
-	Imap     *Imap     `yaml:"imap"`
-	Plugins  []*Plugin `yaml:"plugins"`
-	Rules    []*Rule   `yaml:"rules"`
+	Sources      []*PluginCfg `yaml:"sources"`
+	Destinations []*PluginCfg `yaml:"destinations"`
+	Rules        []*RuleCfg   `yaml:"rules"`
 }
 
 func NewConfig(path string) (*Config, error) {

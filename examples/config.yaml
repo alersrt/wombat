@@ -1,19 +1,24 @@
-jira:
-  url: ${WOMBAT_JIRA_URL:-localhost}
-  token: ${WOMBAT_JIRA_TOKEN}
-telegram:
-  token: ${WOMBAT_TELEGRAM_TOKEN}
-imap:
-  url: ${WOMBAT_IMAP_ADDRESS:-mail.dev:993}
-  username: ${WOMBAT_IMAP_USERNAME:-example@mail.dev}
-  password: ${WOMBAT_IMAP_PASSWORD:-password}
-  mailbox: ${WOMBAT_IMAP_MAILBOX:-Inbox}
-  idleTimeout: ${WOMBAT_IMAP_IDLE_TIMEOUT:-5000}
-  verbose: ${WOMBAT_IMAP_VERBOSE:-true}
+sources:
+  - name: imap_src
+    bin: ./plugins/imap_plugin.so
+    conf:
+      url: ${WOMBAT_IMAP_ADDRESS:-mail.dev:993}
+      username: ${WOMBAT_IMAP_USERNAME:-example@mail.dev}
+      password: ${WOMBAT_IMAP_PASSWORD:-password}
+      mailbox: ${WOMBAT_IMAP_MAILBOX:-Inbox}
+      idleTimeout: ${WOMBAT_IMAP_IDLE_TIMEOUT:-5000}
+      verbose: ${WOMBAT_IMAP_VERBOSE:-true}
 
-plugins:
-  - name: test
-    path: ./plugins/test.so
+destinations:
+  - name: tg_dst
+    bin: ./plugins/tg_plugin.so
+    conf:
+      token: ${WOMBAT_TELEGRAM_TOKEN}
+  - name: jira_dst
+    bin: ./plugins/jira_plugin.so
+    conf:
+      url: ${WOMBAT_JIRA_URL:-localhost}
+      token: ${WOMBAT_JIRA_TOKEN}
 
 rules:
   - name: rule1
