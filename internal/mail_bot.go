@@ -27,8 +27,8 @@ func (m *MailBot) Close() error {
 	return nil
 }
 
-// Messages returns output channel for read
-func (m *MailBot) Messages() <-chan *Message {
+// Publish returns output channel for read
+func (m *MailBot) Publish() <-chan *Message {
 	return m.messages
 }
 

@@ -18,10 +18,6 @@ func NewTgBot(cfg *Telegram) (*TgBot, error) {
 	return &TgBot{cfg: cfg, bot: bot}, nil
 }
 
-func (t *TgBot) Close() error {
-	return nil
-}
-
 func (t *TgBot) Send(chatId int64, msg string) error {
 	_, err := t.bot.Send(api.NewMessage(chatId, msg))
 	return err

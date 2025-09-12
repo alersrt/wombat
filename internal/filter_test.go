@@ -15,7 +15,7 @@ func TestFilter(t *testing.T) {
 		t.Fatalf("%+v", err)
 	}
 
-	msg := Message{
+	msg := &Message{
 		Text: []byte("some test"),
 		Envelope: &imap.Envelope{
 			Date:    time.Time{},
@@ -53,7 +53,7 @@ func BenchmarkFilter_Eval(b *testing.B) {
 `
 	testedUnit, _ := NewFilter(filterContent)
 
-	msg := Message{
+	msg := &Message{
 		Text: []byte("some test"),
 		Envelope: &imap.Envelope{
 			Date:    time.Time{},

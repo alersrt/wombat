@@ -53,7 +53,7 @@ func NewFilter(filter string) (*Filter, error) {
 	return &Filter{prog: prog}, nil
 }
 
-func (f *Filter) Eval(msg Message) (bool, error) {
+func (f *Filter) Eval(msg *Message) (bool, error) {
 
 	data := map[string]any{
 		varNameMessage: msg,
