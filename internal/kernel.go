@@ -60,12 +60,12 @@ func NewKernel(src []*PluginCfg, dst []*PluginCfg) (*Kernel, error) {
 			return nil, err
 		}
 
-		newSrc, ok := lookup.(func(cfg map[string]any) (Dst, error))
+		newDst, ok := lookup.(func(cfg map[string]any) (Dst, error))
 		if !ok {
 			return nil, fmt.Errorf("kernel: new: wrong plugin [%s]", p.Name)
 		}
 
-		nS, err := newSrc(p.Conf)
+		nS, err := newDst(p.Conf)
 		if err != nil {
 			return nil, err
 		}
