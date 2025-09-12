@@ -1,4 +1,4 @@
-package filter
+package internal
 
 import (
 	"encoding/json"
@@ -10,7 +10,6 @@ import (
 	"github.com/google/cel-go/common/types/traits"
 	"github.com/google/cel-go/ext"
 	"reflect"
-	"wombat/internal"
 )
 
 const varNameMessage = "message"
@@ -21,7 +20,7 @@ type Filter struct {
 
 func NewFilter(filter string) (*Filter, error) {
 	env, err := cel.NewEnv(
-		ext.NativeTypes(reflect.TypeFor[internal.Message]()),
+		ext.NativeTypes(reflect.TypeFor[Message]()),
 		cel.Variable(varNameMessage, cel.ObjectType("internal.Message", traits.ReceiverType)),
 		cel.Function(overloads.TypeConvertString, cel.Overload(
 			"map_to_string", []*cel.Type{cel.MapType(cel.StringType, cel.AnyType)}, cel.StringType,
@@ -56,7 +55,7 @@ func NewFilter(filter string) (*Filter, error) {
 	return &Filter{prog: prog}, nil
 }
 
-func (f *Filter) Eval(msg internal.Message) (bool, error) {
+func (f *Filter) Eval(msg Message) (bool, error) {
 
 	data := map[string]any{
 		varNameMessage: msg,

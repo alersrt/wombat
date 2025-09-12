@@ -1,10 +1,9 @@
-package filter
+package internal
 
 import (
 	"github.com/emersion/go-imap/v2"
 	"testing"
 	"time"
-	"wombat/internal"
 )
 
 func TestFilter(t *testing.T) {
@@ -16,7 +15,7 @@ func TestFilter(t *testing.T) {
 		t.Fatalf("%+v", err)
 	}
 
-	msg := internal.Message{
+	msg := Message{
 		Text: []byte("some test"),
 		Envelope: &imap.Envelope{
 			Date:    time.Time{},
@@ -54,7 +53,7 @@ func BenchmarkFilter_Eval(b *testing.B) {
 `
 	testedUnit, _ := NewFilter(filterContent)
 
-	msg := internal.Message{
+	msg := Message{
 		Text: []byte("some test"),
 		Envelope: &imap.Envelope{
 			Date:    time.Time{},
