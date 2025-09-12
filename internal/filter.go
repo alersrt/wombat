@@ -20,7 +20,7 @@ type Filter struct {
 
 func NewFilter(filter string) (*Filter, error) {
 	env, err := cel.NewEnv(
-		ext.NativeTypes(reflect.TypeFor[Message]()),
+		ext.NativeTypes(reflect.TypeOf(&Message{})),
 		cel.Variable(varNameMessage, cel.ObjectType("internal.Message", traits.ReceiverType)),
 		cel.Function(overloads.TypeConvertString, cel.Overload(
 			"map_to_string", []*cel.Type{cel.MapType(cel.StringType, cel.AnyType)}, cel.StringType,
@@ -29,8 +29,6 @@ func NewFilter(filter string) (*Filter, error) {
 				return types.String(b)
 			}),
 		)),
-		cel.OptionalTypes(),
-		ext.Regex(),
 		ext.Strings(),
 		ext.Encoders(),
 		ext.Math(),

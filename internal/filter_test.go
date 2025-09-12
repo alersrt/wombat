@@ -8,7 +8,7 @@ import (
 
 func TestFilter(t *testing.T) {
 	filterContent := `string(message.Text).matches(".*some.*")
-&& message.Envelope.From.Name == 'Test'
+&& message.Envelope.From.exists(f, f.Name == 'Test')
 `
 	testedUnit, err := NewFilter(filterContent)
 	if err != nil {
@@ -49,7 +49,7 @@ func TestFilter(t *testing.T) {
 
 func BenchmarkFilter_Eval(b *testing.B) {
 	filterContent := `string(message.Text).matches(".*some.*")
-&& message.Envelope.From.Name == 'Test'
+&& message.Envelope.From.exists(f, f.Name == 'Test')
 `
 	testedUnit, _ := NewFilter(filterContent)
 
