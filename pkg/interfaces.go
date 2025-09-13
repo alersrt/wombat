@@ -27,8 +27,7 @@ type Cel interface {
 
 	/*
 	   Eval evaluates provided object either to the next types:
-	       - boolean based on condition;
-	       - string either;
+	       - basic Go types (bool, string, int, etc.);
 	       - object in JSON format.
 	*/
 	Eval(obj []byte) (any, error)
