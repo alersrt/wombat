@@ -40,6 +40,13 @@ func NewKernel(plugs []*PluginCfg) (*Kernel, error) {
 		if err := plug.Init(cfg); err != nil {
 			return nil, err
 		}
+
+		switch pl := plug.(type) {
+		case pkg.Src:
+			srcMap[p.Name] = pl
+		case pkg.Dst:
+			dstMap[p.Name] = pl
+		}
 	}
 
 	return &Kernel{src: srcMap, dst: dstMap}, nil

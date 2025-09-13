@@ -20,8 +20,7 @@ plugins:
     bin: ./plugins/cel_plugin.so
     conf:
       expr: |
-        self.Text.matches(.*some regex.*)
-
+        self.Text.matches(".*some regex.*")
 rules:
   - name: rule1
     filter: |
