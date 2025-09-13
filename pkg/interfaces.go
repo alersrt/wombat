@@ -21,3 +21,10 @@ type Dst interface {
 	// args is json representation of the expected structure.
 	Send(args []byte) error
 }
+
+// Cel provides filtration/transformation mechanism.
+type Cel interface {
+
+	// Eval evaluates provided object either to boolean based on condition either to another object.
+	Eval(obj []byte) (any, error)
+}

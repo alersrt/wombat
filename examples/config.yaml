@@ -16,6 +16,11 @@ plugins:
     bin: ./plugins/tg_plugin.so
     conf:
       token: ${WOMBAT_TELEGRAM_TOKEN}
+  - name: cel_expr1
+    bin: ./plugins/cel_plugin.so
+    conf:
+      expr: |
+        self.Text.matches(.*some regex.*)
 
 rules:
   - name: rule1

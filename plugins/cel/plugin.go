@@ -8,15 +8,25 @@ import (
 	"github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/common/types/ref"
 	"github.com/google/cel-go/ext"
+	"github.com/wombat/pkg"
 )
 
 const varNameSelf = "self"
 
-type Filter struct {
+type Plugin struct {
 	prog cel.Program
 }
 
-func NewFilter(filter string) (*Filter, error) {
+type Config struct {
+	Expr string `yaml:"expr"`
+}
+
+func New(cfg []byte) (pkg.Cel, error) {
+	celCfg := &Config{}
+	if err := json.Unmarshal(cfg, celCfg); err != nil {
+		return nil, err
+	}
+
 	env, err := cel.NewEnv(
 		cel.Variable(varNameSelf, cel.MapType(cel.StringType, cel.AnyType)),
 		cel.Function(overloads.TypeConvertString, cel.Overload(
@@ -36,36 +46,32 @@ func NewFilter(filter string) (*Filter, error) {
 		ext.TwoVarComprehensions(),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("filter: new: %v", err)
+		return nil, fmt.Errorf("cel: new: %v", err)
 	}
 
-	ast, iss := env.Compile(filter)
+	ast, iss := env.Compile(celCfg.Expr)
 	if iss != nil && iss.Err() != nil {
-		return nil, fmt.Errorf("filter: new: %v", iss.Err())
+		return nil, fmt.Errorf("cel: new: %v", iss.Err())
 	}
 
 	prog, err := env.Program(ast)
 	if err != nil {
-		return nil, fmt.Errorf("filter: new: %v", err)
+		return nil, fmt.Errorf("cel: new: %v", err)
 	}
 
-	return &Filter{prog: prog}, nil
+	return &Plugin{prog: prog}, nil
 }
 
-func (f *Filter) Eval(obj any) (bool, error) {
-	bytes, err := json.Marshal(obj)
-	if err != nil {
-		return false, err
-	}
-
-	data := make(map[string]any)
-	if err := json.Unmarshal(bytes, &data); err != nil {
-		return false, err
+func (f *Plugin) Eval(obj []byte) (any, error) {
+	var data any
+	data = make(map[string]any)
+	if err := json.Unmarshal(obj, &data); err != nil {
+		data = string(obj)
 	}
 
 	eval, _, err := f.prog.Eval(map[string]any{varNameSelf: data})
 	if err != nil {
-		return false, fmt.Errorf("filter: eval: %v", err)
+		return false, fmt.Errorf("cel: eval: %v", err)
 	}
-	return eval.Value().(bool), nil
+	return eval.Value(), nil
 }

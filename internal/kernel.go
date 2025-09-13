@@ -10,6 +10,7 @@ import (
 type Kernel struct {
 	src map[string]pkg.Src
 	dst map[string]pkg.Dst
+	cel map[string]pkg.Cel
 }
 
 func NewKernel(plugs []*PluginCfg) (*Kernel, error) {
