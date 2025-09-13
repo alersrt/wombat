@@ -75,9 +75,12 @@ func (f *Plugin) Eval(obj []byte) (any, error) {
 	}
 
 	switch eV := eval.Value().(type) {
-	case bool:
-		return eV, nil
-	case string:
+	case bool,
+		string,
+		int, int8, int16, int32, int64,
+		uint, uint8, uint16, uint32, uint64, uintptr,
+		float32, float64,
+		complex64, complex128:
 		return eV, nil
 	case map[ref.Val]ref.Val:
 		return json.Marshal(convert(eV))

@@ -122,7 +122,7 @@ func TestFilter_obj(t *testing.T) {
 		t.Fatalf("%+v", err)
 	}
 
-	if built.Text != "some text" || !built.IsCheck || len(built.Envelope) != 2 {
+	if built.Text != "some text" || !built.IsCheck || len(built.Envelope) != 2 || built.Nested.One != 1 {
 		t.Fatalf("wrong values: %+v", built)
 	}
 }
