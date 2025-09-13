@@ -4,9 +4,6 @@ go 1.25.1
 
 require (
 	github.com/andygrunwald/go-jira v1.16.0
-	github.com/emersion/go-imap/v2 v2.0.0-beta.6
-	github.com/emersion/go-message v0.18.2
-	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/google/cel-go v0.26.1
 	gopkg.in/yaml.v2 v2.4.0
 	mvdan.cc/sh/v3 v3.12.0
@@ -30,4 +27,3 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
 
-replace github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1 => github.com/OvyFlash/telegram-bot-api v0.0.0-20250903213241-2ddbaeebe9a5

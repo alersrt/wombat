@@ -13,7 +13,8 @@
 !/plugins/
 
 # Backend
-/vendor
+**/vendor
+**/go.sum
 /build/bin
 /.go
 !go.mod
