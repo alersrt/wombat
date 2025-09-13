@@ -25,6 +25,11 @@ type Dst interface {
 // Cel provides filtration/transformation mechanism.
 type Cel interface {
 
-	// Eval evaluates provided object either to boolean based on condition either to another object.
+	/*
+	   Eval evaluates provided object either to the next types:
+	       - boolean based on condition;
+	       - string either;
+	       - object in JSON format.
+	*/
 	Eval(obj []byte) (any, error)
 }

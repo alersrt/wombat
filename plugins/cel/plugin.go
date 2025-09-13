@@ -28,9 +28,9 @@ func New(cfg []byte) (pkg.Cel, error) {
 	}
 
 	env, err := cel.NewEnv(
-		cel.Variable(varNameSelf, cel.MapType(cel.StringType, cel.AnyType)),
+		cel.Variable(varNameSelf, cel.MapType(cel.StringType, cel.DynType)),
 		cel.Function(overloads.TypeConvertString, cel.Overload(
-			"map_to_string", []*cel.Type{cel.MapType(cel.StringType, cel.AnyType)}, cel.StringType,
+			"map_to_string", []*cel.Type{cel.MapType(cel.StringType, cel.DynType)}, cel.StringType,
 			cel.UnaryBinding(func(value ref.Val) ref.Val {
 				b, _ := json.Marshal(value.Value())
 				return types.String(b)
@@ -71,7 +71,15 @@ func (f *Plugin) Eval(obj []byte) (any, error) {
 
 	eval, _, err := f.prog.Eval(map[string]any{varNameSelf: data})
 	if err != nil {
-		return false, fmt.Errorf("cel: eval: %v", err)
+		return nil, fmt.Errorf("cel: eval: %v", err)
 	}
-	return eval.Value(), nil
+
+	switch eV := eval.Value().(type) {
+	case bool:
+		return eV, nil
+	case string:
+		return eV, nil
+	default:
+		return json.Marshal(eV)
+	}
 }
