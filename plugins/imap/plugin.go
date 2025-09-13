@@ -7,10 +7,11 @@ import (
 	"github.com/emersion/go-imap/v2"
 	"github.com/emersion/go-imap/v2/imapclient"
 	"github.com/emersion/go-message/charset"
-	"github.com/wombat/pkg"
 	"io"
 	"mime"
 	"os"
+	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -30,17 +31,29 @@ type Message struct {
 
 // Plugin responsible for getting messages from mail.
 type Plugin struct {
+	mtx      sync.Mutex
+	isInit   atomic.Bool
 	cfg      *Config
 	messages chan []byte
 }
 
-func New(cfg []byte) (pkg.Src, error) {
-	imapCfg := &Config{}
-	if err := json.Unmarshal(cfg, imapCfg); err != nil {
-		return nil, err
-	}
+var Export = Plugin{}
 
-	return &Plugin{cfg: imapCfg, messages: make(chan []byte)}, nil
+func (p *Plugin) Init(cfg []byte) error {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+
+	p.cfg = &Config{}
+	if err := json.Unmarshal(cfg, p.cfg); err != nil {
+		return err
+	}
+	p.messages = make(chan []byte)
+	p.isInit.Store(true)
+	return nil
+}
+
+func (p *Plugin) IsInit() bool {
+	return p.isInit.Load()
 }
 
 func (p *Plugin) Close() error {
@@ -53,6 +66,12 @@ func (p *Plugin) Publish() <-chan []byte {
 }
 
 func (p *Plugin) Run(ctx context.Context) error {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+	if !p.IsInit() {
+		return fmt.Errorf("imap: run: not init")
+	}
+
 	var client *imapclient.Client
 
 	var debugWriter io.Writer
@@ -68,15 +87,15 @@ func (p *Plugin) Run(ctx context.Context) error {
 		_ = client.Logout().Wait()
 	}()
 	if err != nil {
-		return fmt.Errorf("mail: read: %v", err)
+		return fmt.Errorf("imap: run: %v", err)
 	}
 
 	if err = client.Login(p.cfg.Username, p.cfg.Password).Wait(); err != nil {
-		return fmt.Errorf("mail: read: %v", err)
+		return fmt.Errorf("imap: run: %v", err)
 	}
 
 	if _, err = client.Select(p.cfg.Mailbox, &imap.SelectOptions{ReadOnly: false}).Wait(); err != nil {
-		return fmt.Errorf("mail: read: %v", err)
+		return fmt.Errorf("imap: run: %v", err)
 	}
 	defer func() {
 		_ = client.Unselect().Wait()
@@ -91,14 +110,14 @@ func (p *Plugin) Run(ctx context.Context) error {
 
 			search, err := client.Search(&imap.SearchCriteria{NotFlag: []imap.Flag{imap.FlagSeen}}, nil).Wait()
 			if err != nil {
-				return fmt.Errorf("mail: read: %v", err)
+				return fmt.Errorf("imap: run: %v", err)
 			}
 			if len(search.AllSeqNums()) == 0 {
 				continue
 			}
 			found, err := client.Fetch(search.All, &imap.FetchOptions{Envelope: true, BodySection: []*imap.FetchItemBodySection{{Specifier: imap.PartSpecifierText}}}).Collect()
 			if err != nil {
-				return fmt.Errorf("mail: read: %v", err)
+				return fmt.Errorf("imap: run: %v", err)
 			}
 			for _, item := range found {
 				bytes, err := json.Marshal(&Message{

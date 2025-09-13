@@ -2,6 +2,11 @@ package pkg
 
 import "context"
 
+type Plugin interface {
+	Init([]byte) error
+	IsInit() bool
+}
+
 // Src describes source type.
 type Src interface {
 	Close() error

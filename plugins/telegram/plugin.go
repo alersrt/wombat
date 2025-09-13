@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	api "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/wombat/pkg"
+	"sync"
+	"sync/atomic"
 )
 
 type Config struct {
@@ -12,21 +13,35 @@ type Config struct {
 }
 
 type Plugin struct {
-	cfg *Config
-	bot *api.BotAPI
+	mtx    sync.Mutex
+	isInit atomic.Bool
+	cfg    *Config
+	bot    *api.BotAPI
 }
 
-func New(cfg []byte) (pkg.Dst, error) {
-	tgCfg := &Config{}
-	if err := json.Unmarshal(cfg, tgCfg); err != nil {
-		return nil, err
+var Export = Plugin{}
+
+func (p *Plugin) Init(cfg []byte) error {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+
+	p.cfg = &Config{}
+	if err := json.Unmarshal(cfg, p.cfg); err != nil {
+		return err
 	}
 
-	bot, err := api.NewBotAPI(tgCfg.Token)
+	bot, err := api.NewBotAPI(p.cfg.Token)
 	if err != nil {
-		return nil, fmt.Errorf("tg: new: %v", err)
+		return fmt.Errorf("tg: new: %v", err)
 	}
-	return &Plugin{cfg: tgCfg, bot: bot}, nil
+	p.bot = bot
+
+	p.isInit.Store(true)
+	return nil
+}
+
+func (p *Plugin) IsInit() bool {
+	return p.isInit.Load()
 }
 
 func (p *Plugin) Close() error {
@@ -39,6 +54,10 @@ type SendArgs struct {
 }
 
 func (p *Plugin) Send(args []byte) error {
+	if !p.IsInit() {
+		return fmt.Errorf("tg: send: not init")
+	}
+
 	sA := &SendArgs{}
 	if err := json.Unmarshal(args, sA); err != nil {
 		return err

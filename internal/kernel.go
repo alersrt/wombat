@@ -22,30 +22,23 @@ func NewKernel(plugs []*PluginCfg) (*Kernel, error) {
 			return nil, err
 		}
 
-		lookup, err := open.Lookup("New")
+		lookup, err := open.Lookup("Export")
 		if err != nil {
 			return nil, err
 		}
 
-		bytes, err := json.Marshal(p.Conf)
+		plug, ok := lookup.(pkg.Plugin)
+		if !ok {
+			return nil, fmt.Errorf("kernel: incompatible plug [%s]", p.Name)
+		}
+
+		cfg, err := json.Marshal(p.Conf)
 		if err != nil {
 			return nil, err
 		}
-		switch newPlug := lookup.(type) {
-		case func(cfg []byte) (pkg.Src, error):
-			plug, err := newPlug(bytes)
-			if err != nil {
-				return nil, err
-			}
-			srcMap[p.Name] = plug
-		case func(cfg []byte) (pkg.Dst, error):
-			plug, err := newPlug(bytes)
-			if err != nil {
-				return nil, err
-			}
-			dstMap[p.Name] = plug
-		default:
-			return nil, fmt.Errorf("kernel: incompatible plug [%s]", p.Name)
+
+		if err := plug.Init(cfg); err != nil {
+			return nil, err
 		}
 	}
 
