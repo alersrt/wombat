@@ -8,23 +8,31 @@ import (
 	"github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/common/types/ref"
 	"github.com/google/cel-go/ext"
-	"github.com/wombat/pkg"
+	"sync"
+	"sync/atomic"
 )
 
 const varNameSelf = "self"
 
 type Plugin struct {
-	prog cel.Program
+	mtx    sync.Mutex
+	isInit atomic.Bool
+	prog   cel.Program
 }
+
+var Export = Plugin{}
 
 type Config struct {
 	Expr string `yaml:"expr"`
 }
 
-func New(cfg []byte) (pkg.Cel, error) {
+func (p *Plugin) Init(cfg []byte) error {
+	p.mtx.Lock()
+	defer p.mtx.Unlock()
+
 	celCfg := &Config{}
 	if err := json.Unmarshal(cfg, celCfg); err != nil {
-		return nil, err
+		return err
 	}
 
 	env, err := cel.NewEnv(
@@ -46,30 +54,37 @@ func New(cfg []byte) (pkg.Cel, error) {
 		ext.TwoVarComprehensions(),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("cel: new: %v", err)
+		return fmt.Errorf("cel: init: %v", err)
 	}
 
 	ast, iss := env.Compile(celCfg.Expr)
 	if iss != nil && iss.Err() != nil {
-		return nil, fmt.Errorf("cel: new: %v", iss.Err())
+		return fmt.Errorf("cel: init: %v", iss.Err())
 	}
 
 	prog, err := env.Program(ast)
 	if err != nil {
-		return nil, fmt.Errorf("cel: new: %v", err)
+		return fmt.Errorf("cel: init: %v", err)
 	}
 
-	return &Plugin{prog: prog}, nil
+	p.prog = prog
+
+	p.isInit.Store(true)
+	return nil
 }
 
-func (f *Plugin) Eval(obj []byte) (any, error) {
+func (p *Plugin) IsInit() bool {
+	return p.isInit.Load()
+}
+
+func (p *Plugin) Eval(obj []byte) (any, error) {
 	var data any
 	data = make(map[string]any)
 	if err := json.Unmarshal(obj, &data); err != nil {
 		data = string(obj)
 	}
 
-	eval, _, err := f.prog.Eval(map[string]any{varNameSelf: data})
+	eval, _, err := p.prog.Eval(map[string]any{varNameSelf: data})
 	if err != nil {
 		return nil, fmt.Errorf("cel: eval: %v", err)
 	}

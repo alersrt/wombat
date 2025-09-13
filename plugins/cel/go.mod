@@ -2,10 +2,7 @@ module cel
 
 go 1.25.1
 
-require (
-	github.com/google/cel-go v0.26.1
-	github.com/wombat v0.0.0-00010101000000-000000000000
-)
+require github.com/google/cel-go v0.26.1
 
 require (
 	cel.dev/expr v0.24.0 // indirect
