@@ -78,6 +78,10 @@ func (p *Plugin) IsInit() bool {
 }
 
 func (p *Plugin) Eval(obj []byte) (any, error) {
+	if !p.IsInit() {
+		return nil, fmt.Errorf("cel: eval: not init")
+	}
+
 	var data any
 	data = make(map[string]any)
 	if err := json.Unmarshal(obj, &data); err != nil {
