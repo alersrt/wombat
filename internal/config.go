@@ -19,9 +19,8 @@ type RuleCfg struct {
 }
 
 type Config struct {
-	Sources      []*PluginCfg `yaml:"sources"`
-	Destinations []*PluginCfg `yaml:"destinations"`
-	Rules        []*RuleCfg   `yaml:"rules"`
+	Plugins []*PluginCfg `yaml:"plugins"`
+	Rules   []*RuleCfg   `yaml:"rules"`
 }
 
 func NewConfig(path string) (*Config, error) {

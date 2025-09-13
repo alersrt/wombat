@@ -28,7 +28,7 @@ func main() {
 			cancel()
 		}
 
-		_, err = internal.NewKernel(cfg.Sources, cfg.Destinations)
+		_, err = internal.NewKernel(cfg.Plugins)
 		if err != nil {
 			slog.Error(fmt.Sprintf("%+v", err))
 			cancel()

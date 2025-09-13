@@ -2,6 +2,7 @@ package internal
 
 import (
 	"encoding/json"
+	"fmt"
 	"plugin"
 	"wombat/pkg"
 )
@@ -11,10 +12,10 @@ type Kernel struct {
 	dst map[string]pkg.Dst
 }
 
-func NewKernel(src []*PluginCfg, dst []*PluginCfg) (*Kernel, error) {
+func NewKernel(plugs []*PluginCfg) (*Kernel, error) {
 	srcMap := make(map[string]pkg.Src)
 	dstMap := make(map[string]pkg.Dst)
-	for _, p := range src {
+	for _, p := range plugs {
 		open, err := plugin.Open(p.Bin)
 		if err != nil {
 			return nil, err
@@ -30,14 +31,22 @@ func NewKernel(src []*PluginCfg, dst []*PluginCfg) (*Kernel, error) {
 			return nil, err
 		}
 		switch newPlug := lookup.(type) {
-		case func(cfg []byte) (pkg.Src, error):
-			nS, err := newPlug(bytes)
+		case func(cfg []byte) (pkg.Plugin, error):
+			plug, err := newPlug(bytes)
 			if err != nil {
 				return nil, err
 			}
-			srcMap[p.Name] = nS
+			switch pl := plug.(type) {
+			case pkg.Src:
+				srcMap[p.Name] = pl
+			case pkg.Dst:
+				dstMap[p.Name] = pl
+			default:
+				return nil, fmt.Errorf("kernel: incompatible plug [%s]", p.Name)
+			}
+		default:
+			return nil, fmt.Errorf("kernel: incompatible plug [%s]", p.Name)
 		}
-
 	}
 
 	return &Kernel{src: srcMap, dst: dstMap}, nil

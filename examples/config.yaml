@@ -1,4 +1,4 @@
-sources:
+plugins:
   - name: imap_src
     bin: ./plugins/imap_plugin.so
     conf:
@@ -8,17 +8,14 @@ sources:
       mailbox: ${WOMBAT_IMAP_MAILBOX:-Inbox}
       idleTimeout: ${WOMBAT_IMAP_IDLE_TIMEOUT:-5000}
       verbose: ${WOMBAT_IMAP_VERBOSE:-true}
-
-destinations:
-  - name: tg_dst
+  - name: tg_dst1
     bin: ./plugins/tg_plugin.so
     conf:
       token: ${WOMBAT_TELEGRAM_TOKEN}
-  - name: jira_dst
-    bin: ./plugins/jira_plugin.so
+  - name: tg_dst2
+    bin: ./plugins/tg_plugin.so
     conf:
-      url: ${WOMBAT_JIRA_URL:-localhost}
-      token: ${WOMBAT_JIRA_TOKEN}
+      token: ${WOMBAT_TELEGRAM_TOKEN}
 
 rules:
   - name: rule1
