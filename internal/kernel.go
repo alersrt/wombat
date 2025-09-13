@@ -31,19 +31,18 @@ func NewKernel(plugs []*PluginCfg) (*Kernel, error) {
 			return nil, err
 		}
 		switch newPlug := lookup.(type) {
-		case func(cfg []byte) (pkg.Plugin, error):
+		case func(cfg []byte) (pkg.Src, error):
 			plug, err := newPlug(bytes)
 			if err != nil {
 				return nil, err
 			}
-			switch pl := plug.(type) {
-			case pkg.Src:
-				srcMap[p.Name] = pl
-			case pkg.Dst:
-				dstMap[p.Name] = pl
-			default:
-				return nil, fmt.Errorf("kernel: incompatible plug [%s]", p.Name)
+			srcMap[p.Name] = plug
+		case func(cfg []byte) (pkg.Dst, error):
+			plug, err := newPlug(bytes)
+			if err != nil {
+				return nil, err
 			}
+			dstMap[p.Name] = plug
 		default:
 			return nil, fmt.Errorf("kernel: incompatible plug [%s]", p.Name)
 		}

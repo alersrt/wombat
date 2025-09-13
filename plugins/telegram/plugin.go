@@ -16,7 +16,7 @@ type Plugin struct {
 	bot *api.BotAPI
 }
 
-func New(cfg []byte) (pkg.Plugin, error) {
+func New(cfg []byte) (pkg.Dst, error) {
 	tgCfg := &Config{}
 	if err := json.Unmarshal(cfg, tgCfg); err != nil {
 		return nil, err

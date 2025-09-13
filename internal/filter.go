@@ -26,6 +26,8 @@ func NewFilter(filter string) (*Filter, error) {
 				return types.String(b)
 			}),
 		)),
+		cel.OptionalTypes(),
+		ext.Regex(),
 		ext.Strings(),
 		ext.Encoders(),
 		ext.Math(),

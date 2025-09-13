@@ -34,7 +34,7 @@ type Plugin struct {
 	messages chan []byte
 }
 
-func New(cfg []byte) (pkg.Plugin, error) {
+func New(cfg []byte) (pkg.Src, error) {
 	imapCfg := &Config{}
 	if err := json.Unmarshal(cfg, imapCfg); err != nil {
 		return nil, err

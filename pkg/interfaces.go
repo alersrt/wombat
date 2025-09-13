@@ -21,6 +21,3 @@ type Dst interface {
 	// args is json representation of the expected structure.
 	Send(args []byte) error
 }
-
-type Plugin interface {
-}
