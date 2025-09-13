@@ -79,7 +79,22 @@ func (f *Plugin) Eval(obj []byte) (any, error) {
 		return eV, nil
 	case string:
 		return eV, nil
+	case map[ref.Val]ref.Val:
+		return json.Marshal(convert(eV))
 	default:
 		return json.Marshal(eV)
 	}
+}
+
+func convert(src map[ref.Val]ref.Val) map[string]any {
+	dst := make(map[string]any)
+	for k, v := range src {
+		switch t := v.Value().(type) {
+		case map[ref.Val]ref.Val:
+			dst[k.Value().(string)] = convert(t)
+		default:
+			dst[k.Value().(string)] = t
+		}
+	}
+	return dst
 }
