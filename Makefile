@@ -83,7 +83,7 @@ mainpath ?= ./cmd/main.go
 
 go.build:
 	mkdir -p ${builddir}
-	GOARCH=amd64 GOOS=linux CGO_LDFLAGS='-static -w -s' go build -a --trimpath -o ${builddir}/${pkgname}-${pkgver}-linux ${mainpath}
+	GOARCH=amd64 GOOS=linux go build -a --trimpath --ldflags="-static -w -s" -o ${builddir}/${pkgname}-${pkgver}-linux ${mainpath}
 
 go.clean:
 	go clean
