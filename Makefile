@@ -80,10 +80,10 @@ builddir ?= ./build/bin
 
 go.build:
 	mkdir -p ${builddir}
-	GOARCH=amd64 GOOS=linux CGO_LDFLAGS='-static -w -s' go build -a --trimpath -o ${builddir}/wombat-linux ./cmd/main.go
-	GOARCH=amd64 GOOS=linux go build -a --trimpath --ldflags="-w -s" --mod=mod --buildmode=plugin -o ${builddir}/cel-plugin.so ./plugins/cel/main.go
-	GOARCH=amd64 GOOS=linux go build -a --trimpath --ldflags="-w -s" --mod=mod --buildmode=plugin -o ${builddir}/imap-plugin.so ./plugins/imap/main.go
-	GOARCH=amd64 GOOS=linux go build -a --trimpath --ldflags="-w -s" --mod=mod --buildmode=plugin -o ${builddir}/tg-plugin.so ./plugins/telegram/main.go
+	GOARCH=amd64 GOOS=linux go build -a --ldflags='-w -s -extldflags="-static"' --trimpath -o ${builddir}/wombat-linux ./cmd/main.go
+	GOARCH=amd64 GOOS=linux go build -a --ldflags='-w -s' --trimpath --mod=mod --buildmode=plugin -o ${builddir}/cel-plugin.so ./plugins/cel/main.go
+	GOARCH=amd64 GOOS=linux go build -a --ldflags='-w -s' --trimpath --mod=mod --buildmode=plugin -o ${builddir}/imap-plugin.so ./plugins/imap/main.go
+	GOARCH=amd64 GOOS=linux go build -a --ldflags='-w -s' --trimpath --mod=mod --buildmode=plugin -o ${builddir}/tg-plugin.so ./plugins/telegram/main.go
 
 go.clean:
 	go clean
