@@ -12,7 +12,10 @@ type Producer interface {
 	Close() error
 
 	// Publish provides channel for reading source incoming data.
-	Publish(ctx context.Context) <-chan []byte
+	Publish() <-chan []byte
+
+	// Run starts reading data from source and publish it to channel.
+	Run(ctx context.Context) error
 }
 
 // Consumer describes the consumer type.
