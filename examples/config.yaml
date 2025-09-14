@@ -9,11 +9,11 @@ plugins:
       idleTimeout: ${WOMBAT_IMAP_IDLE_TIMEOUT:-5000}
       verbose: ${WOMBAT_IMAP_VERBOSE:-true}
   - name: tg_dst1
-    bin: ./build/bin/tg-plugin.so
+    bin: ./build/bin/telegram-plugin.so
     conf:
       token: ${WOMBAT_TELEGRAM_TOKEN}
   - name: tg_dst2
-    bin: ./build/bin/tg-plugin.so
+    bin: ./build/bin/telegram-plugin.so
     conf:
       token: ${WOMBAT_TELEGRAM_TOKEN}
   - name: cel_expr1

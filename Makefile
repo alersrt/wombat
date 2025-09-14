@@ -76,14 +76,17 @@ deps: go.deps
 # Go commands #
 ###############
 
-builddir ?= ./build/bin
-
+builddir ?= ${PWD}/build/bin
 go.build:
 	mkdir -p ${builddir}
-	GOARCH=amd64 GOOS=linux go build -a --ldflags='-w -s -extldflags="-static"' --trimpath -o ${builddir}/wombat-linux ./cmd/main.go
-	GOARCH=amd64 GOOS=linux go build -a --ldflags='-w -s' --trimpath --mod=mod --buildmode=plugin -o ${builddir}/cel-plugin.so ./plugins/cel/main.go
-	GOARCH=amd64 GOOS=linux go build -a --ldflags='-w -s' --trimpath --mod=mod --buildmode=plugin -o ${builddir}/imap-plugin.so ./plugins/imap/main.go
-	GOARCH=amd64 GOOS=linux go build -a --ldflags='-w -s' --trimpath --mod=mod --buildmode=plugin -o ${builddir}/tg-plugin.so ./plugins/telegram/main.go
+	GOARCH=amd64 GOOS=linux go build -a --ldflags='-w -s -extldflags="-static"' --mod=vendor --trimpath -o ${builddir}/wombat-linux ${PWD}/cmd/main.go
+	@make go.plugin.build plugin=cel
+	@make go.plugin.build plugin=imap
+	@make go.plugin.build plugin=telegram
+
+plugin ?=
+go.plugin.build:
+	GOARCH=amd64 GOOS=linux go build -a --ldflags='-w -s' --trimpath --modfile=${PWD}/plugins/${plugin}/go.mod --mod=readonly --buildmode=plugin -o ${builddir}/${plugin}-plugin.so ${PWD}/plugins/${plugin}/main.go
 
 go.clean:
 	go clean
