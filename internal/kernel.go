@@ -16,6 +16,7 @@ type Kernel struct {
 func NewKernel(plugs []*PluginCfg) (*Kernel, error) {
 	srcMap := make(map[string]pkg.Producer)
 	dstMap := make(map[string]pkg.Consumer)
+	celMap := make(map[string]pkg.Transform)
 	for _, p := range plugs {
 		open, err := plugin.Open(p.Bin)
 		if err != nil {
@@ -46,10 +47,14 @@ func NewKernel(plugs []*PluginCfg) (*Kernel, error) {
 			srcMap[p.Name] = pl
 		case pkg.Consumer:
 			dstMap[p.Name] = pl
+		case pkg.Transform:
+			celMap[p.Name] = pl
 		}
 	}
 
-	fmt.Printf("\nplugins:\nSRC:%v\nDST:%v\n", srcMap, dstMap)
+	kernel := &Kernel{src: srcMap, dst: dstMap, cel: celMap}
 
-	return &Kernel{src: srcMap, dst: dstMap}, nil
+	fmt.Printf("%+v\n", kernel)
+
+	return kernel, nil
 }
