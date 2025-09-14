@@ -14,7 +14,7 @@ Main features:
 - Create tasks for infrastructure engineers in Jira and update sent alerts with related Jira's links
 
 Usage
-------
+-----
 
 It's necessary to specify path to custom [config](examples/config.yaml): `--config=/path/to/config`. There is possibility to specify environment variables in config also.
 
@@ -24,6 +24,14 @@ It's necessary to specify path to custom [config](examples/config.yaml): `--conf
 |:---------------------------|:------------|:-----------------------------------|
 | `WOMBAT_JIRA_URL`          |             |                                    |
 | `WOMBAT_TELEGRAM_TOKEN`    |             |                                    |
+
+Plugins
+-------
+
+Build flags:
+```shell
+go build --trimpath --ldflags="-w -s" --buildmode=plugin -o <plugin name>.so
+```
 
 [cel-spec]: https://github.com/google/cel-spec
 [cel-k8s]: https://kubernetes.io/docs/reference/using-api/cel/
