@@ -77,7 +77,7 @@ func TestFilter_obj(t *testing.T) {
     "isCheck": self.Envelope.exists(f, f == 'Check'),
     "envelope": self.Envelope.map(s, {"value": s}),
     "nested": {
-        "one": 1
+        "one": uuid()
     }
 }`,
 	}
@@ -114,14 +114,14 @@ func TestFilter_obj(t *testing.T) {
 			Value string `json:"value"`
 		} `json:"envelope"`
 		Nested struct {
-			One int `json:"one"`
+			One string `json:"one"`
 		} `json:"nested"`
 	}{}
 	if err := json.Unmarshal(oT, built); err != nil {
 		t.Fatalf("%+v", err)
 	}
 
-	if built.Text != "some text" || !built.IsCheck || len(built.Envelope) != 2 || built.Nested.One != 1 {
+	if built.Text != "some text" || !built.IsCheck || len(built.Envelope) != 2 || built.Nested.One == "" {
 		t.Fatalf("wrong values: %+v", built)
 	}
 }
