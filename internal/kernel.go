@@ -54,9 +54,5 @@ func NewKernel(plugs []*PluginCfg) (*Kernel, error) {
 		}
 	}
 
-	kernel := &Kernel{src: srcMap, dst: dstMap, cel: celMap}
-
-	fmt.Printf("%+v\n", kernel)
-
-	return kernel, nil
+	return &Kernel{src: srcMap, dst: dstMap, cel: celMap}, nil
 }
