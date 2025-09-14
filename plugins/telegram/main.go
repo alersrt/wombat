@@ -53,7 +53,7 @@ type SendArgs struct {
 	Text   string
 }
 
-func (p *Plugin) Send(args []byte) error {
+func (p *Plugin) Consume(args []byte) error {
 	if !p.IsInit() {
 		return fmt.Errorf("tg: send: not init")
 	}

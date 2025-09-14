@@ -8,23 +8,23 @@ import (
 )
 
 type Kernel struct {
-	src map[string]pkg.Src
-	dst map[string]pkg.Dst
-	cel map[string]pkg.Cel
+	src map[string]pkg.Producer
+	dst map[string]pkg.Consumer
+	cel map[string]pkg.Transform
 }
 
 func NewKernel(plugs []*PluginCfg) (*Kernel, error) {
-	srcMap := make(map[string]pkg.Src)
-	dstMap := make(map[string]pkg.Dst)
+	srcMap := make(map[string]pkg.Producer)
+	dstMap := make(map[string]pkg.Consumer)
 	for _, p := range plugs {
 		open, err := plugin.Open(p.Bin)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("kernel: [%s]: %v", p.Name, err)
 		}
 
 		lookup, err := open.Lookup("Export")
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("kernel: [%s]: %v", p.Name, err)
 		}
 
 		plug, ok := lookup.(pkg.Plugin)
@@ -34,20 +34,22 @@ func NewKernel(plugs []*PluginCfg) (*Kernel, error) {
 
 		cfg, err := json.Marshal(p.Conf)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("kernel: [%s]: %v", p.Name, err)
 		}
 
 		if err := plug.Init(cfg); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("kernel: [%s]: %v", p.Name, err)
 		}
 
 		switch pl := plug.(type) {
-		case pkg.Src:
+		case pkg.Producer:
 			srcMap[p.Name] = pl
-		case pkg.Dst:
+		case pkg.Consumer:
 			dstMap[p.Name] = pl
 		}
 	}
+
+	fmt.Printf("\nplugins:\nSRC:%v\nDST:%v\n", srcMap, dstMap)
 
 	return &Kernel{src: srcMap, dst: dstMap}, nil
 }

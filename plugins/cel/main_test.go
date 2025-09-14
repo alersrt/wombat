@@ -5,6 +5,8 @@ import (
 	"testing"
 )
 
+var testedUnit = &Plugin{}
+
 func TestFilter_bool(t *testing.T) {
 	cfg := &Config{
 		Expr: `self.Text.matches(".*some.*")
@@ -16,8 +18,7 @@ func TestFilter_bool(t *testing.T) {
 		t.Fatalf("%+v", err)
 	}
 
-	testedUnit, err := New(cfgBytes)
-	if err != nil {
+	if err := testedUnit.Init(cfgBytes); err != nil {
 		t.Fatalf("%+v", err)
 	}
 
@@ -48,8 +49,7 @@ func TestFilter_string(t *testing.T) {
 		t.Fatalf("%+v", err)
 	}
 
-	testedUnit, err := New(cfgBytes)
-	if err != nil {
+	if err := testedUnit.Init(cfgBytes); err != nil {
 		t.Fatalf("%+v", err)
 	}
 
@@ -86,8 +86,7 @@ func TestFilter_obj(t *testing.T) {
 		t.Fatalf("%+v", err)
 	}
 
-	testedUnit, err := New(cfgBytes)
-	if err != nil {
+	if err := testedUnit.Init(cfgBytes); err != nil {
 		t.Fatalf("%+v", err)
 	}
 
@@ -124,5 +123,28 @@ func TestFilter_obj(t *testing.T) {
 
 	if built.Text != "some text" || !built.IsCheck || len(built.Envelope) != 2 || built.Nested.One != 1 {
 		t.Fatalf("wrong values: %+v", built)
+	}
+}
+
+func TestFilter_uuid(t *testing.T) {
+	cfg := &Config{
+		Expr: "uuid(b'00000000-0000-0000-0000-000000000000') == \"00000000-0000-0000-0000-000000000000\"",
+	}
+	cfgBytes, err := json.Marshal(cfg)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	if err := testedUnit.Init(cfgBytes); err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	res, err := testedUnit.Eval(nil)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	if actual, ok := res.(bool); !ok || !actual {
+		t.Fatalf("not equals")
 	}
 }

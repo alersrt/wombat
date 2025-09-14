@@ -7,28 +7,25 @@ type Plugin interface {
 	IsInit() bool
 }
 
-// Src describes source type.
-type Src interface {
+// Producer describes the producer type.
+type Producer interface {
 	Close() error
-
-	// Run runs source listening until ctx done or error happened.
-	Run(ctx context.Context) error
 
 	// Publish provides channel for reading source incoming data.
-	Publish() <-chan []byte
+	Publish(ctx context.Context) <-chan []byte
 }
 
-// Dst describes destination type.
-type Dst interface {
+// Consumer describes the consumer type.
+type Consumer interface {
 	Close() error
 
-	// Send data to destination.
+	// Consume provided.
 	// args is json representation of the expected structure.
-	Send(args []byte) error
+	Consume(args []byte) error
 }
 
-// Cel provides filtration/transformation mechanism.
-type Cel interface {
+// Transform provides filtration/transformation mechanism.
+type Transform interface {
 
 	/*
 	   Eval evaluates provided object either to the next types:

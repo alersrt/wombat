@@ -8,11 +8,15 @@ import (
 	"github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/common/types/ref"
 	"github.com/google/cel-go/ext"
+	"github.com/google/uuid"
 	"sync"
 	"sync/atomic"
 )
 
-const varNameSelf = "self"
+const (
+	varNameSelf  = "self"
+	funcNameUuid = "uuid"
+)
 
 type Plugin struct {
 	mtx    sync.Mutex
@@ -40,10 +44,41 @@ func (p *Plugin) Init(cfg []byte) error {
 		cel.Function(overloads.TypeConvertString, cel.Overload(
 			"map_to_string", []*cel.Type{cel.MapType(cel.StringType, cel.DynType)}, cel.StringType,
 			cel.UnaryBinding(func(value ref.Val) ref.Val {
-				b, _ := json.Marshal(value.Value())
+				b, err := json.Marshal(value.Value())
+				if err != nil {
+					return types.NewErr("%w", err)
+				}
 				return types.String(b)
 			}),
 		)),
+		cel.Function(funcNameUuid,
+			cel.Overload("uuid_random",
+				nil, cel.StringType,
+				cel.FunctionBinding(func(values ...ref.Val) ref.Val {
+					return types.String(uuid.NewString())
+				}),
+			),
+			cel.Overload("bytes_to_uuid",
+				[]*cel.Type{cel.BytesType}, cel.StringType,
+				cel.UnaryBinding(func(value ref.Val) ref.Val {
+					parsed, err := uuid.ParseBytes(value.Value().([]byte))
+					if err != nil {
+						return types.NewErr("%w", err)
+					}
+					return types.String(parsed.String())
+				}),
+			),
+			cel.Overload("string_to_uuid",
+				[]*cel.Type{cel.StringType}, cel.StringType,
+				cel.UnaryBinding(func(value ref.Val) ref.Val {
+					parsed, err := uuid.Parse(value.Value().(string))
+					if err != nil {
+						return types.NewErr("%w", err)
+					}
+					return types.String(parsed.String())
+				}),
+			),
+		),
 		cel.OptionalTypes(),
 		ext.Regex(),
 		ext.Strings(),
