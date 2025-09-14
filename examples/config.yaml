@@ -16,13 +16,12 @@ plugins:
     bin: ./build/bin/telegram-plugin.so
     conf:
       token: ${WOMBAT_TELEGRAM_TOKEN}
-  - name: cel_expr1
+  - name: cel_filter1
     bin: ./build/bin/cel-plugin.so
     conf:
       expr: |
         self.Text.matches(".*some regex.*")
 rules:
   - name: rule1
-    filter: |
-      self.Text.matches(.*some regex.*)
-
+    filters:
+      - cel_filter1

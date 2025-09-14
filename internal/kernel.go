@@ -50,6 +50,7 @@ func NewKernel(plugs []*PluginCfg) (*Kernel, error) {
 		case pkg.Transform:
 			celMap[p.Name] = pl
 		}
+		return nil, fmt.Errorf("kernel: unknown interface [%s]", p.Name)
 	}
 
 	kernel := &Kernel{src: srcMap, dst: dstMap, cel: celMap}

@@ -14,8 +14,11 @@ type PluginCfg struct {
 }
 
 type RuleCfg struct {
-	Name   string `yaml:"name"`
-	Filter string `yaml:"filter"`
+	Name       string   `yaml:"name"`
+	Src        string   `yaml:"src"`
+	Dst        string   `yaml:"dst"`
+	Filters    []string `yaml:"filters"`
+	Transforms []string `yaml:"transforms"`
 }
 
 type Config struct {
