@@ -1,6 +1,6 @@
 plugins:
   - name: imap_src
-    bin: ./plugins/imap_plugin.so
+    bin: ./build/bin/imap-plugin.so
     conf:
       url: ${WOMBAT_IMAP_ADDRESS:-mail.dev:993}
       username: ${WOMBAT_IMAP_USERNAME:-example@mail.dev}
@@ -9,15 +9,15 @@ plugins:
       idleTimeout: ${WOMBAT_IMAP_IDLE_TIMEOUT:-5000}
       verbose: ${WOMBAT_IMAP_VERBOSE:-true}
   - name: tg_dst1
-    bin: ./plugins/tg_plugin.so
+    bin: ./build/bin/tg-plugin.so
     conf:
       token: ${WOMBAT_TELEGRAM_TOKEN}
   - name: tg_dst2
-    bin: ./plugins/tg_plugin.so
+    bin: ./build/bin/tg-plugin.so
     conf:
       token: ${WOMBAT_TELEGRAM_TOKEN}
   - name: cel_expr1
-    bin: ./plugins/cel_plugin.so
+    bin: ./build/bin/cel-plugin.so
     conf:
       expr: |
         self.Text.matches(".*some regex.*")

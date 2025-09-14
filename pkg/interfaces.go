@@ -30,7 +30,7 @@ type Transform interface {
 	/*
 	   Eval evaluates provided object either to the next types:
 	       - basic Go types (bool, string, int, etc.);
-	       - object in JSON format.
+	       - bytes of JSON object.
 	*/
 	Eval(obj []byte) (any, error)
 }
