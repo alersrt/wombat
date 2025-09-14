@@ -56,3 +56,15 @@ func NewKernel(plugs []*PluginCfg) (*Kernel, error) {
 
 	return &Kernel{src: srcMap, dst: dstMap, cel: celMap}, nil
 }
+
+func (k *Kernel) Producer(name string) pkg.Producer {
+	return k.src[name]
+}
+
+func (k *Kernel) Consumer(name string) pkg.Consumer {
+	return k.dst[name]
+}
+
+func (k *Kernel) Transform(name string) pkg.Transform {
+	return k.cel[name]
+}
