@@ -11,11 +11,13 @@ import (
 	"github.com/google/uuid"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 const (
 	varNameSelf  = "self"
 	funcNameUuid = "uuid"
+	funcNameNow  = "now"
 )
 
 type Plugin struct {
@@ -76,6 +78,14 @@ func (p *Plugin) Init(cfg []byte) error {
 						return types.NewErr("%w", err)
 					}
 					return types.String(parsed.String())
+				}),
+			),
+		),
+		cel.Function(funcNameNow,
+			cel.Overload("timestamp_now",
+				nil, cel.TimestampType,
+				cel.FunctionBinding(func(values ...ref.Val) ref.Val {
+					return types.Timestamp{Time: time.Now()}
 				}),
 			),
 		),

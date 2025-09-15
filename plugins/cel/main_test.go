@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"slices"
 	"testing"
+	"time"
 )
 
 var testedUnit = &Plugin{}
@@ -79,7 +80,8 @@ func TestFilter_obj(t *testing.T) {
     "envelope": self.Envelope.map(s, {"value": s}),
     "nested": {
         "one": uuid()
-    }
+    },
+    "createdTs": now()
 }`,
 	}
 	cfgBytes, err := json.Marshal(cfg)
@@ -118,12 +120,18 @@ func TestFilter_obj(t *testing.T) {
 		Nested   struct {
 			One string `json:"one"`
 		} `json:"nested"`
+		CreatedTs time.Time
 	}{}
 	if err := json.Unmarshal(oT, built); err != nil {
 		t.Fatalf("%+v", err)
 	}
 
-	if built.Text != "some text" || !built.IsCheck || len(built.Envelope) != 2 || !slices.Contains(built.Envelope, envelope{Value: "Check"}) || built.Nested.One == "" {
+	if built.Text != "some text" ||
+		!built.IsCheck ||
+		len(built.Envelope) != 2 ||
+		!slices.Contains(built.Envelope, envelope{Value: "Check"}) ||
+		built.Nested.One == "" ||
+		built.CreatedTs.Equal(time.Time{}) {
 		t.Fatalf("wrong values: %+v", built)
 	}
 }
