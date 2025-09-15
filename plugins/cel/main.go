@@ -136,22 +136,28 @@ func (p *Plugin) Eval(obj []byte) (any, error) {
 		float32, float64,
 		complex64, complex128:
 		return eV, nil
-	case map[ref.Val]ref.Val:
-		return json.Marshal(convert(eV))
 	default:
-		return json.Marshal(eV)
+		return json.Marshal(convert(eV))
 	}
 }
 
-func convert(src map[ref.Val]ref.Val) map[string]any {
-	dst := make(map[string]any)
-	for k, v := range src {
-		switch t := v.Value().(type) {
-		case map[ref.Val]ref.Val:
-			dst[k.Value().(string)] = convert(t)
-		default:
-			dst[k.Value().(string)] = t
+func convert(src any) any {
+	switch typed := src.(type) {
+	case map[ref.Val]ref.Val:
+		dst := make(map[string]any)
+		for k, v := range typed {
+			dst[k.Value().(string)] = convert(v)
 		}
+		return dst
+	case []ref.Val:
+		dst := make([]any, len(typed))
+		for i, v := range typed {
+			dst[i] = convert(v)
+		}
+		return dst
+	case ref.Val:
+		return convert(typed.Value())
+	default:
+		return typed
 	}
-	return dst
 }

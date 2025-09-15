@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"slices"
 	"testing"
 )
 
@@ -107,13 +108,14 @@ func TestFilter_obj(t *testing.T) {
 		t.Fatalf("expected bytes")
 	}
 
+	type envelope struct {
+		Value string `json:"value"`
+	}
 	built := &struct {
-		Text     string `json:"text"`
-		IsCheck  bool   `json:"isCheck"`
-		Envelope []struct {
-			Value string `json:"value"`
-		} `json:"envelope"`
-		Nested struct {
+		Text     string     `json:"text"`
+		IsCheck  bool       `json:"isCheck"`
+		Envelope []envelope `json:"envelope"`
+		Nested   struct {
 			One string `json:"one"`
 		} `json:"nested"`
 	}{}
@@ -121,7 +123,7 @@ func TestFilter_obj(t *testing.T) {
 		t.Fatalf("%+v", err)
 	}
 
-	if built.Text != "some text" || !built.IsCheck || len(built.Envelope) != 2 || built.Nested.One == "" {
+	if built.Text != "some text" || !built.IsCheck || len(built.Envelope) != 2 || !slices.Contains(built.Envelope, envelope{Value: "Check"}) || built.Nested.One == "" {
 		t.Fatalf("wrong values: %+v", built)
 	}
 }
