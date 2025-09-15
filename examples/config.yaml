@@ -21,7 +21,16 @@ plugins:
     conf:
       expr: |
         self.Text.matches(".*some regex.*")
+  - name: cel_transform1
+    bin: ./build/bin/cel-plugin.so
+    conf:
+      expr: |
+        {"uuid": uuid()}
 rules:
   - name: rule1
+    src: imap_src
+    dst: tg_dst1
     filters:
       - cel_filter1
+    transforms:
+      - cel_transform1
