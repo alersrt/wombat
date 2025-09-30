@@ -3,6 +3,7 @@ package internal
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"plugin"
 	"wombat/internal/broadcast"
 
@@ -10,9 +11,8 @@ import (
 )
 
 type Kernel struct {
-}
-
-type Executor struct {
+	broadcasts map[string]broadcast.BroadcastServer
+	producers  map[string]pkg.Producer
 }
 
 func NewKernel(cfg *Config) (*Kernel, error) {
@@ -30,25 +30,12 @@ func NewKernel(cfg *Config) (*Kernel, error) {
 		plugins[p.Name] = lookup.(func() pkg.Plugin)
 	}
 
-	broadcasts := make(map[string]broadcast.BroadcastServer)
 	producers := make(map[string]pkg.Producer)
+	broadcasts := make(map[string]broadcast.BroadcastServer)
 	for _, p := range cfg.Producers {
-		cfg, err := json.Marshal(p.Conf)
+		producer, err := producer(p, plugins)
 		if err != nil {
-			return nil, fmt.Errorf("kernel: producer: [%s]: %w", p.Name, err)
-		}
-
-		if plugins[p.Plugin] == nil {
-			return nil, fmt.Errorf("kernel: producer: plugin: [%s]: not exist", p.Plugin)
-		}
-		dumb := plugins[p.Plugin]()
-		err = dumb.Init(cfg)
-		if err != nil {
-			return nil, fmt.Errorf("kernel: producer: [%s]: %w", p.Name, err)
-		}
-		producer, ok := dumb.(pkg.Producer)
-		if !ok {
-			return nil, fmt.Errorf("kernel: producer: [%s]: not implemented", p.Name)
+			return nil, err
 		}
 		producers[p.Name] = producer
 		broadcasts[p.Name] = broadcast.NewBroadcastServer(producer.Publish())
@@ -56,22 +43,9 @@ func NewKernel(cfg *Config) (*Kernel, error) {
 
 	consumers := make(map[string]pkg.Consumer)
 	for _, c := range cfg.Consumers {
-		cfg, err := json.Marshal(c.Conf)
+		consumer, err := consumer(c, plugins)
 		if err != nil {
-			return nil, fmt.Errorf("kernel: consumer: [%s]: %w", c.Name, err)
-		}
-
-		if plugins[c.Plugin] == nil {
-			return nil, fmt.Errorf("kernel: consumer: plugin: [%s]: not exist", c.Plugin)
-		}
-		dumb := plugins[c.Plugin]()
-		err = dumb.Init(cfg)
-		if err != nil {
-			return nil, fmt.Errorf("kernel: consumer: [%s]: %w", c.Name, err)
-		}
-		consumer, ok := dumb.(pkg.Consumer)
-		if !ok {
-			return nil, fmt.Errorf("kernel: consumer: [%s]: not implemented", c.Name)
+			return nil, err
 		}
 		consumers[c.Name] = consumer
 	}
@@ -83,9 +57,52 @@ func NewKernel(cfg *Config) (*Kernel, error) {
 		if consumers[r.Consumer] == nil {
 			return nil, fmt.Errorf("kernel: consumer: [%s]: not exist", r.Consumer)
 		}
+
 	}
 
-	fmt.Printf("!!!!!!!!!!!!!!!!!!!!!!")
+	slog.Info("!!!!!!!!!!!!!!!!!!!!!11")
 
 	return &Kernel{}, nil
+}
+
+func producer(value *ItemCfg, plugins map[string]func() pkg.Plugin) (pkg.Producer, error) {
+	cfg, err := json.Marshal(value.Conf)
+	if err != nil {
+		return nil, fmt.Errorf("kernel: producer: [%s]: %w", value.Name, err)
+	}
+
+	if plugins[value.Plugin] == nil {
+		return nil, fmt.Errorf("kernel: producer: plugin: [%s]: not exist", value.Plugin)
+	}
+	dumb := plugins[value.Plugin]()
+	err = dumb.Init(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("kernel: producer: [%s]: %w", value.Name, err)
+	}
+	producer, ok := dumb.(pkg.Producer)
+	if !ok {
+		return nil, fmt.Errorf("kernel: producer: [%s]: not implemented", value.Name)
+	}
+	return producer, nil
+}
+
+func consumer(value *ItemCfg, plugins map[string]func() pkg.Plugin) (pkg.Consumer, error) {
+	cfg, err := json.Marshal(value.Conf)
+	if err != nil {
+		return nil, fmt.Errorf("kernel: consumer: [%s]: %w", value.Name, err)
+	}
+
+	if plugins[value.Plugin] == nil {
+		return nil, fmt.Errorf("kernel: consumer: plugin: [%s]: not exist", value.Plugin)
+	}
+	dumb := plugins[value.Plugin]()
+	err = dumb.Init(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("kernel: consumer: [%s]: %w", value.Name, err)
+	}
+	consumer, ok := dumb.(pkg.Consumer)
+	if !ok {
+		return nil, fmt.Errorf("kernel: consumer: [%s]: not implemented", value.Name)
+	}
+	return consumer, nil
 }
