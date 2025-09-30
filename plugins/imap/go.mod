@@ -1,7 +1,5 @@
 module imap
 
-go 1.25.1
-
 require (
 	github.com/emersion/go-imap/v2 v2.0.0-beta.6
 	github.com/emersion/go-message v0.18.2

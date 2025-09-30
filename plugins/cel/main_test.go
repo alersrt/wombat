@@ -149,14 +149,14 @@ func TestFilter_uuid(t *testing.T) {
 		t.Fatalf("%+v", err)
 	}
 
-	res, err := testedUnit.EvalBytes(nil)
+	actual, err := testedUnit.EvalBytes(nil)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 
-	var actual bool
-	err = json.Unmarshal(res, &actual)
-	if err != nil || !actual {
+	var bT bool
+	err = json.Unmarshal(actual, &bT)
+	if err != nil || !bT {
 		t.Fatalf("not equals: err=%+v, act=%v", err, actual)
 	}
 }
