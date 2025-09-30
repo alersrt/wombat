@@ -85,6 +85,14 @@ go.build:
 	@make go.plugin.build plugin=telegram
 
 plugin ?=
+go.plugins.build.debug:
+	@make go.plugin.build.debug plugin=cel
+	@make go.plugin.build.debug plugin=imap
+	@make go.plugin.build.debug plugin=telegram
+
+go.plugin.build.debug:
+	GOARCH=amd64 GOOS=linux go build -a --trimpath --gcflags=all='-N -l' -x -v --mod=readonly --buildmode=plugin -o ${builddir}/${plugin}-plugin.so ${PWD}/plugins/${plugin}/main.go
+
 go.plugin.build:
 	GOARCH=amd64 GOOS=linux go build -a --ldflags='-w -s' --trimpath --mod=readonly --buildmode=plugin -o ${builddir}/${plugin}-plugin.so ${PWD}/plugins/${plugin}/main.go
 

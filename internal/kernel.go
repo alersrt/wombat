@@ -8,8 +8,8 @@ import (
 )
 
 type Kernel struct {
-	src map[string]pkg.Producer
-	dst map[string]pkg.Consumer
+	producers map[string]pkg.Producer
+	consumers map[string]pkg.Consumer
 	cel map[string]pkg.Transform
 }
 
@@ -54,15 +54,15 @@ func NewKernel(plugs []*PluginCfg) (*Kernel, error) {
 		}
 	}
 
-	return &Kernel{src: srcMap, dst: dstMap, cel: celMap}, nil
+	return &Kernel{producers: srcMap, consumers: dstMap, cel: celMap}, nil
 }
 
 func (k *Kernel) Producer(name string) pkg.Producer {
-	return k.src[name]
+	return k.producers[name]
 }
 
 func (k *Kernel) Consumer(name string) pkg.Consumer {
-	return k.dst[name]
+	return k.consumers[name]
 }
 
 func (k *Kernel) Transform(name string) pkg.Transform {
