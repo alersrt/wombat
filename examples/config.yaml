@@ -11,11 +11,11 @@ plugins:
   - name: tg_dst1
     bin: ./build/bin/telegram-plugin.so
     conf:
-      token: ${WOMBAT_TELEGRAM_TOKEN}
+      token: ${WOMBAT_TELEGRAM_TOKEN:-example}
   - name: tg_dst2
     bin: ./build/bin/telegram-plugin.so
     conf:
-      token: ${WOMBAT_TELEGRAM_TOKEN}
+      token: ${WOMBAT_TELEGRAM_TOKEN:-example}
   - name: cel_filter1
     bin: ./build/bin/cel-plugin.so
     conf:
