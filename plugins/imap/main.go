@@ -4,15 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/emersion/go-imap/v2"
-	"github.com/emersion/go-imap/v2/imapclient"
-	"github.com/emersion/go-message/charset"
 	"io"
 	"mime"
 	"os"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/alersrt/wombat/pkg"
+
+	"github.com/emersion/go-imap/v2"
+	"github.com/emersion/go-imap/v2/imapclient"
+	"github.com/emersion/go-message/charset"
 )
 
 type Config struct {
@@ -37,7 +40,9 @@ type Plugin struct {
 	messages chan []byte
 }
 
-var Export = Plugin{}
+func Export() pkg.Plugin {
+	return &Plugin{}
+}
 
 func (p *Plugin) Init(cfg []byte) error {
 	p.mtx.Lock()

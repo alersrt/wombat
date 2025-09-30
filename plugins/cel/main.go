@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/alersrt/wombat/pkg"
+
 	"github.com/araddon/dateparse"
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/common/overloads"
@@ -31,7 +33,9 @@ type Plugin struct {
 	prog   cel.Program
 }
 
-var Export = Plugin{}
+func Export() pkg.Plugin {
+	return &Plugin{}
+}
 
 type Config struct {
 	Expr string `yaml:"expr"`

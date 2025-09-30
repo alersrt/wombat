@@ -2,28 +2,40 @@ package internal
 
 import (
 	"fmt"
+	"os"
+
 	"gopkg.in/yaml.v2"
 	"mvdan.cc/sh/v3/shell"
-	"os"
 )
 
 type PluginCfg struct {
-	Name string         `yaml:"name"`
-	Bin  string         `yaml:"bin"`
-	Conf map[string]any `yaml:"conf"`
+	Name string `yaml:"name"`
+	Bin  string `yaml:"bin"`
 }
 
-type RuleCfg struct {
-	Name      string `yaml:"name"`
-	Producer  string `yaml:"producer"`
-	Consumer  string `yaml:"consumer"`
+type ItemCfg struct {
+	Name   string         `yaml:"name"`
+	Plugin string         `yaml:"plugin"`
+	Conf   map[string]any `yaml:"conf"`
+}
+
+type Applience struct {
 	Filter    string `yaml:"filter"`
 	Transform string `yaml:"transform"`
 }
 
+type RuleCfg struct {
+	Name     string       `yaml:"name"`
+	Producer string       `yaml:"producer"`
+	Consumer string       `yaml:"consumer"`
+	Applies  []*Applience `yaml:"applies"`
+}
+
 type Config struct {
-	Plugins []*PluginCfg `yaml:"plugins"`
-	Rules   []*RuleCfg   `yaml:"rules"`
+	Plugins   []*PluginCfg `yaml:"plugins"`
+	Producers []*ItemCfg   `yaml:"producers"`
+	Consumers []*ItemCfg   `yaml:"consumers"`
+	Rules     []*RuleCfg   `yaml:"rules"`
 }
 
 func NewConfig(path string) (*Config, error) {

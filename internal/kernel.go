@@ -1,70 +1,33 @@
 package internal
 
 import (
-	"encoding/json"
 	"fmt"
 	"plugin"
-	"wombat/pkg"
+	"github.com/alersrt/wombat/pkg"
 )
 
 type Kernel struct {
-	producers map[string]pkg.Producer
-	consumers map[string]pkg.Consumer
-	cel map[string]pkg.Transform
+}
+
+type Executor struct {
 }
 
 func NewKernel(cfg *Config) (*Kernel, error) {
-	producersMap := make(map[string]pkg.Producer)
-	consumersMap := make(map[string]pkg.Consumer)
-	celMap := make(map[string]pkg.Transform)
+	plugins := make(map[string]pkg.Plugin)
 	for _, p := range cfg.Plugins {
 		open, err := plugin.Open(p.Bin)
 		if err != nil {
-			return nil, fmt.Errorf("kernel: [%s]: %v", p.Name, err)
+			return nil, fmt.Errorf("kernel: plugin: [%s]: %v", p.Name, err)
 		}
-
 		lookup, err := open.Lookup("Export")
 		if err != nil {
-			return nil, fmt.Errorf("kernel: [%s]: %v", p.Name, err)
+			return nil, fmt.Errorf("kernel: plugin: [%s]: %v", p.Name, err)
 		}
 
-		plug, ok := lookup.(pkg.Plugin)
-		if !ok {
-			return nil, fmt.Errorf("kernel: incompatible plug [%s]", p.Name)
-		}
-
-		cfg, err := json.Marshal(p.Conf)
-		if err != nil {
-			return nil, fmt.Errorf("kernel: [%s]: %v", p.Name, err)
-		}
-
-		if err := plug.Init(cfg); err != nil {
-			return nil, fmt.Errorf("kernel: [%s]: %v", p.Name, err)
-		}
-
-		switch pl := plug.(type) {
-		case pkg.Producer:
-			producersMap[p.Name] = pl
-		case pkg.Consumer:
-			consumersMap[p.Name] = pl
-		case pkg.Transform:
-			celMap[p.Name] = pl
-		default:
-			return nil, fmt.Errorf("kernel: unknown interface [%s]", p.Name)
-		}
+		plugins[p.Name] = lookup.(func() pkg.Plugin)()
 	}
 
-	return &Kernel{producers: producersMap, consumers: consumersMap, cel: celMap}, nil
-}
+    fmt.Printf("!!!!!!!!!!!!!!!!!!!!!!")
 
-func (k *Kernel) Producer(name string) pkg.Producer {
-	return k.producers[name]
-}
-
-func (k *Kernel) Consumer(name string) pkg.Consumer {
-	return k.consumers[name]
-}
-
-func (k *Kernel) Transform(name string) pkg.Transform {
-	return k.cel[name]
+	return &Kernel{}, nil
 }

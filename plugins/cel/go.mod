@@ -3,6 +3,7 @@ module cel
 go 1.25.1
 
 require (
+	github.com/alersrt/wombat v0.0.0-00010101000000-000000000000
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/google/cel-go v0.26.1
 	github.com/google/uuid v1.6.0
@@ -21,4 +22,4 @@ require (
 	google.golang.org/protobuf v1.36.9 // indirect
 )
 
-replace github.com/wombat => ../../
+replace github.com/alersrt/wombat => ../../

@@ -3,9 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	api "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"sync"
 	"sync/atomic"
+
+	"github.com/alersrt/wombat/pkg"
+
+	api "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 type Config struct {
@@ -19,7 +22,9 @@ type Plugin struct {
 	bot    *api.BotAPI
 }
 
-var Export = Plugin{}
+func Export() pkg.Plugin {
+	return &Plugin{}
+}
 
 func (p *Plugin) Init(cfg []byte) error {
 	p.mtx.Lock()
@@ -49,8 +54,8 @@ func (p *Plugin) Close() error {
 }
 
 type SendArgs struct {
-	ChatId int64
-	Text   string
+	ChatId  int64  `json:"chat_id"`
+	Content string `json:"content"`
 }
 
 func (p *Plugin) Consume(args []byte) error {
@@ -62,6 +67,6 @@ func (p *Plugin) Consume(args []byte) error {
 	if err := json.Unmarshal(args, sA); err != nil {
 		return err
 	}
-	_, err := p.bot.Send(api.NewMessage(sA.ChatId, sA.Text))
+	_, err := p.bot.Send(api.NewMessage(sA.ChatId, sA.Content))
 	return err
 }

@@ -1,6 +1,14 @@
 plugins:
-  - name: imap_src
+  - name: imap
     bin: ./build/bin/imap-plugin.so
+  - name: telegram
+    bin: ./build/bin/telegram-plugin.so
+  - name: cel
+    bin: ./build/bin/cel-plugin.so
+
+producers:
+  - name: imap_producer
+    plugin: imap
     conf:
       url: ${WOMBAT_IMAP_ADDRESS:-mail.dev:993}
       username: ${WOMBAT_IMAP_USERNAME:-example@mail.dev}
@@ -8,50 +16,19 @@ plugins:
       mailbox: ${WOMBAT_IMAP_MAILBOX:-Inbox}
       idleTimeout: ${WOMBAT_IMAP_IDLE_TIMEOUT:-5000}
       verbose: ${WOMBAT_IMAP_VERBOSE:-true}
-  - name: tg_dst1
-    bin: ./build/bin/telegram-plugin.so
-    conf:
-      token: ${WOMBAT_TELEGRAM_TOKEN:-example}
-  - name: tg_dst2
-    bin: ./build/bin/telegram-plugin.so
-    conf:
-      token: ${WOMBAT_TELEGRAM_TOKEN:-example}
-  - name: cel_filter1
-    bin: ./build/bin/cel-plugin.so
-    conf:
-      expr: |
-        self.Text.matches(".*some regex.*")
-  - name: cel_transform1
-    bin: ./build/bin/cel-plugin.so
-    conf:
-      expr: |
-        {"uuid": uuid()}
-  - name: cel_transform2
-    bin: ./build/bin/cel-plugin.so
-    conf:
-      expr: |
-        {"uuid": uuid()}
-  - name: cel_transform3
-    bin: ./build/bin/cel-plugin.so
-    conf:
-      expr: |
-        {"uuid": uuid()}
 
-  - name: cel_transform4
-    bin: ./build/bin/cel-plugin.so
+consumers:
+  - name: tg_consumer
+    plugin: tg
     conf:
-      expr: |
-        {"uuid": uuid()}
-  - name: cel_transform5
-    bin: ./build/bin/cel-plugin.so
-    conf:
-      expr: |
-        {"uuid": uuid()}
+      token: ${WOMBAT_TELEGRAM_TOKEN:-example}
+
 rules:
   - name: rule1
-    src: imap_src
-    dst: tg_dst1
-    filters:
-      - cel_filter1
-    transforms:
-      - cel_transform1
+    producer: imap_producer
+    consumer: tg_consumer
+    applies:
+      - filter: cel_filter1
+        transform: cel_transform1
+      - filter: cel_filter2
+        transform: cel_transform2
