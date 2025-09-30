@@ -1,10 +1,13 @@
 package broadcast
 
-import "context"
+import (
+	"context"
+)
 
 type BroadcastServer interface {
 	Subscribe() <-chan []byte
 	CancelSubscription(<-chan []byte)
+	Serve(context.Context)
 }
 
 type broadcastServer struct {
@@ -24,18 +27,17 @@ func (s *broadcastServer) CancelSubscription(channel <-chan []byte) {
 	s.removeListener <- channel
 }
 
-func NewBroadcastServer(ctx context.Context, source <-chan []byte) BroadcastServer {
+func NewBroadcastServer(source <-chan []byte) BroadcastServer {
 	service := &broadcastServer{
 		source:         source,
 		listeners:      make([]chan []byte, 0),
 		addListener:    make(chan chan []byte),
 		removeListener: make(chan (<-chan []byte)),
 	}
-	go service.serve(ctx)
 	return service
 }
 
-func (s *broadcastServer) serve(ctx context.Context) {
+func (s *broadcastServer) Serve(ctx context.Context) {
 	defer func() {
 		for _, listener := range s.listeners {
 			if listener != nil {

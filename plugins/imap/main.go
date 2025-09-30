@@ -28,8 +28,8 @@ type Config struct {
 }
 
 type Message struct {
-	Text     string         `json:"Text"`
-	Envelope *imap.Envelope `json:"Envelope"`
+	Text     string         `json:"text"`
+	Envelope *imap.Envelope `json:"envelope"`
 }
 
 // Plugin responsible for getting messages from mail.

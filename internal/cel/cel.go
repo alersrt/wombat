@@ -3,6 +3,7 @@ package cel
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"reflect"
 	"time"
 
@@ -23,6 +24,7 @@ const (
 	funcNameMarshal   = "marshal"
 )
 
+// Transform provides filtration/transformation mechanism.
 type Cel struct {
 	prog cel.Program
 }
@@ -188,6 +190,10 @@ func (p *Cel) Eval(data any, typeDesc reflect.Type) (any, error) {
 	return eval.ConvertToNative(typeDesc)
 }
 
+/*
+EvalBytes evaluates provided object to bytes of JSON object.
+It can be not only struct but also bool, string, int, etc..
+*/
 func (p *Cel) EvalBytes(obj []byte) ([]byte, error) {
 	var data any
 	data = make(map[string]any)
@@ -211,6 +217,31 @@ func (p *Cel) EvalBytes(obj []byte) ([]byte, error) {
 	default:
 		return json.Marshal(convert(eV))
 	}
+}
+
+/*
+EvalBool evaluates provided object to boolean.
+It returns either result of the boolean expression either false if error happened.
+*/
+func (p *Cel) EvalBool(obj []byte) bool {
+	var data any
+	data = make(map[string]any)
+	if err := json.Unmarshal(obj, &data); err != nil {
+		data = string(obj)
+	}
+
+	eval, _, err := p.prog.Eval(map[string]any{varNameSelf: data})
+	if err != nil {
+		slog.Warn(fmt.Sprintf("cel: eval: %v", err))
+		return false
+	}
+
+	value, err := eval.ConvertToNative(reflect.TypeFor[bool]())
+	if err != nil {
+		slog.Warn(fmt.Sprintf("cel: eval: %v", err))
+		return false
+	}
+	return value.(bool)
 }
 
 func convert(src any) any {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"plugin"
+	"wombat/internal/broadcast"
 
 	"github.com/alersrt/wombat/pkg"
 )
@@ -29,6 +30,7 @@ func NewKernel(cfg *Config) (*Kernel, error) {
 		plugins[p.Name] = lookup.(func() pkg.Plugin)
 	}
 
+	broadcasts := make(map[string]broadcast.BroadcastServer)
 	producers := make(map[string]pkg.Producer)
 	for _, p := range cfg.Producers {
 		cfg, err := json.Marshal(p.Conf)
@@ -37,14 +39,19 @@ func NewKernel(cfg *Config) (*Kernel, error) {
 		}
 
 		if plugins[p.Plugin] == nil {
-			return nil, fmt.Errorf("kernel: producer: [%s]: not exist", p.Name)
+			return nil, fmt.Errorf("kernel: producer: plugin: [%s]: not exist", p.Plugin)
 		}
 		dumb := plugins[p.Plugin]()
 		err = dumb.Init(cfg)
 		if err != nil {
 			return nil, fmt.Errorf("kernel: producer: [%s]: %w", p.Name, err)
 		}
-		producers[p.Name] = dumb.(pkg.Producer)
+		producer, ok := dumb.(pkg.Producer)
+		if !ok {
+			return nil, fmt.Errorf("kernel: producer: [%s]: not implemented", p.Name)
+		}
+		producers[p.Name] = producer
+		broadcasts[p.Name] = broadcast.NewBroadcastServer(producer.Publish())
 	}
 
 	consumers := make(map[string]pkg.Consumer)
@@ -55,14 +62,27 @@ func NewKernel(cfg *Config) (*Kernel, error) {
 		}
 
 		if plugins[c.Plugin] == nil {
-			return nil, fmt.Errorf("kernel: producer: [%s]: not exist", c.Name)
+			return nil, fmt.Errorf("kernel: consumer: plugin: [%s]: not exist", c.Plugin)
 		}
 		dumb := plugins[c.Plugin]()
 		err = dumb.Init(cfg)
 		if err != nil {
 			return nil, fmt.Errorf("kernel: consumer: [%s]: %w", c.Name, err)
 		}
-		consumers[c.Name] = dumb.(pkg.Consumer)
+		consumer, ok := dumb.(pkg.Consumer)
+		if !ok {
+			return nil, fmt.Errorf("kernel: consumer: [%s]: not implemented", c.Name)
+		}
+		consumers[c.Name] = consumer
+	}
+
+	for _, r := range cfg.Rules {
+		if producers[r.Producer] == nil {
+			return nil, fmt.Errorf("kernel: producer: [%s]: not exist", r.Producer)
+		}
+		if consumers[r.Consumer] == nil {
+			return nil, fmt.Errorf("kernel: consumer: [%s]: not exist", r.Consumer)
+		}
 	}
 
 	fmt.Printf("!!!!!!!!!!!!!!!!!!!!!!")

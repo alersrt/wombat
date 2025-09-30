@@ -19,16 +19,16 @@ type ItemCfg struct {
 	Conf   map[string]any `yaml:"conf"`
 }
 
-type Applience struct {
+type ApplienceCfg struct {
 	Filter    string `yaml:"filter"`
 	Transform string `yaml:"transform"`
 }
 
 type RuleCfg struct {
-	Name     string       `yaml:"name"`
-	Producer string       `yaml:"producer"`
-	Consumer string       `yaml:"consumer"`
-	Applies  []*Applience `yaml:"applies"`
+	Name     string          `yaml:"name"`
+	Producer string          `yaml:"producer"`
+	Consumer string          `yaml:"consumer"`
+	Applies  []*ApplienceCfg `yaml:"applies"`
 }
 
 type Config struct {
