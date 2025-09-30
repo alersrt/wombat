@@ -86,7 +86,7 @@ go.build:
 
 plugin ?=
 go.plugin.build:
-	GOARCH=amd64 GOOS=linux go build -a --ldflags='-w -s' --trimpath --modfile=${PWD}/plugins/${plugin}/go.mod --mod=readonly --buildmode=plugin -o ${builddir}/${plugin}-plugin.so ${PWD}/plugins/${plugin}/main.go
+	GOARCH=amd64 GOOS=linux go build -a --ldflags='-w -s' --trimpath --mod=readonly --buildmode=plugin -o ${builddir}/${plugin}-plugin.so ${PWD}/plugins/${plugin}/main.go
 
 go.clean:
 	go clean

@@ -31,9 +31,8 @@ type Consumer interface {
 type Transform interface {
 
 	/*
-	   Eval evaluates provided object either to the next types:
-	       - basic Go types (bool, string, int, etc.);
-	       - bytes of JSON object.
+		Eval evaluates provided object to bytes of JSON object.
+		It can be not only struct but also bool, string, int, etc..
 	*/
-	Eval(obj []byte) (any, error)
+	EvalBytes(obj []byte) ([]byte, error)
 }
