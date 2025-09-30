@@ -31,13 +31,16 @@ func TestFilter_bool(t *testing.T) {
 		Text:     "some text",
 		Envelope: []string{"Test", "Check"},
 	})
-	actual, err := testedUnit.Eval(obj)
+
+	actual, err := testedUnit.EvalBytes(obj)
 	if err != nil {
 		t.Errorf("%+v", err)
 	}
 
-	if bT, ok := actual.(bool); !ok || !bT {
-		t.Errorf("expected true")
+	var bT bool
+	err = json.Unmarshal(actual, &bT)
+	if err != nil || !bT {
+		t.Fatalf("not equals: err=%+v, act=%v", err, bT)
 	}
 }
 
@@ -62,13 +65,15 @@ func TestFilter_string(t *testing.T) {
 		Text:     "some text",
 		Envelope: []string{"Test", "Check"},
 	})
-	actual, err := testedUnit.Eval(obj)
+	actual, err := testedUnit.EvalBytes(obj)
 	if err != nil {
 		t.Errorf("%+v", err)
 	}
 
-	if sT, ok := actual.(string); !ok || sT != "sometrue" {
-		t.Errorf("expected [sometrue]")
+	var sT string
+	err = json.Unmarshal(actual, &sT)
+	if err != nil || sT != "sometrue" {
+		t.Errorf("expected [sometrue]: act=%v", sT)
 	}
 }
 
@@ -100,14 +105,9 @@ func TestFilter_obj(t *testing.T) {
 		Text:     "some text",
 		Envelope: []string{"Test", "Check"},
 	})
-	actual, err := testedUnit.Eval(obj)
+	actual, err := testedUnit.EvalBytes(obj)
 	if err != nil {
 		t.Fatalf("%+v", err)
-	}
-
-	oT, ok := actual.([]byte)
-	if !ok {
-		t.Fatalf("expected bytes")
 	}
 
 	type envelope struct {
@@ -122,7 +122,7 @@ func TestFilter_obj(t *testing.T) {
 		} `json:"nested"`
 		CreatedTs time.Time
 	}{}
-	if err := json.Unmarshal(oT, built); err != nil {
+	if err := json.Unmarshal(actual, built); err != nil {
 		t.Fatalf("%+v", err)
 	}
 
@@ -149,12 +149,14 @@ func TestFilter_uuid(t *testing.T) {
 		t.Fatalf("%+v", err)
 	}
 
-	res, err := testedUnit.Eval(nil)
+	res, err := testedUnit.EvalBytes(nil)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 
-	if actual, ok := res.(bool); !ok || !actual {
-		t.Fatalf("not equals")
+	var actual bool
+	err = json.Unmarshal(res, &actual)
+	if err != nil || !actual {
+		t.Fatalf("not equals: err=%+v, act=%v", err, actual)
 	}
 }

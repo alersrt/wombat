@@ -3,21 +3,26 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"sync"
+	"sync/atomic"
+	"time"
+
+	"github.com/araddon/dateparse"
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/common/overloads"
 	"github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/common/types/ref"
 	"github.com/google/cel-go/ext"
 	"github.com/google/uuid"
-	"sync"
-	"sync/atomic"
-	"time"
 )
 
 const (
-	varNameSelf  = "self"
-	funcNameUuid = "uuid"
-	funcNameNow  = "now"
+	varNameSelf       = "self"
+	funcNameUuid      = "uuid"
+	funcNameNow       = "now"
+	funcNameUnmarshal = "unmarshal"
+	funcNameMarshal   = "marshal"
 )
 
 type Plugin struct {
@@ -42,13 +47,13 @@ func (p *Plugin) Init(cfg []byte) error {
 	}
 
 	env, err := cel.NewEnv(
-		cel.Variable(varNameSelf, cel.MapType(cel.StringType, cel.DynType)),
+		cel.Variable(varNameSelf, cel.DynType),
 		cel.Function(overloads.TypeConvertString, cel.Overload(
 			"map_to_string", []*cel.Type{cel.MapType(cel.StringType, cel.DynType)}, cel.StringType,
 			cel.UnaryBinding(func(value ref.Val) ref.Val {
 				b, err := json.Marshal(value.Value())
 				if err != nil {
-					return types.NewErr("%w", err)
+					return types.NewErr("cel: %w", err)
 				}
 				return types.String(b)
 			}),
@@ -65,7 +70,7 @@ func (p *Plugin) Init(cfg []byte) error {
 				cel.UnaryBinding(func(value ref.Val) ref.Val {
 					parsed, err := uuid.ParseBytes(value.Value().([]byte))
 					if err != nil {
-						return types.NewErr("%w", err)
+						return types.NewErr("cel: %w", err)
 					}
 					return types.String(parsed.String())
 				}),
@@ -75,7 +80,7 @@ func (p *Plugin) Init(cfg []byte) error {
 				cel.UnaryBinding(func(value ref.Val) ref.Val {
 					parsed, err := uuid.Parse(value.Value().(string))
 					if err != nil {
-						return types.NewErr("%w", err)
+						return types.NewErr("cel: %w", err)
 					}
 					return types.String(parsed.String())
 				}),
@@ -89,8 +94,85 @@ func (p *Plugin) Init(cfg []byte) error {
 				}),
 			),
 		),
+		cel.Function("unixSubmilli",
+			cel.MemberOverload("timestamp_to_epoch_seconds_with_submillis",
+				[]*cel.Type{cel.TimestampType}, cel.DoubleType,
+				cel.UnaryBinding(func(value ref.Val) ref.Val {
+					ts, ok := value.Value().(time.Time)
+					if !ok {
+						return types.NewErr("cel: not a timestamp")
+					}
+					return types.Double(float64(ts.UnixMilli()) / 1000)
+				}),
+			),
+		),
+		cel.Function("unix",
+			cel.MemberOverload("timestamp_to_epoch_seconds",
+				[]*cel.Type{cel.TimestampType}, cel.IntType,
+				cel.UnaryBinding(func(value ref.Val) ref.Val {
+					ts, ok := value.Value().(time.Time)
+					if !ok {
+						return types.NewErr("cel: not a timestamp")
+					}
+					return types.Int(ts.Unix())
+				}),
+			),
+		),
+		cel.Function("unixMilli",
+			cel.MemberOverload("timestamp_to_epoch_milliseconds",
+				[]*cel.Type{cel.TimestampType}, cel.IntType,
+				cel.UnaryBinding(func(value ref.Val) ref.Val {
+					ts, ok := value.Value().(time.Time)
+					if !ok {
+						return types.NewErr("cel: not a timestamp")
+					}
+					return types.Int(ts.UnixMilli())
+				}),
+			),
+		),
+		cel.Function(overloads.TypeConvertTimestamp,
+			cel.Overload(overloads.StringToTimestamp,
+				[]*cel.Type{cel.StringType}, cel.TimestampType,
+				cel.UnaryBinding(func(value ref.Val) ref.Val {
+					str, ok := value.Value().(string)
+					if !ok {
+						return types.NewErr("cel: not a string")
+					}
+					ts, err := dateparse.ParseAny(str, dateparse.PreferMonthFirst(false))
+					if err != nil {
+						return types.NewErr("cel: %w", err)
+					}
+					return types.Timestamp{Time: ts}
+				}),
+			),
+		),
+		cel.Function(funcNameUnmarshal,
+			cel.Overload(funcNameUnmarshal+"_from_bytes",
+				[]*cel.Type{cel.BytesType}, cel.DynType,
+				cel.UnaryBinding(func(value ref.Val) ref.Val {
+					var dst any
+					if err := json.Unmarshal(value.Value().([]byte), &dst); err != nil {
+						return types.NewErr("cel: %w", err)
+					}
+					return types.DefaultTypeAdapter.NativeToValue(dst)
+				}),
+			),
+		),
+		cel.Function(funcNameMarshal,
+			cel.Overload(funcNameUnmarshal+"_to_bytes",
+				[]*cel.Type{cel.DynType}, cel.BytesType,
+				cel.UnaryBinding(func(value ref.Val) ref.Val {
+					bytes, err := json.Marshal(convert(value.Value()))
+					if err != nil {
+						return types.NewErr("cel: %w", err)
+					}
+					return types.Bytes(bytes)
+				}),
+			),
+		),
 		cel.OptionalTypes(),
 		ext.Regex(),
+		ext.Bindings(),
 		ext.Strings(),
 		ext.Encoders(),
 		ext.Math(),
@@ -99,17 +181,17 @@ func (p *Plugin) Init(cfg []byte) error {
 		ext.TwoVarComprehensions(),
 	)
 	if err != nil {
-		return fmt.Errorf("cel: init: %v", err)
+		return fmt.Errorf("cel: init: %w", err)
 	}
 
 	ast, iss := env.Compile(celCfg.Expr)
 	if iss != nil && iss.Err() != nil {
-		return fmt.Errorf("cel: init: %v", iss.Err())
+		return fmt.Errorf("cel: init: %w", iss.Err())
 	}
 
 	prog, err := env.Program(ast)
 	if err != nil {
-		return fmt.Errorf("cel: init: %v", err)
+		return fmt.Errorf("cel: init: %w", err)
 	}
 
 	p.prog = prog
@@ -122,7 +204,20 @@ func (p *Plugin) IsInit() bool {
 	return p.isInit.Load()
 }
 
-func (p *Plugin) Eval(obj []byte) (any, error) {
+func (p *Plugin) Eval(data any, typeDesc reflect.Type) (any, error) {
+	if !p.IsInit() {
+		return nil, fmt.Errorf("cel: eval: not init")
+	}
+
+	eval, _, err := p.prog.Eval(map[string]any{varNameSelf: data})
+	if err != nil {
+		return nil, fmt.Errorf("cel: eval: %v", err)
+	}
+
+	return eval.ConvertToNative(typeDesc)
+}
+
+func (p *Plugin) EvalBytes(obj []byte) ([]byte, error) {
 	if !p.IsInit() {
 		return nil, fmt.Errorf("cel: eval: not init")
 	}
@@ -145,7 +240,7 @@ func (p *Plugin) Eval(obj []byte) (any, error) {
 		uint, uint8, uint16, uint32, uint64, uintptr,
 		float32, float64,
 		complex64, complex128:
-		return eV, nil
+		return json.Marshal(eV)
 	default:
 		return json.Marshal(convert(eV))
 	}
@@ -165,6 +260,8 @@ func convert(src any) any {
 			dst[i] = convert(v)
 		}
 		return dst
+	case types.Null:
+		return nil
 	case ref.Val:
 		return convert(typed.Value())
 	default:
