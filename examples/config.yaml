@@ -26,6 +26,27 @@ plugins:
     conf:
       expr: |
         {"uuid": uuid()}
+  - name: cel_transform2
+    bin: ./build/bin/cel-plugin.so
+    conf:
+      expr: |
+        {"uuid": uuid()}
+  - name: cel_transform3
+    bin: ./build/bin/cel-plugin.so
+    conf:
+      expr: |
+        {"uuid": uuid()}
+
+  - name: cel_transform4
+    bin: ./build/bin/cel-plugin.so
+    conf:
+      expr: |
+        {"uuid": uuid()}
+  - name: cel_transform5
+    bin: ./build/bin/cel-plugin.so
+    conf:
+      expr: |
+        {"uuid": uuid()}
 rules:
   - name: rule1
     src: imap_src

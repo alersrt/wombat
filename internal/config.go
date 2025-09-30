@@ -14,11 +14,11 @@ type PluginCfg struct {
 }
 
 type RuleCfg struct {
-	Name       string   `yaml:"name"`
-	Src        string   `yaml:"src"`
-	Dst        string   `yaml:"dst"`
-	Filters    []string `yaml:"filters"`
-	Transforms []string `yaml:"transforms"`
+	Name      string `yaml:"name"`
+	Producer  string `yaml:"producer"`
+	Consumer  string `yaml:"consumer"`
+	Filter    string `yaml:"filter"`
+	Transform string `yaml:"transform"`
 }
 
 type Config struct {
