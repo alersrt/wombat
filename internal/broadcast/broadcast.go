@@ -2,16 +2,21 @@ package broadcast
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
+
+	"github.com/alersrt/wombat/pkg"
 )
 
 type BroadcastServer interface {
 	Subscribe() <-chan []byte
 	CancelSubscription(<-chan []byte)
 	Serve(context.Context)
+	// Close() error
 }
 
 type broadcastServer struct {
-	source         <-chan []byte
+	producer       pkg.Producer
 	listeners      []chan []byte
 	addListener    chan chan []byte
 	removeListener chan (<-chan []byte)
@@ -27,9 +32,19 @@ func (s *broadcastServer) CancelSubscription(channel <-chan []byte) {
 	s.removeListener <- channel
 }
 
-func NewBroadcastServer(source <-chan []byte) BroadcastServer {
+func (s *broadcastServer) Close() error {
+	for _, listener := range s.listeners {
+		if listener != nil {
+			close(listener)
+		}
+	}
+	_ = s.producer.Close()
+	return nil
+}
+
+func NewBroadcastServer(producer pkg.Producer) BroadcastServer {
 	service := &broadcastServer{
-		source:         source,
+		producer:       producer,
 		listeners:      make([]chan []byte, 0),
 		addListener:    make(chan chan []byte),
 		removeListener: make(chan (<-chan []byte)),
@@ -39,10 +54,16 @@ func NewBroadcastServer(source <-chan []byte) BroadcastServer {
 
 func (s *broadcastServer) Serve(ctx context.Context) {
 	defer func() {
-		for _, listener := range s.listeners {
-			if listener != nil {
-				close(listener)
-			}
+		_ = s.Close()
+	}()
+
+	ctx, cancel := context.WithCancelCause(ctx)
+
+	go func() {
+		err := s.producer.Run(ctx)
+		if err != nil {
+			slog.Error(fmt.Sprintf("broadcast: serve: %+v", err))
+			cancel(err)
 		}
 	}()
 
@@ -61,7 +82,7 @@ func (s *broadcastServer) Serve(ctx context.Context) {
 					break
 				}
 			}
-		case val, ok := <-s.source:
+		case val, ok := <-s.producer.Publish():
 			if !ok {
 				return
 			}

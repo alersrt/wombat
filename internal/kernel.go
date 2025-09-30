@@ -12,7 +12,6 @@ import (
 
 type Kernel struct {
 	broadcasts map[string]broadcast.BroadcastServer
-	producers  map[string]pkg.Producer
 }
 
 func NewKernel(cfg *Config) (*Kernel, error) {
@@ -38,7 +37,7 @@ func NewKernel(cfg *Config) (*Kernel, error) {
 			return nil, err
 		}
 		producers[p.Name] = producer
-		broadcasts[p.Name] = broadcast.NewBroadcastServer(producer.Publish())
+		broadcasts[p.Name] = broadcast.NewBroadcastServer(producer)
 	}
 
 	consumers := make(map[string]pkg.Consumer)
