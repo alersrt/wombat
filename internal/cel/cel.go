@@ -1,14 +1,10 @@
-package main
+package cel
 
 import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"sync"
-	"sync/atomic"
 	"time"
-
-	"github.com/alersrt/wombat/pkg"
 
 	"github.com/araddon/dateparse"
 	"github.com/google/cel-go/cel"
@@ -27,29 +23,11 @@ const (
 	funcNameMarshal   = "marshal"
 )
 
-type Plugin struct {
-	mtx    sync.Mutex
-	isInit atomic.Bool
-	prog   cel.Program
+type Cel struct {
+	prog cel.Program
 }
 
-func Export() pkg.Plugin {
-	return &Plugin{}
-}
-
-type Config struct {
-	Expr string `yaml:"expr"`
-}
-
-func (p *Plugin) Init(cfg []byte) error {
-	p.mtx.Lock()
-	defer p.mtx.Unlock()
-
-	celCfg := &Config{}
-	if err := json.Unmarshal(cfg, celCfg); err != nil {
-		return err
-	}
-
+func NewCel(expression string) (*Cel, error) {
 	env, err := cel.NewEnv(
 		cel.Variable(varNameSelf, cel.DynType),
 		cel.Function(overloads.TypeConvertString, cel.Overload(
@@ -185,34 +163,23 @@ func (p *Plugin) Init(cfg []byte) error {
 		ext.TwoVarComprehensions(),
 	)
 	if err != nil {
-		return fmt.Errorf("cel: init: %w", err)
+		return nil, fmt.Errorf("cel: init: %w", err)
 	}
 
-	ast, iss := env.Compile(celCfg.Expr)
+	ast, iss := env.Compile(expression)
 	if iss != nil && iss.Err() != nil {
-		return fmt.Errorf("cel: init: %w", iss.Err())
+		return nil, fmt.Errorf("cel: init: %w", iss.Err())
 	}
 
 	prog, err := env.Program(ast)
 	if err != nil {
-		return fmt.Errorf("cel: init: %w", err)
+		return nil, fmt.Errorf("cel: init: %w", err)
 	}
 
-	p.prog = prog
-
-	p.isInit.Store(true)
-	return nil
+	return &Cel{prog: prog}, nil
 }
 
-func (p *Plugin) IsInit() bool {
-	return p.isInit.Load()
-}
-
-func (p *Plugin) Eval(data any, typeDesc reflect.Type) (any, error) {
-	if !p.IsInit() {
-		return nil, fmt.Errorf("cel: eval: not init")
-	}
-
+func (p *Cel) Eval(data any, typeDesc reflect.Type) (any, error) {
 	eval, _, err := p.prog.Eval(map[string]any{varNameSelf: data})
 	if err != nil {
 		return nil, fmt.Errorf("cel: eval: %v", err)
@@ -221,11 +188,7 @@ func (p *Plugin) Eval(data any, typeDesc reflect.Type) (any, error) {
 	return eval.ConvertToNative(typeDesc)
 }
 
-func (p *Plugin) EvalBytes(obj []byte) ([]byte, error) {
-	if !p.IsInit() {
-		return nil, fmt.Errorf("cel: eval: not init")
-	}
-
+func (p *Cel) EvalBytes(obj []byte) ([]byte, error) {
 	var data any
 	data = make(map[string]any)
 	if err := json.Unmarshal(obj, &data); err != nil {

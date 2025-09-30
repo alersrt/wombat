@@ -3,8 +3,6 @@ plugins:
     bin: ./build/bin/imap-plugin.so
   - name: telegram
     bin: ./build/bin/telegram-plugin.so
-  - name: cel
-    bin: ./build/bin/cel-plugin.so
 
 producers:
   - name: imap_producer
@@ -19,7 +17,7 @@ producers:
 
 consumers:
   - name: tg_consumer
-    plugin: tg
+    plugin: telegram
     conf:
       token: ${WOMBAT_TELEGRAM_TOKEN:-example}
 

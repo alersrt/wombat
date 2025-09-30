@@ -80,13 +80,11 @@ builddir ?= ${PWD}/build/bin
 go.build:
 	mkdir -p ${builddir}
 	GOARCH=amd64 GOOS=linux go build -a --ldflags='-w -s -extldflags="-static"' --mod=vendor --trimpath -o ${builddir}/wombat-linux ${PWD}/cmd/main.go
-	@make go.plugin.build plugin=cel
 	@make go.plugin.build plugin=imap
 	@make go.plugin.build plugin=telegram
 
 plugin ?=
 go.plugins.build.debug:
-	@make go.plugin.build.debug plugin=cel
 	@make go.plugin.build.debug plugin=imap
 	@make go.plugin.build.debug plugin=telegram
 

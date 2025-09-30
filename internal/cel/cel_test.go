@@ -1,4 +1,4 @@
-package main
+package cel
 
 import (
 	"encoding/json"
@@ -7,20 +7,13 @@ import (
 	"time"
 )
 
-var testedUnit = &Plugin{}
-
 func TestFilter_bool(t *testing.T) {
-	cfg := &Config{
-		Expr: `self.Text.matches(".*some.*")
+	expr := `self.Text.matches(".*some.*")
 && self.Envelope.exists(f, f == 'Test' || f == 'Check')
-`,
-	}
-	cfgBytes, err := json.Marshal(cfg)
-	if err != nil {
-		t.Fatalf("%+v", err)
-	}
+`
 
-	if err := testedUnit.Init(cfgBytes); err != nil {
+	testedUnit, err := NewCel(expr)
+	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 
@@ -45,16 +38,10 @@ func TestFilter_bool(t *testing.T) {
 }
 
 func TestFilter_string(t *testing.T) {
-	cfg := &Config{
-		Expr: `'some' + string(self.Text.matches(".*some.*") && self.Envelope.exists(f, f == 'Test' || f == 'Check'))
-`,
-	}
-	cfgBytes, err := json.Marshal(cfg)
+	expr := `'some' + string(self.Text.matches(".*some.*") && self.Envelope.exists(f, f == 'Test' || f == 'Check'))
+`
+	testedUnit, err := NewCel(expr)
 	if err != nil {
-		t.Fatalf("%+v", err)
-	}
-
-	if err := testedUnit.Init(cfgBytes); err != nil {
 		t.Fatalf("%+v", err)
 	}
 
@@ -78,8 +65,7 @@ func TestFilter_string(t *testing.T) {
 }
 
 func TestFilter_obj(t *testing.T) {
-	cfg := &Config{
-		Expr: `{
+	expr := `{
     "text": self.Text,
     "isCheck": self.Envelope.exists(f, f == 'Check'),
     "envelope": self.Envelope.map(s, {"value": s}),
@@ -87,14 +73,10 @@ func TestFilter_obj(t *testing.T) {
         "one": uuid()
     },
     "createdTs": now()
-}`,
-	}
-	cfgBytes, err := json.Marshal(cfg)
-	if err != nil {
-		t.Fatalf("%+v", err)
-	}
+}`
 
-	if err := testedUnit.Init(cfgBytes); err != nil {
+	testedUnit, err := NewCel(expr)
+	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 
@@ -137,15 +119,10 @@ func TestFilter_obj(t *testing.T) {
 }
 
 func TestFilter_uuid(t *testing.T) {
-	cfg := &Config{
-		Expr: "uuid(b'00000000-0000-0000-0000-000000000000') == \"00000000-0000-0000-0000-000000000000\"",
-	}
-	cfgBytes, err := json.Marshal(cfg)
-	if err != nil {
-		t.Fatalf("%+v", err)
-	}
+	expr := "uuid(b'00000000-0000-0000-0000-000000000000') == \"00000000-0000-0000-0000-000000000000\""
 
-	if err := testedUnit.Init(cfgBytes); err != nil {
+	testedUnit, err := NewCel(expr)
+	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 
