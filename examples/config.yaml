@@ -25,6 +25,6 @@ rules:
   - name: imap_to_tg
     producer: imap_producer
     consumer: tg_consumer
-    filter: cel_filter1
-    transform: cel_transform1
+    filter: 'null'
+    transform: 'null'
 
