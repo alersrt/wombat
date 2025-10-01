@@ -53,10 +53,7 @@ func NewBroadcastServer(producer pkg.Producer) BroadcastServer {
 }
 
 func (s *broadcastServer) Serve(ctx context.Context) {
-	defer func() {
-		_ = s.Close()
-	}()
-
+	defer s.Close()
 	ctx, cancel := context.WithCancelCause(ctx)
 
 	go func() {

@@ -7,22 +7,25 @@ import (
 	"log/slog"
 	"plugin"
 	"wombat/internal/broadcast"
+	"wombat/internal/cel"
 
 	"github.com/alersrt/wombat/pkg"
 )
 
 type Kernel struct {
 	broadcasts map[string]broadcast.BroadcastServer
-	applies    map[string]*applience
+	rules      map[string]*rule
 }
 
-type applience struct {
+type rule struct {
 	consumer      pkg.Consumer
 	broadcastName string
+	filter        *cel.Cel
+	transform     *cel.Cel
 }
 
-func (s *applience) Close() error {
-	return s.consumer.Close()
+func (r *rule) Close() error {
+	return r.consumer.Close()
 }
 
 func (k *Kernel) Serve(ctx context.Context) {
@@ -30,23 +33,36 @@ func (k *Kernel) Serve(ctx context.Context) {
 		go v.Serve(ctx)
 		slog.Info(fmt.Sprintf("serve: broadcast: %s", n))
 	}
-	for n, v := range k.applies {
+	for n, v := range k.rules {
 		go func() {
 			defer v.Close()
-            subscription := k.broadcasts[v.broadcastName].Subscribe()
+			subscription := k.broadcasts[v.broadcastName].Subscribe()
+			defer k.broadcasts[v.broadcastName].CancelSubscription(subscription)
+
 			for {
 				select {
-                case <-ctx.Done():
-                    return
-                case val, ok := <- subscription:
-                    if !ok {
-                        return;
-                    }
+				case <-ctx.Done():
+					return
+				case val, ok := <-subscription:
+					if !ok {
+						return
+					}
+					var err error
+					if v.filter != nil && !v.filter.EvalBool(val) {
+						continue
+					}
+					if v.transform != nil {
+						if val, err = v.transform.EvalBytes(val); err != nil {
+							slog.Warn(fmt.Sprintf("serve: rule: [%s]: transform: %+v", n, err))
+							continue
+						}
+					}
 
-                    if val != nil {
-                        continue
-                    }
-                }
+					if err = v.consumer.Consume(val); err != nil {
+						slog.Warn(fmt.Sprintf("serve: rule: [%s]: consume: %+v", n, err))
+						continue
+					}
+				}
 			}
 		}()
 		slog.Info(fmt.Sprintf("serve: subscribe [%s] on [%s]", n, v.broadcastName))
@@ -90,7 +106,7 @@ func NewKernel(cfg *Config) (*Kernel, error) {
 		consumers[c.Name] = consumer
 	}
 
-	applies := make(map[string]*applience)
+	applies := make(map[string]*rule)
 	for _, r := range cfg.Rules {
 		if producers[r.Producer] == nil {
 			return nil, fmt.Errorf("kernel: producer: [%s]: not exist", r.Producer)
@@ -98,12 +114,26 @@ func NewKernel(cfg *Config) (*Kernel, error) {
 		if consumers[r.Consumer] == nil {
 			return nil, fmt.Errorf("kernel: consumer: [%s]: not exist", r.Consumer)
 		}
-		applies[r.Name] = &applience{consumer: consumers[r.Consumer], broadcastName: r.Producer}
+		filter, err := cel.NewCel(r.Filter)
+		if err != nil {
+			return nil, fmt.Errorf("kernel: rule: [%s]: filter: %w", err)
+		}
+		transform, err := cel.NewCel(r.Transform)
+		if err != nil {
+			return nil, fmt.Errorf("kernel: rule: [%s]: transform: %w", err)
+		}
+
+		applies[r.Name] = &rule{
+			consumer:      consumers[r.Consumer],
+			broadcastName: r.Producer,
+			filter:        filter,
+			transform:     transform,
+		}
 	}
 
 	slog.Info("kernel: loaded")
 
-	return &Kernel{broadcasts: broadcasts, applies: applies}, nil
+	return &Kernel{broadcasts: broadcasts, rules: applies}, nil
 }
 
 func producer(value *ItemCfg, plugins map[string]func() pkg.Plugin) (pkg.Producer, error) {

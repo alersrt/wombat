@@ -22,11 +22,9 @@ consumers:
       token: ${WOMBAT_TELEGRAM_TOKEN:-example}
 
 rules:
-  - name: rule1
+  - name: imap_to_tg
     producer: imap_producer
     consumer: tg_consumer
-    applies:
-      - filter: cel_filter1
-        transform: cel_transform1
-      - filter: cel_filter2
-        transform: cel_transform2
+    filter: cel_filter1
+    transform: cel_transform1
+

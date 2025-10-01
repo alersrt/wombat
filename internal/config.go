@@ -25,10 +25,11 @@ type ApplienceCfg struct {
 }
 
 type RuleCfg struct {
-	Name     string          `yaml:"name"`
-	Producer string          `yaml:"producer"`
-	Consumer string          `yaml:"consumer"`
-	Applies  []*ApplienceCfg `yaml:"applies"`
+	Name      string `yaml:"name"`
+	Producer  string `yaml:"producer"`
+	Consumer  string `yaml:"consumer"`
+	Filter    string `yaml:"filter"`
+	Transform string `yaml:"transform"`
 }
 
 type Config struct {
