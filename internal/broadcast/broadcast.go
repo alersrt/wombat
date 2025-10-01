@@ -12,7 +12,7 @@ type BroadcastServer interface {
 	Subscribe() <-chan []byte
 	CancelSubscription(<-chan []byte)
 	Serve(context.Context)
-	// Close() error
+	Close() error
 }
 
 type broadcastServer struct {

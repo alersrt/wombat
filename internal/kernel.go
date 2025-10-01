@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -12,6 +13,46 @@ import (
 
 type Kernel struct {
 	broadcasts map[string]broadcast.BroadcastServer
+	applies    map[string]*applience
+}
+
+type applience struct {
+	consumer      pkg.Consumer
+	broadcastName string
+}
+
+func (s *applience) Close() error {
+	return s.consumer.Close()
+}
+
+func (k *Kernel) Serve(ctx context.Context) {
+	for n, v := range k.broadcasts {
+		go v.Serve(ctx)
+		slog.Info(fmt.Sprintf("serve: broadcast: %s", n))
+	}
+	for n, v := range k.applies {
+		go func() {
+			defer v.Close()
+            subscription := k.broadcasts[v.broadcastName].Subscribe()
+			for {
+				select {
+                case <-ctx.Done():
+                    return
+                case val, ok := <- subscription:
+                    if !ok {
+                        return;
+                    }
+
+                    if val != nil {
+                        continue
+                    }
+                }
+			}
+		}()
+		slog.Info(fmt.Sprintf("serve: subscribe [%s] on [%s]", n, v.broadcastName))
+	}
+
+	<-ctx.Done()
 }
 
 func NewKernel(cfg *Config) (*Kernel, error) {
@@ -49,6 +90,7 @@ func NewKernel(cfg *Config) (*Kernel, error) {
 		consumers[c.Name] = consumer
 	}
 
+	applies := make(map[string]*applience)
 	for _, r := range cfg.Rules {
 		if producers[r.Producer] == nil {
 			return nil, fmt.Errorf("kernel: producer: [%s]: not exist", r.Producer)
@@ -56,12 +98,12 @@ func NewKernel(cfg *Config) (*Kernel, error) {
 		if consumers[r.Consumer] == nil {
 			return nil, fmt.Errorf("kernel: consumer: [%s]: not exist", r.Consumer)
 		}
-
+		applies[r.Name] = &applience{consumer: consumers[r.Consumer], broadcastName: r.Producer}
 	}
 
-	slog.Info("!!!!!!!!!!!!!!!!!!!!!11")
+	slog.Info("kernel: loaded")
 
-	return &Kernel{}, nil
+	return &Kernel{broadcasts: broadcasts, applies: applies}, nil
 }
 
 func producer(value *ItemCfg, plugins map[string]func() pkg.Plugin) (pkg.Producer, error) {
