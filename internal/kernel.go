@@ -116,11 +116,11 @@ func NewKernel(cfg *Config) (*Kernel, error) {
 		}
 		filter, err := cel.NewCel(r.Filter)
 		if err != nil {
-			return nil, fmt.Errorf("kernel: rule: [%s]: filter: %w", err)
+			return nil, fmt.Errorf("kernel: rule: [%s]: filter: %w", r.Name, err)
 		}
 		transform, err := cel.NewCel(r.Transform)
 		if err != nil {
-			return nil, fmt.Errorf("kernel: rule: [%s]: transform: %w", err)
+			return nil, fmt.Errorf("kernel: rule: [%s]: transform: %w", r.Name, err)
 		}
 
 		applies[r.Name] = &rule{
