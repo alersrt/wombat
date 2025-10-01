@@ -30,7 +30,7 @@ func (r *rule) Close() error {
 func (k *Kernel) Serve(ctx context.Context) {
 	for n, v := range k.broadcasts {
 		go v.Serve(ctx)
-		slog.Info(fmt.Sprintf("serve: broadcast: %s", n))
+		slog.Info(fmt.Sprintf("serve: broadcast: [%s]: ok", n))
 	}
 	for n, v := range k.rules {
 		go func() {
@@ -64,7 +64,7 @@ func (k *Kernel) Serve(ctx context.Context) {
 				}
 			}
 		}()
-		slog.Info(fmt.Sprintf("serve: subscribe [%s] on [%s]", n, v.broadcastName))
+		slog.Info(fmt.Sprintf("serve: rule: [%s]: ok", n))
 	}
 
 	<-ctx.Done()
@@ -130,7 +130,7 @@ func NewKernel(cfg *Config) (*Kernel, error) {
 		}
 	}
 
-	slog.Info("kernel: loaded")
+	slog.Info("kernel: ok")
 
 	return &Kernel{broadcasts: broadcasts, rules: applies}, nil
 }

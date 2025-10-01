@@ -55,6 +55,7 @@ func NewBroadcastServer(producer pkg.Producer) BroadcastServer {
 func (s *broadcastServer) Serve(ctx context.Context) {
 	defer s.Close()
 	ctx, cancel := context.WithCancelCause(ctx)
+    defer cancel(nil)
 
 	go func() {
 		err := s.producer.Run(ctx)
