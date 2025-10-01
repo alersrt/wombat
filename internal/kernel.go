@@ -6,14 +6,13 @@ import (
 	"fmt"
 	"log/slog"
 	"plugin"
-	"wombat/internal/broadcast"
 	"wombat/internal/cel"
 
 	"github.com/alersrt/wombat/pkg"
 )
 
 type Kernel struct {
-	broadcasts map[string]broadcast.BroadcastServer
+	broadcasts map[string]BroadcastServer
 	rules      map[string]*rule
 }
 
@@ -87,14 +86,14 @@ func NewKernel(cfg *Config) (*Kernel, error) {
 	}
 
 	producers := make(map[string]pkg.Producer)
-	broadcasts := make(map[string]broadcast.BroadcastServer)
+	broadcasts := make(map[string]BroadcastServer)
 	for _, p := range cfg.Producers {
 		producer, err := producer(p, plugins)
 		if err != nil {
 			return nil, err
 		}
 		producers[p.Name] = producer
-		broadcasts[p.Name] = broadcast.NewBroadcastServer(producer)
+		broadcasts[p.Name] = NewBroadcastServer(producer)
 	}
 
 	consumers := make(map[string]pkg.Consumer)
