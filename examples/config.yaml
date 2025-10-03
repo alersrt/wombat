@@ -1,0 +1,33 @@
+plugins:
+  - name: imap
+    bin: ./build/bin/imap-plugin.so
+  - name: telegram
+    bin: ./build/bin/telegram-plugin.so
+
+producers:
+  - name: imap_producer
+    plugin: imap
+    conf:
+      url: ${WOMBAT_IMAP_ADDRESS:-mail.dev:993}
+      username: ${WOMBAT_IMAP_USERNAME:-example@mail.dev}
+      password: ${WOMBAT_IMAP_PASSWORD:-password}
+      mailbox: ${WOMBAT_IMAP_MAILBOX:-Inbox}
+      idleTimeout: ${WOMBAT_IMAP_IDLE_TIMEOUT:-5000}
+      verbose: ${WOMBAT_IMAP_VERBOSE:-true}
+
+consumers:
+  - name: tg_consumer
+    plugin: telegram
+    conf:
+      token: ${WOMBAT_TELEGRAM_TOKEN:-example}
+
+rules:
+  - name: imap_to_tg
+    producer: imap_producer
+    consumer: tg_consumer
+    filter: 'true'
+    transform: |
+      {
+        "chat_id": 1234,
+        "content": self.?Envelope.?Subject
+      }

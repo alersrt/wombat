@@ -5,29 +5,29 @@ import (
 	"github.com/andygrunwald/go-jira"
 )
 
-type Client struct {
+type JiraBot struct {
 	client *jira.Client
 }
 
-func NewClient(url string, token string) (*Client, error) {
+func NewClient(url string, token string) (*JiraBot, error) {
 	tp := jira.PATAuthTransport{Token: token}
 	client, err := jira.NewClient(tp.Client(), url)
 	if err != nil {
 		return nil, fmt.Errorf("jira: client: new: %v", err)
 	}
-	return &Client{client}, nil
+	return &JiraBot{client}, nil
 }
 
-func (c *Client) Update(issue string, commentId string, text string) error {
-	_, _, err := c.client.Issue.UpdateComment(issue, &jira.Comment{ID: commentId, Body: text})
+func (j *JiraBot) Update(issue string, commentId string, text string) error {
+	_, _, err := j.client.Issue.UpdateComment(issue, &jira.Comment{ID: commentId, Body: text})
 	if err != nil {
 		return fmt.Errorf("jira: client: update: %v", err)
 	}
 	return nil
 }
 
-func (c *Client) Add(issue string, text string) (string, error) {
-	comment, _, err := c.client.Issue.AddComment(issue, &jira.Comment{Body: text})
+func (j *JiraBot) Add(issue string, text string) (string, error) {
+	comment, _, err := j.client.Issue.AddComment(issue, &jira.Comment{Body: text})
 	if err != nil {
 		return "", fmt.Errorf("jira: client: add: %v", err)
 	}

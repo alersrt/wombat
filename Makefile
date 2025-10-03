@@ -76,21 +76,23 @@ deps: go.deps
 # Go commands #
 ###############
 
-pkgname = wombat
-pkgver ?= current
-builddir ?= ./build/bin
-mainpath ?= ./cmd/main.go
-
+builddir ?= ${PWD}/build/bin
 go.build:
 	mkdir -p ${builddir}
-	export CGO_CPPFLAGS="${CPPFLAGS}"
-	export CGO_CFLAGS="${CFLAGS}"
-	export CGO_CXXFLAGS="${CXXFLAGS}"
-	export CGO_LDFLAGS="${LDFLAGS}"
-	export GOFLAGS="-buildmode=pie -trimpath -ldflags=-linkmode=external -mod=readonly -modcacherw"
-	#GOARCH=amd64 GOOS=darwin go build -o ${builddir}/${pkgname}-${pkgver}-darwin ${mainpath}
-	GOARCH=amd64 GOOS=linux go build -o ${builddir}/${pkgname}-${pkgver}-linux ${mainpath}
-#	GOARCH=amd64 GOOS=windows go build -o ${builddir}/${pkgname}-${pkgver}-windows ${mainpath}
+	GOARCH=amd64 GOOS=linux go build -a --ldflags='-w -s -extldflags="-static"' --mod=vendor --trimpath -o ${builddir}/wombat-linux ${PWD}/cmd/main.go
+	@make go.plugin.build plugin=imap
+	@make go.plugin.build plugin=telegram
+
+plugin ?=
+go.plugins.build.debug:
+	@make go.plugin.build.debug plugin=imap
+	@make go.plugin.build.debug plugin=telegram
+
+go.plugin.build.debug:
+	GOARCH=amd64 GOOS=linux go build --trimpath --gcflags=all='-N -l' -x -v --mod=readonly --buildmode=plugin -o ${builddir}/${plugin}-plugin.so ${PWD}/plugins/${plugin}/main.go
+
+go.plugin.build:
+	GOARCH=amd64 GOOS=linux go build -a --ldflags='-w -s' --trimpath --mod=readonly --buildmode=plugin -o ${builddir}/${plugin}-plugin.so ${PWD}/plugins/${plugin}/main.go
 
 go.clean:
 	go clean

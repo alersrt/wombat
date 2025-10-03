@@ -9,12 +9,16 @@
 !/cmd/
 !/internal/
 !/pkg/
+!/examples/
+!/plugins/
 
 # Backend
-/vendor
+**/vendor
+**/go.sum
 /build/bin
 /.go
 !go.mod
+!go.work
 !system.properties
 
 # Infrastructure

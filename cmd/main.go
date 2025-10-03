@@ -6,49 +6,54 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 	"wombat/internal"
-	"wombat/pkg/daemon"
+)
+
+const (
+	ExitCodeDone         = 0
+	ExitCodeError        = 1
+	ExitCodeInvalidUsage = 2
+	ExitCodeInterrupt    = 128 + int(syscall.SIGINT)
 )
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
 
-	app := new(internal.App)
+	ctx, cancelCause := context.WithCancelCause(ctx)
 
-	args, err := parseArgs()
-	if err != nil {
-		slog.Error(fmt.Sprintf("%+v", err))
-		os.Exit(daemon.ExitCodeInvalidUsage)
+	go func() {
+		cfg, err := internal.NewConfig(parseArgs())
+		if err != nil {
+			cancelCause(err)
+		}
+
+		kernel, err := internal.NewKernel(cfg)
+		if err != nil {
+			cancelCause(err)
+		}
+
+		kernel.Serve(ctx)
+	}()
+
+	<-ctx.Done()
+
+	if ctx.Err() != nil {
+		slog.Error(fmt.Sprintf("%+v", ctx.Err()))
+		os.Exit(ExitCodeError)
+	} else {
+		slog.Info("finished")
+		os.Exit(ExitCodeDone)
 	}
-	if err = app.Init(args); err != nil {
-		slog.Error(fmt.Sprintf("%+v", err))
-		os.Exit(daemon.ExitCodeError)
-	}
-
-	go app.Do(ctx)
-
-	slog.Info("daemon: handle: start")
-	code, err := daemon.HandleSignals(ctx, cancel)
-	if err != nil {
-		slog.Info("daemon: handle: error")
-		slog.Error(fmt.Sprintf("%+v", err))
-	}
-	slog.Info("daemon: handle: finish")
-	slog.Info("exit:", "code", code)
-	os.Exit(code)
 }
 
 // parseArgs parses os.Args and returns list of parsed values. Here is descriptions by indexes:
 // 0 - path to config file.
-func parseArgs() ([]string, error) {
-	args := os.Args
-	flags := flag.NewFlagSet(args[0], flag.ExitOnError)
-	configPath := flags.String("config", "./cmd/config.yaml", "path to config")
-
-	err := flags.Parse(args[1:])
-	if err != nil {
-		return nil, fmt.Errorf("parseArgs: %v", err)
-	}
-
-	return []string{*configPath}, nil
+func parseArgs() string {
+	var path string
+	flag.StringVar(&path, "config", "", "path to config")
+	flag.Parse()
+	return path
 }
