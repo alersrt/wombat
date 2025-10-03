@@ -44,6 +44,7 @@ func (k *Kernel) Serve(ctx context.Context) {
 					return
 				case val, ok := <-subscription:
 					if !ok {
+						slog.Warn(fmt.Sprintf("serve: rule: [%s]: stopped", n))
 						return
 					}
 					if err := v.proc.Process(val); err != nil {

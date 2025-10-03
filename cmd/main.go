@@ -15,30 +15,38 @@ const (
 	ExitCodeDone         = 0
 	ExitCodeError        = 1
 	ExitCodeInvalidUsage = 2
+	ExitCodeInterrupt    = 128 + int(syscall.SIGINT)
 )
 
 func main() {
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
+
+	ctx, cancelCause := context.WithCancelCause(ctx)
 
 	go func() {
 		cfg, err := internal.NewConfig(parseArgs())
 		if err != nil {
-			slog.Error(fmt.Sprintf("%+v", err))
-			cancel()
+			cancelCause(err)
 		}
 
 		kernel, err := internal.NewKernel(cfg)
 		if err != nil {
-			slog.Error(fmt.Sprintf("%+v", err))
-			cancel()
+			cancelCause(err)
 		}
 
-        kernel.Serve(ctx)
+		kernel.Serve(ctx)
 	}()
 
 	<-ctx.Done()
-	os.Exit(ExitCodeDone)
+
+	if ctx.Err() != nil {
+		slog.Error(fmt.Sprintf("%+v", ctx.Err()))
+		os.Exit(ExitCodeError)
+	} else {
+		slog.Info("finished")
+		os.Exit(ExitCodeDone)
+	}
 }
 
 // parseArgs parses os.Args and returns list of parsed values. Here is descriptions by indexes:
