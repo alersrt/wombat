@@ -4,7 +4,7 @@ Why Wombat? Working bot for messages, w-m-bot.
 
 ## Description
 
-Started as simple bot for messaging from telegram to jira, mutated to DevOps related app needed to react on email's alerts, and finally finished as extendable ETL platform.
+Started as simple bot for messaging from telegram to jira, mutated to app needed for reacting on email's alerts, and finally finished as extendable ETL platform.
 
 Main features:
 
