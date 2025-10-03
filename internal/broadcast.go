@@ -38,8 +38,7 @@ func (s *broadcastServer) Close() error {
 			close(listener)
 		}
 	}
-	_ = s.producer.Close()
-	return nil
+	return s.producer.Close()
 }
 
 func NewBroadcastServer(producer pkg.Producer) BroadcastServer {
@@ -53,9 +52,11 @@ func NewBroadcastServer(producer pkg.Producer) BroadcastServer {
 }
 
 func (s *broadcastServer) Serve(ctx context.Context) {
-	defer s.Close()
+	defer func() {
+		_ = s.Close()
+	}()
 	ctx, cancel := context.WithCancelCause(ctx)
-    defer cancel(nil)
+	defer cancel(nil)
 
 	go func() {
 		err := s.producer.Run(ctx)

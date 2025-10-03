@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"plugin"
-	"wombat/internal/cel"
 
 	"github.com/alersrt/wombat/pkg"
 )
@@ -17,24 +16,25 @@ type Kernel struct {
 }
 
 type rule struct {
-	consumer      pkg.Consumer
+	proc          *Processor
 	broadcastName string
-	filter        *cel.Cel
-	transform     *cel.Cel
 }
 
 func (r *rule) Close() error {
-	return r.consumer.Close()
+	return r.proc.Close()
 }
 
 func (k *Kernel) Serve(ctx context.Context) {
 	for n, v := range k.broadcasts {
+		slog.Info(fmt.Sprintf("serve: broadcast: [%s]: ok", n))
 		go v.Serve(ctx)
 		slog.Info(fmt.Sprintf("serve: broadcast: [%s]: ok", n))
 	}
 	for n, v := range k.rules {
 		go func() {
-			defer v.Close()
+			defer func() {
+				_ = v.Close()
+			}()
 			subscription := k.broadcasts[v.broadcastName].Subscribe()
 			defer k.broadcasts[v.broadcastName].CancelSubscription(subscription)
 
@@ -46,20 +46,8 @@ func (k *Kernel) Serve(ctx context.Context) {
 					if !ok {
 						return
 					}
-					var err error
-					if v.filter != nil && !v.filter.EvalBool(val) {
-						continue
-					}
-					if v.transform != nil {
-						if val, err = v.transform.EvalBytes(val); err != nil {
-							slog.Warn(fmt.Sprintf("serve: rule: [%s]: transform: %+v", n, err))
-							continue
-						}
-					}
-
-					if err = v.consumer.Consume(val); err != nil {
+					if err := v.proc.Process(val); err != nil {
 						slog.Warn(fmt.Sprintf("serve: rule: [%s]: consume: %+v", n, err))
-						continue
 					}
 				}
 			}
@@ -113,20 +101,13 @@ func NewKernel(cfg *Config) (*Kernel, error) {
 		if consumers[r.Consumer] == nil {
 			return nil, fmt.Errorf("kernel: consumer: [%s]: not exist", r.Consumer)
 		}
-		filter, err := cel.NewCel(r.Filter)
+		proc, err := NewProcessor(consumers[r.Consumer], r.Filter, r.Transform)
 		if err != nil {
-			return nil, fmt.Errorf("kernel: rule: [%s]: filter: %w", r.Name, err)
+			return nil, fmt.Errorf("kernel: rule: [%s]: %w", r.Name, err)
 		}
-		transform, err := cel.NewCel(r.Transform)
-		if err != nil {
-			return nil, fmt.Errorf("kernel: rule: [%s]: transform: %w", r.Name, err)
-		}
-
 		applies[r.Name] = &rule{
-			consumer:      consumers[r.Consumer],
 			broadcastName: r.Producer,
-			filter:        filter,
-			transform:     transform,
+			proc:          proc,
 		}
 	}
 

@@ -25,6 +25,9 @@ rules:
   - name: imap_to_tg
     producer: imap_producer
     consumer: tg_consumer
-    filter: 'null'
-    transform: 'null'
-
+    filter: 'true'
+    transform: |
+      {
+        "chat_id": 474281635,
+        "content": self.?Envelope.?Subject
+      }
