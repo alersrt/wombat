@@ -28,6 +28,6 @@ rules:
     filter: 'true'
     transform: |
       {
-        "chat_id": 474281635,
+        "chat_id": 1234,
         "content": self.?Envelope.?Subject
       }
