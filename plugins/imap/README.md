@@ -21,42 +21,42 @@ Produced format:
 
 ```json
 {
-    "Text": "<message content>",
-    "Envelope": {
-        "Date": "<RFC3339>",
-        "Subject": "string",
-        "From": {
-            "Name": "string",
-            "Mailbox": "string",
-            "Host": "string"
+    "text": "<message content>",
+    "envelope": {
+        "date": "<RFC3339>",
+        "subject": "string",
+        "from": {
+            "name": "string",
+            "mailbox": "string",
+            "host": "string"
         },
-        "Sender": {
-            "Name": "string",
-            "Mailbox": "string",
-            "Host": "string"
+        "sender": {
+            "name": "string",
+            "mailbox": "string",
+            "host": "string"
         },
-        "ReplyTo": {
-            "Name": "string",
-            "Mailbox": "string",
-            "Host": "string"
+        "reply_to": {
+            "name": "string",
+            "mailbox": "string",
+            "host": "string"
         },
-        "To": {
-            "Name": "string",
-            "Mailbox": "string",
-            "Host": "string"
+        "to": {
+            "name": "string",
+            "mailbox": "string",
+            "host": "string"
         },
-        "Cc": {
-            "Name": "string",
-            "Mailbox": "string",
-            "Host": "string"
+        "cc": {
+            "name": "string",
+            "mailbox": "string",
+            "host": "string"
         },
-        "Bcc": {
-            "Name": "string",
-            "Mailbox": "string",
-            "Host": "string"
+        "bcc": {
+            "name": "string",
+            "mailbox": "string",
+            "host": "string"
         },
-        "InReplyTo": ["string"],
-        "MessageID": "string"
+        "in_reply_to": ["string"],
+        "message_id": "string"
     }
 }
 ```

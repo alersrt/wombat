@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"mime"
 	"os"
 	"sync"
@@ -27,20 +28,14 @@ type Config struct {
 	Verbose     bool          `yaml:"verbose"`
 }
 
-type Message struct {
-	Text     string
-	Envelope *imap.Envelope
-}
-
 // Plugin responsible for getting messages from mail.
 type Plugin struct {
-	mtx      sync.Mutex
-	isInit   atomic.Bool
-	cfg      *Config
-	messages chan []byte
+	mtx    sync.Mutex
+	isInit atomic.Bool
+	cfg    *Config
 }
 
-func Export() pkg.Plugin {
+func Export() pkg.Processor {
 	return &Plugin{}
 }
 
@@ -52,7 +47,6 @@ func (p *Plugin) Init(cfg []byte) error {
 	if err := json.Unmarshal(cfg, p.cfg); err != nil {
 		return err
 	}
-	p.messages = make(chan []byte)
 	p.isInit.Store(true)
 	return nil
 }
@@ -62,22 +56,18 @@ func (p *Plugin) IsInit() bool {
 }
 
 func (p *Plugin) Close() error {
-	close(p.messages)
 	return nil
 }
 
-func (p *Plugin) Publish() <-chan []byte {
-	return p.messages
-}
-
-func (p *Plugin) Run(ctx context.Context) error {
+func (p *Plugin) Process(ctx context.Context, input <-chan []byte) (<-chan []byte, error) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
 	if !p.IsInit() {
-		return fmt.Errorf("imap: run: not init")
+		return nil, fmt.Errorf("imap: run: not init")
 	}
 
 	var client *imapclient.Client
+	defer client.Close()
 
 	var debugWriter io.Writer
 	if p.cfg.Verbose {
@@ -92,47 +82,51 @@ func (p *Plugin) Run(ctx context.Context) error {
 		_ = client.Logout().Wait()
 	}()
 	if err != nil {
-		return fmt.Errorf("imap: run: %v", err)
+		return nil, fmt.Errorf("imap: run: %v", err)
 	}
 
 	if err = client.Login(p.cfg.Username, p.cfg.Password).Wait(); err != nil {
-		return fmt.Errorf("imap: run: %v", err)
+		return nil, fmt.Errorf("imap: run: %v", err)
 	}
 
 	if _, err = client.Select(p.cfg.Mailbox, &imap.SelectOptions{ReadOnly: false}).Wait(); err != nil {
-		return fmt.Errorf("imap: run: %v", err)
+		return nil, fmt.Errorf("imap: run: %v", err)
 	}
 	defer func() {
 		_ = client.Unselect().Wait()
 	}()
 
+	response := make(chan []byte)
+	defer close(response)
+
 	for {
 		select {
 		case <-ctx.Done():
-			return nil
+			return nil, nil
 		default:
 			time.Sleep(p.cfg.IdleTimeout * time.Millisecond)
 
 			search, err := client.Search(&imap.SearchCriteria{NotFlag: []imap.Flag{imap.FlagSeen}}, nil).Wait()
 			if err != nil {
-				return fmt.Errorf("imap: run: %v", err)
+				return nil, fmt.Errorf("imap: run: %v", err)
 			}
 			if len(search.AllSeqNums()) == 0 {
 				continue
 			}
 			found, err := client.Fetch(search.All, &imap.FetchOptions{Envelope: true, BodySection: []*imap.FetchItemBodySection{{Specifier: imap.PartSpecifierText}}}).Collect()
 			if err != nil {
-				return fmt.Errorf("imap: run: %v", err)
+				return nil, fmt.Errorf("imap: run: %v", err)
 			}
 			for _, item := range found {
 				bytes, err := json.Marshal(&Message{
-					Envelope: item.Envelope,
+					Envelope: envelopeToEnvelope(item.Envelope),
 					Text:     string(item.FindBodySection(&imap.FetchItemBodySection{Specifier: imap.PartSpecifierText})),
 				})
 				if err != nil {
-					return err
+					slog.Warn(fmt.Sprintf("imap: run: %v", err))
+					continue
 				}
-				p.messages <- bytes
+				response <- bytes
 			}
 		}
 	}
