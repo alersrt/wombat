@@ -45,7 +45,7 @@ func (p *Plugin) Init(cfg []byte) error {
 
 	p.cfg = &Config{}
 	if err := json.Unmarshal(cfg, p.cfg); err != nil {
-		return err
+		return fmt.Errorf("imap: init: %v", err)
 	}
 	p.isInit.Store(true)
 	return nil

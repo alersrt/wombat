@@ -56,7 +56,7 @@ func (p *Plugin) Close() error {
 	return nil
 }
 
-type SendArgs struct {
+type Value struct {
 	ChatId  int64  `json:"chat_id"`
 	Content string `json:"content"`
 }
@@ -75,16 +75,17 @@ func (p *Plugin) Process(ctx context.Context, input <-chan []byte) (<-chan []byt
 			case <-ctx.Done():
 				return
 			case args := <-input:
-				sA := &SendArgs{}
+				sA := &pkg.Args[Value]{}
 				if err := json.Unmarshal(args, sA); err != nil {
 					slog.Warn(fmt.Sprintf("tg: run: %v", err))
 					continue
 				}
-				_, err := p.bot.Send(api.NewMessage(sA.ChatId, sA.Content))
+				_, err := p.bot.Send(api.NewMessage(sA.Value.ChatId, sA.Value.Content))
 				if err != nil {
 					slog.Warn(fmt.Sprintf("tg: run: %v", err))
 					continue
 				}
+				response <- args
 			}
 		}
 	}()
