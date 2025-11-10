@@ -70,7 +70,7 @@ func TestFilter_obj(t *testing.T) {
     "isCheck": self.Envelope.exists(f, f == 'Check'),
     "envelope": self.Envelope.map(s, {"value": s}),
     "nested": {
-        "one": uuid()
+        "one": uuid.v7()
     },
     "createdTs": now()
 }`
@@ -119,7 +119,7 @@ func TestFilter_obj(t *testing.T) {
 }
 
 func TestFilter_uuid(t *testing.T) {
-	expr := "uuid(b'00000000-0000-0000-0000-000000000000') == \"00000000-0000-0000-0000-000000000000\""
+	expr := "string(b'00000000-0000-0000-0000-000000000000') == \"00000000-0000-0000-0000-000000000000\""
 
 	testedUnit, err := NewCel(expr)
 	if err != nil {

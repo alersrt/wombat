@@ -17,14 +17,9 @@ import (
 )
 
 const (
-	varNameSelf       = "self"
-	funcNameUuid      = "uuid"
-	funcNameNow       = "now"
-	funcNameUnmarshal = "unmarshal"
-	funcNameMarshal   = "marshal"
+	varNameSelf = "self"
 )
 
-// Transform provides filtration/transformation mechanism.
 type Cel struct {
 	prog cel.Program
 }
@@ -42,35 +37,55 @@ func NewCel(expression string) (*Cel, error) {
 				return types.String(b)
 			}),
 		)),
-		cel.Function(funcNameUuid,
-			cel.Overload("uuid_random",
+		cel.Function("uuid.v1",
+			cel.Overload("uuid.v1",
 				nil, cel.StringType,
 				cel.FunctionBinding(func(values ...ref.Val) ref.Val {
-					return types.String(uuid.NewString())
-				}),
-			),
-			cel.Overload("bytes_to_uuid",
-				[]*cel.Type{cel.BytesType}, cel.StringType,
-				cel.UnaryBinding(func(value ref.Val) ref.Val {
-					parsed, err := uuid.ParseBytes(value.Value().([]byte))
+					u, err := uuid.NewUUID()
 					if err != nil {
 						return types.NewErr("cel: %w", err)
 					}
-					return types.String(parsed.String())
-				}),
-			),
-			cel.Overload("string_to_uuid",
-				[]*cel.Type{cel.StringType}, cel.StringType,
-				cel.UnaryBinding(func(value ref.Val) ref.Val {
-					parsed, err := uuid.Parse(value.Value().(string))
-					if err != nil {
-						return types.NewErr("cel: %w", err)
-					}
-					return types.String(parsed.String())
+					return types.String(u.String())
 				}),
 			),
 		),
-		cel.Function(funcNameNow,
+		cel.Function("uuid.v4",
+			cel.Overload("uuid.v4",
+				nil, cel.StringType,
+				cel.FunctionBinding(func(values ...ref.Val) ref.Val {
+					u, err := uuid.NewRandom()
+					if err != nil {
+						return types.NewErr("cel: %w", err)
+					}
+					return types.String(u.String())
+				}),
+			),
+		),
+		cel.Function("uuid.v6",
+			cel.Overload("uuid.v6",
+				nil, cel.StringType,
+				cel.FunctionBinding(func(values ...ref.Val) ref.Val {
+					u, err := uuid.NewV6()
+					if err != nil {
+						return types.NewErr("cel: %w", err)
+					}
+					return types.String(u.String())
+				}),
+			),
+		),
+		cel.Function("uuid.v7",
+			cel.Overload("uuid.v7",
+				nil, cel.StringType,
+				cel.FunctionBinding(func(values ...ref.Val) ref.Val {
+					u, err := uuid.NewV7()
+					if err != nil {
+						return types.NewErr("cel: %w", err)
+					}
+					return types.String(u.String())
+				}),
+			),
+		),
+		cel.Function("now",
 			cel.Overload("timestamp_now",
 				nil, cel.TimestampType,
 				cel.FunctionBinding(func(values ...ref.Val) ref.Val {
@@ -130,8 +145,8 @@ func NewCel(expression string) (*Cel, error) {
 				}),
 			),
 		),
-		cel.Function(funcNameUnmarshal,
-			cel.Overload(funcNameUnmarshal+"_from_bytes",
+		cel.Function("unmarshal",
+			cel.Overload("unmarshal_from_bytes",
 				[]*cel.Type{cel.BytesType}, cel.DynType,
 				cel.UnaryBinding(func(value ref.Val) ref.Val {
 					var dst any
@@ -142,8 +157,8 @@ func NewCel(expression string) (*Cel, error) {
 				}),
 			),
 		),
-		cel.Function(funcNameMarshal,
-			cel.Overload(funcNameUnmarshal+"_to_bytes",
+		cel.Function("marshal",
+			cel.Overload("marshal_to_bytes",
 				[]*cel.Type{cel.DynType}, cel.BytesType,
 				cel.UnaryBinding(func(value ref.Val) ref.Val {
 					bytes, err := json.Marshal(convert(value.Value()))
