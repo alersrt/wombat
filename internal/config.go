@@ -33,10 +33,9 @@ type RuleCfg struct {
 }
 
 type Config struct {
-	Plugins   []*PluginCfg `yaml:"plugins"`
-	Producers []*ItemCfg   `yaml:"producers"`
-	Consumers []*ItemCfg   `yaml:"consumers"`
-	Rules     []*RuleCfg   `yaml:"rules"`
+	Plugins    []*PluginCfg `yaml:"plugins"`
+	Processors []*ItemCfg   `yaml:"producers"`
+	Rules      []*RuleCfg   `yaml:"rules"`
 }
 
 func NewConfig(path string) (*Config, error) {

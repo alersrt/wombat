@@ -2,8 +2,7 @@ package internal
 
 import (
 	"context"
-	"fmt"
-	"log/slog"
+	"wombat/internal/cel"
 
 	"github.com/alersrt/wombat/pkg"
 )
@@ -11,15 +10,17 @@ import (
 type BroadcastServer interface {
 	Subscribe() <-chan []byte
 	CancelSubscription(<-chan []byte)
-	Serve(context.Context)
+	Serve(ctx context.Context, input <-chan []byte) error
 	Close() error
 }
 
 type broadcastServer struct {
-	producer       pkg.Producer
 	listeners      []chan []byte
 	addListener    chan chan []byte
 	removeListener chan (<-chan []byte)
+	processor      pkg.Processor
+	filter         *cel.Cel
+	transform      *cel.Cel
 }
 
 func (s *broadcastServer) Subscribe() <-chan []byte {
@@ -38,38 +39,35 @@ func (s *broadcastServer) Close() error {
 			close(listener)
 		}
 	}
-	return s.producer.Close()
+	return s.processor.Close()
 }
 
-func NewBroadcastServer(producer pkg.Producer) BroadcastServer {
+func NewBroadcastServer(processor pkg.Processor) BroadcastServer {
 	service := &broadcastServer{
-		producer:       producer,
 		listeners:      make([]chan []byte, 0),
 		addListener:    make(chan chan []byte),
 		removeListener: make(chan (<-chan []byte)),
+		processor:      processor,
 	}
 	return service
 }
 
-func (s *broadcastServer) Serve(ctx context.Context) {
+func (s *broadcastServer) Serve(ctx context.Context, input <-chan []byte) error {
 	defer func() {
 		_ = s.Close()
 	}()
 	ctx, cancel := context.WithCancelCause(ctx)
 	defer cancel(nil)
 
-	go func() {
-		err := s.producer.Run(ctx)
-		if err != nil {
-			slog.Error(fmt.Sprintf("broadcast: serve: %+v", err))
-			cancel(err)
-		}
-	}()
+	in, err := s.processor.Process(ctx, input)
+	if err != nil {
+		return err
+	}
 
 	for {
 		select {
 		case <-ctx.Done():
-			return
+			return nil
 		case newListener := <-s.addListener:
 			s.listeners = append(s.listeners, newListener)
 		case listenerToRemove := <-s.removeListener:
@@ -81,16 +79,16 @@ func (s *broadcastServer) Serve(ctx context.Context) {
 					break
 				}
 			}
-		case val, ok := <-s.producer.Publish():
+		case val, ok := <-in:
 			if !ok {
-				return
+				return nil
 			}
 			for _, listener := range s.listeners {
 				if listener != nil {
 					select {
 					case listener <- val:
 					case <-ctx.Done():
-						return
+						return nil
 					}
 				}
 			}
