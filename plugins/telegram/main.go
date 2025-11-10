@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/alersrt/wombat/pkg"
 
@@ -74,18 +75,27 @@ func (p *Plugin) Process(ctx context.Context, input <-chan []byte) (<-chan []byt
 			select {
 			case <-ctx.Done():
 				return
-			case args := <-input:
-				sA := &pkg.Args[Value]{}
-				if err := json.Unmarshal(args, sA); err != nil {
+			case req := <-input:
+				args := &pkg.Args[Value]{}
+
+				if err := json.Unmarshal(req, args); err != nil {
 					slog.Warn(fmt.Sprintf("tg: run: %v", err))
 					continue
 				}
-				_, err := p.bot.Send(api.NewMessage(sA.Value.ChatId, sA.Value.Content))
+				_, err := p.bot.Send(api.NewMessage(args.Value.ChatId, args.Value.Content))
 				if err != nil {
 					slog.Warn(fmt.Sprintf("tg: run: %v", err))
 					continue
 				}
-				response <- args
+
+				args.Timestamp = time.Now()
+				res, err := json.Marshal(args)
+				if err != nil {
+					slog.Warn(fmt.Sprintf("tg: run: %v", err))
+					continue
+				}
+
+				response <- res
 			}
 		}
 	}()

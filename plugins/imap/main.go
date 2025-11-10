@@ -122,9 +122,12 @@ func (p *Plugin) Process(ctx context.Context, input <-chan []byte) (<-chan []byt
 					continue
 				}
 				for _, item := range found {
-					bytes, err := json.Marshal(&Message{
-						Envelope: envelopeToEnvelope(item.Envelope),
-						Text:     string(item.FindBodySection(&imap.FetchItemBodySection{Specifier: imap.PartSpecifierText})),
+					bytes, err := json.Marshal(&pkg.Args[Message]{
+						Timestamp: time.Now(),
+						Value: Message{
+							Envelope: envelopeToEnvelope(item.Envelope),
+							Text:     string(item.FindBodySection(&imap.FetchItemBodySection{Specifier: imap.PartSpecifierText})),
+						},
 					})
 					if err != nil {
 						slog.Warn(fmt.Sprintf("imap: run: %v", err))
