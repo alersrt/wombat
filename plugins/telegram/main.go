@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"sync"
 	"sync/atomic"
 
@@ -22,7 +24,7 @@ type Plugin struct {
 	bot    *api.BotAPI
 }
 
-func Export() pkg.Plugin {
+func Export() pkg.Processor {
 	return &Plugin{}
 }
 
@@ -50,6 +52,7 @@ func (p *Plugin) IsInit() bool {
 }
 
 func (p *Plugin) Close() error {
+	p.isInit.Store(false)
 	return nil
 }
 
@@ -58,15 +61,33 @@ type SendArgs struct {
 	Content string `json:"content"`
 }
 
-func (p *Plugin) Consume(args []byte) error {
+func (p *Plugin) Process(ctx context.Context, input <-chan []byte) (<-chan []byte, error) {
 	if !p.IsInit() {
-		return fmt.Errorf("tg: send: not init")
+		return nil, fmt.Errorf("tg: send: not init")
 	}
 
-	sA := &SendArgs{}
-	if err := json.Unmarshal(args, sA); err != nil {
-		return err
-	}
-	_, err := p.bot.Send(api.NewMessage(sA.ChatId, sA.Content))
-	return err
+	response := make(chan []byte)
+	defer close(response)
+
+	go func() {
+		for p.IsInit() {
+			select {
+			case <-ctx.Done():
+				return
+			case args := <-input:
+				sA := &SendArgs{}
+				if err := json.Unmarshal(args, sA); err != nil {
+					slog.Warn(fmt.Sprintf("tg: run: %v", err))
+					continue
+				}
+				_, err := p.bot.Send(api.NewMessage(sA.ChatId, sA.Content))
+				if err != nil {
+					slog.Warn(fmt.Sprintf("tg: run: %v", err))
+					continue
+				}
+			}
+		}
+	}()
+
+	return response, nil
 }

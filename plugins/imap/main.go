@@ -56,6 +56,7 @@ func (p *Plugin) IsInit() bool {
 }
 
 func (p *Plugin) Close() error {
+	p.isInit.Store(false)
 	return nil
 }
 
@@ -99,35 +100,41 @@ func (p *Plugin) Process(ctx context.Context, input <-chan []byte) (<-chan []byt
 	response := make(chan []byte)
 	defer close(response)
 
-	for {
-		select {
-		case <-ctx.Done():
-			return nil, nil
-		default:
-			time.Sleep(p.cfg.IdleTimeout * time.Millisecond)
+	go func() {
+		for p.IsInit() {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				time.Sleep(p.cfg.IdleTimeout * time.Millisecond)
 
-			search, err := client.Search(&imap.SearchCriteria{NotFlag: []imap.Flag{imap.FlagSeen}}, nil).Wait()
-			if err != nil {
-				return nil, fmt.Errorf("imap: run: %v", err)
-			}
-			if len(search.AllSeqNums()) == 0 {
-				continue
-			}
-			found, err := client.Fetch(search.All, &imap.FetchOptions{Envelope: true, BodySection: []*imap.FetchItemBodySection{{Specifier: imap.PartSpecifierText}}}).Collect()
-			if err != nil {
-				return nil, fmt.Errorf("imap: run: %v", err)
-			}
-			for _, item := range found {
-				bytes, err := json.Marshal(&Message{
-					Envelope: envelopeToEnvelope(item.Envelope),
-					Text:     string(item.FindBodySection(&imap.FetchItemBodySection{Specifier: imap.PartSpecifierText})),
-				})
+				search, err := client.Search(&imap.SearchCriteria{NotFlag: []imap.Flag{imap.FlagSeen}}, nil).Wait()
 				if err != nil {
 					slog.Warn(fmt.Sprintf("imap: run: %v", err))
 					continue
 				}
-				response <- bytes
+				if len(search.AllSeqNums()) == 0 {
+					continue
+				}
+				found, err := client.Fetch(search.All, &imap.FetchOptions{Envelope: true, BodySection: []*imap.FetchItemBodySection{{Specifier: imap.PartSpecifierText}}}).Collect()
+				if err != nil {
+					slog.Warn(fmt.Sprintf("imap: run: %v", err))
+					continue
+				}
+				for _, item := range found {
+					bytes, err := json.Marshal(&Message{
+						Envelope: envelopeToEnvelope(item.Envelope),
+						Text:     string(item.FindBodySection(&imap.FetchItemBodySection{Specifier: imap.PartSpecifierText})),
+					})
+					if err != nil {
+						slog.Warn(fmt.Sprintf("imap: run: %v", err))
+						continue
+					}
+					response <- bytes
+				}
 			}
 		}
-	}
+	}()
+
+	return response, nil
 }
