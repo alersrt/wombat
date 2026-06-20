@@ -8,34 +8,57 @@ import (
 	"mvdan.cc/sh/v3/shell"
 )
 
+// ComponentType represents the type of a pipeline component
+type ComponentType string
+
+const (
+	ComponentTypeSource    ComponentType = "source"
+	ComponentTypeProcessor ComponentType = "processor"
+	ComponentTypeSink      ComponentType = "sink"
+	ComponentTypeLookup    ComponentType = "lookup"
+)
+
+// PluginCfg represents the plugin configuration for a component
 type PluginCfg struct {
-	Name string `yaml:"name"`
-	Bin  string `yaml:"bin"`
+	Path          string            `yaml:"path,omitempty"`
+	RemoteAddress string            `yaml:"remote_address,omitempty"`
+	Env           map[string]string `yaml:"env,omitempty"`
 }
 
-type ItemCfg struct {
-	Name   string         `yaml:"name"`
-	Plugin string         `yaml:"plugin"`
-	Conf   map[string]any `yaml:"conf"`
+// ExprConfig represents expression configuration
+type ExprConfig struct {
+	Input  string `yaml:"input,omitempty"`
+	Output string `yaml:"output,omitempty"`
 }
 
-type ApplienceCfg struct {
-	Filter    string `yaml:"filter"`
-	Transform string `yaml:"transform"`
+// ComponentConfig represents component-specific configuration
+type ComponentConfig struct {
+	Conf map[string]any `yaml:",inline"`
 }
 
-type RuleCfg struct {
-	Name      string `yaml:"name"`
-	Producer  string `yaml:"producer"`
-	Consumer  string `yaml:"consumer"`
-	Filter    string `yaml:"filter"`
-	Transform string `yaml:"transform"`
+// ComponentCfg represents a component in the pipeline
+type ComponentCfg struct {
+	ID     string           `yaml:"id"`
+	Type   ComponentType    `yaml:"type"`
+	Plugin *PluginCfg       `yaml:"plugin"`
+	Config *ComponentConfig `yaml:"config,omitempty"`
+	Expr   *ExprConfig      `yaml:"expr,omitempty"`
 }
 
+// RoutingCfg represents a routing rule between components
+type RoutingCfg struct {
+	From    string `yaml:"from"`
+	To      string `yaml:"to"`
+	WhenCel string `yaml:"when_cel,omitempty"`
+    ExprCel string `yaml:"when_cel,omitempty"`
+}
+
+// Config represents the pipeline configuration
 type Config struct {
-	Plugins    []*PluginCfg `yaml:"plugins"`
-	Processors []*ItemCfg   `yaml:"producers"`
-	Rules      []*RuleCfg   `yaml:"rules"`
+	Version    string          `yaml:"version"`
+	PipelineID string          `yaml:"pipeline_id"`
+	Components []*ComponentCfg `yaml:"components"`
+	Routing    []*RoutingCfg   `yaml:"routing"`
 }
 
 func NewConfig(path string) (*Config, error) {

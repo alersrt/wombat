@@ -2,34 +2,31 @@ package internal
 
 import (
 	"context"
-	"wombat/internal/cel"
 
 	"github.com/alersrt/wombat/pkg"
 )
 
 type BroadcastServer interface {
-	Subscribe() <-chan []byte
-	CancelSubscription(<-chan []byte)
-	Serve(ctx context.Context, input <-chan []byte) error
+	Subscribe() <-chan pkg.Message
+	CancelSubscription(<-chan pkg.Message)
+	Serve(ctx context.Context, input <-chan pkg.Message) error
 	Close() error
 }
 
 type broadcastServer struct {
-	listeners      []chan []byte
-	addListener    chan chan []byte
-	removeListener chan (<-chan []byte)
-	processor      pkg.Processor
-	filter         *cel.Cel
-	transform      *cel.Cel
+	listeners      []chan pkg.Message
+	addListener    chan chan pkg.Message
+	removeListener chan (<-chan pkg.Message)
+	processor      pkg.Component
 }
 
-func (s *broadcastServer) Subscribe() <-chan []byte {
-	newListener := make(chan []byte)
+func (s *broadcastServer) Subscribe() <-chan pkg.Message {
+	newListener := make(chan pkg.Message)
 	s.addListener <- newListener
 	return newListener
 }
 
-func (s *broadcastServer) CancelSubscription(channel <-chan []byte) {
+func (s *broadcastServer) CancelSubscription(channel <-chan pkg.Message) {
 	s.removeListener <- channel
 }
 
@@ -42,17 +39,17 @@ func (s *broadcastServer) Close() error {
 	return s.processor.Close()
 }
 
-func NewBroadcastServer(processor pkg.Processor) BroadcastServer {
+func NewBroadcastServer(processor pkg.Component) BroadcastServer {
 	service := &broadcastServer{
-		listeners:      make([]chan []byte, 0),
-		addListener:    make(chan chan []byte),
-		removeListener: make(chan (<-chan []byte)),
+		listeners:      make([]chan pkg.Message, 0),
+		addListener:    make(chan chan pkg.Message),
+		removeListener: make(chan (<-chan pkg.Message)),
 		processor:      processor,
 	}
 	return service
 }
 
-func (s *broadcastServer) Serve(ctx context.Context, input <-chan []byte) error {
+func (s *broadcastServer) Serve(ctx context.Context, input <-chan pkg.Message) error {
 	defer func() {
 		_ = s.Close()
 	}()

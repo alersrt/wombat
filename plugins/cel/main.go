@@ -1,4 +1,4 @@
-package main
+package cel
 
 import (
 	"context"
@@ -10,19 +10,17 @@ import (
 	"time"
 
 	"github.com/alersrt/wombat/pkg"
-
-	api "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 type Config struct {
-	Token string `yaml:"token"`
+	Expr string `yaml:"expr"`
 }
 
 type Plugin struct {
 	mtx    sync.Mutex
 	isInit atomic.Bool
 	cfg    *Config
-	bot    *api.BotAPI
+	expr   *Cel
 }
 
 func Export() pkg.Component {
@@ -30,7 +28,7 @@ func Export() pkg.Component {
 }
 
 func (p *Plugin) Type() pkg.ComponentType {
-	return pkg.ComponentTypeSink
+	return pkg.ComponentTypeProcessor
 }
 
 func (p *Plugin) Init(cfg pkg.Config) error {
@@ -42,11 +40,11 @@ func (p *Plugin) Init(cfg pkg.Config) error {
 		return err
 	}
 
-	bot, err := api.NewBotAPI(p.cfg.Token)
+	expr, err := NewCel(p.cfg.Expr)
 	if err != nil {
-		return fmt.Errorf("tg: new: %v", err)
+		return fmt.Errorf("cel: new: %v", err)
 	}
-	p.bot = bot
+	p.expr = expr
 
 	p.isInit.Store(true)
 	return nil
@@ -61,14 +59,9 @@ func (p *Plugin) Close() error {
 	return nil
 }
 
-type Value struct {
-	ChatId  int64  `json:"chat_id"`
-	Content string `json:"content"`
-}
-
 func (p *Plugin) Process(ctx context.Context, input <-chan pkg.Message) (<-chan pkg.Message, error) {
 	if !p.IsInit() {
-		return nil, fmt.Errorf("tg: send: not init")
+		return nil, fmt.Errorf("cel: run: not init")
 	}
 
 	response := make(chan pkg.Message)
@@ -80,21 +73,9 @@ func (p *Plugin) Process(ctx context.Context, input <-chan pkg.Message) (<-chan 
 			case <-ctx.Done():
 				return
 			case req := <-input:
-				args := &Value{}
-
-				if err := json.Unmarshal(req.Value, args); err != nil {
-					slog.Warn(fmt.Sprintf("tg: run: %v", err))
-					continue
-				}
-				_, err := p.bot.Send(api.NewMessage(args.ChatId, args.Content))
+				res, err := p.expr.EvalBytes(req.Value)
 				if err != nil {
-					slog.Warn(fmt.Sprintf("tg: run: %v", err))
-					continue
-				}
-
-				res, err := json.Marshal(args)
-				if err != nil {
-					slog.Warn(fmt.Sprintf("tg: run: %v", err))
+					slog.Warn(fmt.Sprintf("cel: run: %v", err))
 					continue
 				}
 

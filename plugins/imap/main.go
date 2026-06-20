@@ -35,16 +35,16 @@ type Plugin struct {
 	cfg    *Config
 }
 
-func Export() pkg.Processor {
+func Export() pkg.Component {
 	return &Plugin{}
 }
 
-func (p *Plugin) Init(cfg []byte) error {
+func (p *Plugin) Init(cfg pkg.Config) error {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
 
 	p.cfg = &Config{}
-	if err := json.Unmarshal(cfg, p.cfg); err != nil {
+	if err := json.Unmarshal(cfg.Value, p.cfg); err != nil {
 		return fmt.Errorf("imap: init: %v", err)
 	}
 	p.isInit.Store(true)
@@ -60,7 +60,11 @@ func (p *Plugin) Close() error {
 	return nil
 }
 
-func (p *Plugin) Process(ctx context.Context, input <-chan []byte) (<-chan []byte, error) {
+func (p *Plugin) Type() pkg.ComponentType {
+	return pkg.ComponentTypeSource
+}
+
+func (p *Plugin) Process(ctx context.Context, input <-chan pkg.Message) (<-chan pkg.Message, error) {
 	p.mtx.Lock()
 	defer p.mtx.Unlock()
 	if !p.IsInit() {
@@ -97,7 +101,7 @@ func (p *Plugin) Process(ctx context.Context, input <-chan []byte) (<-chan []byt
 		_ = client.Unselect().Wait()
 	}()
 
-	response := make(chan []byte)
+	response := make(chan pkg.Message)
 	defer close(response)
 
 	go func() {
@@ -122,18 +126,18 @@ func (p *Plugin) Process(ctx context.Context, input <-chan []byte) (<-chan []byt
 					continue
 				}
 				for _, item := range found {
-					bytes, err := json.Marshal(&pkg.Args[Message]{
-						Timestamp: time.Now(),
-						Value: Message{
-							Envelope: envelopeToEnvelope(item.Envelope),
-							Text:     string(item.FindBodySection(&imap.FetchItemBodySection{Specifier: imap.PartSpecifierText})),
-						},
+					bytes, err := json.Marshal(&Message{
+						Envelope: envelopeToEnvelope(item.Envelope),
+						Text:     string(item.FindBodySection(&imap.FetchItemBodySection{Specifier: imap.PartSpecifierText})),
 					})
 					if err != nil {
 						slog.Warn(fmt.Sprintf("imap: run: %v", err))
 						continue
 					}
-					response <- bytes
+					response <- pkg.Message{
+						Value:     bytes,
+						Timestamp: time.Now(),
+					}
 				}
 			}
 		}

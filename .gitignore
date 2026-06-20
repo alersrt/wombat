@@ -11,6 +11,7 @@
 !/pkg/
 !/examples/
 !/plugins/
+!/schemas/
 
 # Backend
 **/vendor

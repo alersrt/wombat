@@ -2,19 +2,22 @@ package pkg
 
 import "context"
 
-// Processor describes pipeline with input and output.
-type Processor interface {
+// Component describes pipeline with input and output.
+type Component interface {
 
-	// Inits the processor. Takes the configurations in json representation.
+	// Returns type of component
+	Type() ComponentType
+
+	// Takes the configurations and inits component.
 	// Returns an error if some trouble is observed.
-	Init([]byte) error
+	Init(Config) error
 
-	// Checks if the processor initializated.
+	// Checks if the component initializated.
 	IsInit() bool
 
 	Close() error
 
 	// Process consumes data, do work and return an answer.
 	// Input and output are json representations of the expected structures.
-	Process(ctx context.Context, input <-chan []byte) (<-chan []byte, error)
+	Process(ctx context.Context, input <-chan Message) (<-chan Message, error)
 }

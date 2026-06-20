@@ -82,11 +82,13 @@ go.build:
 	GOARCH=amd64 GOOS=linux go build -a --ldflags='-w -s -extldflags="-static"' --mod=vendor --trimpath -o ${builddir}/wombat-linux ${PWD}/cmd/main.go
 	@make go.plugin.build plugin=imap
 	@make go.plugin.build plugin=telegram
+	@make go.plugin.build plugin=cel
 
 plugin ?=
 go.plugins.build.debug:
 	@make go.plugin.build.debug plugin=imap
 	@make go.plugin.build.debug plugin=telegram
+	@make go.plugin.build.debug plugin=cel
 
 go.plugin.build.debug:
 	GOARCH=amd64 GOOS=linux go build --trimpath --gcflags=all='-N -l' -x -v --mod=readonly --buildmode=plugin -o ${builddir}/${plugin}-plugin.so ${PWD}/plugins/${plugin}/main.go

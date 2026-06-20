@@ -1,13 +1,15 @@
-plugins:
-  - name: imap
-    bin: ./build/bin/imap-plugin.so
-  - name: telegram
-    bin: ./build/bin/telegram-plugin.so
+# $schema: ../schemas/config.schema.json
 
-producers:
-  - name: imap_producer
-    plugin: imap
-    conf:
+version: "1.0"
+pipeline_id: "test_flow"
+
+# Объявление узлов графа (Плагины)
+components:
+  - id: "imap_source"
+    type: source
+    plugin:
+      path: ./build/bin/imap-plugin.so
+    config:
       url: ${WOMBAT_IMAP_ADDRESS:-mail.dev:993}
       username: ${WOMBAT_IMAP_USERNAME:-example@mail.dev}
       password: ${WOMBAT_IMAP_PASSWORD:-password}
@@ -15,19 +17,28 @@ producers:
       idleTimeout: ${WOMBAT_IMAP_IDLE_TIMEOUT:-5000}
       verbose: ${WOMBAT_IMAP_VERBOSE:-true}
 
-consumers:
-  - name: tg_consumer
-    plugin: telegram
-    conf:
+  - id: "telegram_sink"
+    type: sink
+    plugin:
+      path: ./build/bin/telegram-plugin.so
+    config:
       token: ${WOMBAT_TELEGRAM_TOKEN:-example}
 
-rules:
-  - name: imap_to_tg
-    producer: imap_producer
-    consumer: tg_consumer
-    filter: 'true'
-    transform: |
-      {
-        "chat_id": 1234,
-        "content": self.?Envelope.?Subject
-      }
+  - id: "imap_to_telegram_cel_transformer"
+    type: processor
+    plugin:
+      path: ./build/bin/cel-plugin.so
+    config:
+      expr: |
+        {
+          "chat_id": 1234,
+          "content": self.?Envelope.?Subject.orValue(null)
+        }
+
+# Описание ребер графа (Маршрутизация и условия)
+routing:
+  - from: "imap_source"
+    to: "imap_to_telegram_cel_transformer"
+
+  - from: "imap_to_telegram_cel_transformer"
+    to: "telegram_sink"

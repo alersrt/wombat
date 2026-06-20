@@ -1,0 +1,128 @@
+{
+    "$schema": "http://json-schema.org/",
+    "title": "PipelineConfig",
+    "type": "object",
+    "required": [
+        "version",
+        "pipeline_id",
+        "components",
+        "routing"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "$schema": {
+            "type": "string"
+        },
+        "version": {
+            "type": "string",
+            "enum": [
+                "1.0"
+            ]
+        },
+        "pipeline_id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "components": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "id",
+                    "type",
+                    "plugin"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "pattern": "^[a-zA-Z0-9_\\-]+$"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "source",
+                            "processor",
+                            "sink",
+                            "lookup"
+                        ]
+                    },
+                    "plugin": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "anyOf": [
+                            {
+                                "required": [
+                                    "path"
+                                ]
+                            },
+                            {
+                                "required": [
+                                    "remote_address"
+                                ]
+                            }
+                        ],
+                        "properties": {
+                            "path": {
+                                "type": "string"
+                            },
+                            "remote_address": {
+                                "type": "string",
+                                "pattern": "^[^:]+:[0-9]+$"
+                            },
+                            "env": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "config": {
+                        "type": "object",
+                        "properties": {
+                            "expr": {
+                                "type": "object",
+                                "properties": {
+                                    "input": {
+                                        "type": "string"
+                                    },
+                                    "output": {
+                                        "type": "string"
+                                    }
+                                },
+                                "additionalProperties": false
+                            }
+                        },
+                        "additionalProperties": true
+                    }
+                }
+            }
+        },
+        "routing": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "from",
+                    "to"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "from": {
+                        "type": "string"
+                    },
+                    "to": {
+                        "type": "string"
+                    },
+                    "when_cel": {
+                        "type": "string"
+                    },
+                    "expr_cel" : {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}
